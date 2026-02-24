@@ -18,7 +18,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: 'Sport Tracker',
+  title: 'Jupiter Tracker',
   description: 'Track your workouts',
 };
 
@@ -32,12 +32,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body className={`${dmSans.variable} ${instrumentSerif.variable} font-sans`}
-        style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
-        <main className="max-w-[430px] mx-auto relative pb-[80px]">
-          {children}
-        </main>
-        <BottomNav />
+      <body className={`${dmSans.variable} ${instrumentSerif.variable} font-sans bg-bg text-text min-h-dvh overflow-x-hidden`}>
+        <div className="flex min-h-dvh">
+          <BottomNav />
+          <main className="flex-1 pb-20 lg:pb-0">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );
