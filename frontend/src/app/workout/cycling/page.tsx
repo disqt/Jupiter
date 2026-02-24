@@ -17,81 +17,59 @@ function CyclingWorkoutForm() {
 
   const handleSave = () => {
     setSaving(true);
-    // Dummy save — just navigate back
-    setTimeout(() => {
-      router.push('/');
-    }, 300);
+    setTimeout(() => { router.push('/'); }, 300);
   };
 
   const dateDisplay = date
     ? new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       })
     : '';
 
   return (
-    <div style={{ padding: '0 20px 140px' }}>
-      <div className="screen-header">
-        <button className="back-btn" onClick={() => router.push('/')}>
+    <div className="px-5 pb-36 lg:max-w-xl lg:mx-auto lg:pb-20">
+      {/* Header */}
+      <div className="flex items-center gap-3 pt-14 pb-5 lg:pt-8">
+        <button onClick={() => router.push('/')}
+          className="w-9 h-9 rounded-full bg-bg-card border border-border text-text-secondary flex items-center justify-center cursor-pointer text-base transition-all duration-150 active:scale-90 shrink-0">
           &#8249;
         </button>
-        <span style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: '22px', fontWeight: 400 }}>
-          Séance vélo
-        </span>
+        <span className="font-serif text-[22px] font-normal">Séance vélo</span>
       </div>
 
-      <div className="screen-date" style={{ textTransform: 'capitalize' }}>
-        {dateDisplay}
+      <div className="text-[13px] text-text-muted mb-6 pl-12 capitalize">{dateDisplay}</div>
+
+      {/* Fields — 2 columns on tablet+ */}
+      <div className="md:grid md:grid-cols-2 md:gap-4">
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">Type de sortie</label>
+          <select value={rideType} onChange={(e) => setRideType(e.target.value)}
+            className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent appearance-none">
+            {RIDE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">Durée (min)</label>
+          <input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="75"
+            className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted" />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">Distance (km)</label>
+          <input type="number" step="0.1" value={distance} onChange={(e) => setDistance(e.target.value)} placeholder="42.5"
+            className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted" />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">Dénivelé (m)</label>
+          <input type="number" value={elevation} onChange={(e) => setElevation(e.target.value)} placeholder="680"
+            className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted" />
+        </div>
       </div>
 
-      <div className="field">
-        <label>Type de sortie</label>
-        <select value={rideType} onChange={(e) => setRideType(e.target.value)}>
-          {RIDE_TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="field">
-        <label>Durée (min)</label>
-        <input
-          type="number"
-          value={duration}
-          onChange={(e) => setDuration(e.target.value)}
-          placeholder="75"
-        />
-      </div>
-
-      <div className="field">
-        <label>Distance (km)</label>
-        <input
-          type="number"
-          step="0.1"
-          value={distance}
-          onChange={(e) => setDistance(e.target.value)}
-          placeholder="42.5"
-        />
-      </div>
-
-      <div className="field">
-        <label>Dénivelé (m)</label>
-        <input
-          type="number"
-          value={elevation}
-          onChange={(e) => setElevation(e.target.value)}
-          placeholder="680"
-        />
-      </div>
-
-      <button
-        className="save-btn cycling-save"
-        onClick={handleSave}
-        disabled={saving}
-      >
+      <button onClick={handleSave} disabled={saving}
+        className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] bg-cycling text-white shadow-[0_4px_20px_rgba(59,158,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide">
         {saving ? 'Sauvegarde...' : 'Sauvegarder'}
       </button>
     </div>
@@ -100,7 +78,7 @@ function CyclingWorkoutForm() {
 
 export default function CyclingWorkout() {
   return (
-    <Suspense fallback={<div style={{ padding: '20px', color: 'var(--text-muted)' }}>Chargement...</div>}>
+    <Suspense fallback={<div className="p-5 text-text-muted">Chargement...</div>}>
       <CyclingWorkoutForm />
     </Suspense>
   );
