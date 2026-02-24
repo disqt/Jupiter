@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { EXERCISES, MUSCLE_GROUPS, DUMMY_WORKOUTS, type Exercise } from '@/lib/data';
 
@@ -14,6 +14,82 @@ interface ExerciseEntry {
   exercise: Exercise;
   sets: SetLog[];
   lastPerformance: { setNumber: number; reps: number; weight: number }[];
+}
+
+function SwipeableSetRow({
+  children,
+  canSwipe,
+  onDelete,
+}: {
+  children: React.ReactNode;
+  canSwipe: boolean;
+  onDelete: () => void;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const startX = useRef(0);
+  const currentX = useRef(0);
+  const isDragging = useRef(false);
+  const isOpen = useRef(false);
+  const THRESHOLD = 60;
+
+  const setTransform = useCallback((x: number) => {
+    if (rowRef.current) {
+      rowRef.current.style.transform = `translateX(${x}px)`;
+    }
+  }, []);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!canSwipe) return;
+    startX.current = e.touches[0].clientX;
+    isDragging.current = true;
+    if (rowRef.current) rowRef.current.style.transition = 'none';
+  }, [canSwipe]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging.current) return;
+    const diff = e.touches[0].clientX - startX.current;
+    const base = isOpen.current ? -THRESHOLD : 0;
+    const x = Math.min(0, Math.max(-THRESHOLD - 20, base + diff));
+    currentX.current = x;
+    setTransform(x);
+  }, [setTransform]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    if (rowRef.current) rowRef.current.style.transition = 'transform 0.25s ease';
+    if (currentX.current < -THRESHOLD / 2) {
+      setTransform(-THRESHOLD);
+      isOpen.current = true;
+    } else {
+      setTransform(0);
+      isOpen.current = false;
+    }
+  }, [setTransform]);
+
+  if (!canSwipe) {
+    return <div className="set-row">{children}</div>;
+  }
+
+  return (
+    <div className="swipe-container">
+      <div className="swipe-delete-bg" onClick={onDelete}>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M4.5 4.5h9M7.5 4.5V3a1.5 1.5 0 011.5-1.5h0A1.5 1.5 0 0110.5 3v1.5M6 7.5v6M9 7.5v6M12 7.5v6M5.25 4.5l.5 10a1.5 1.5 0 001.5 1.5h3.5a1.5 1.5 0 001.5-1.5l.5-10"
+            stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+      <div
+        ref={rowRef}
+        className="set-row swipe-row"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function StrengthWorkoutForm() {
@@ -93,6 +169,15 @@ function StrengthWorkoutForm() {
     setEntries(updated);
   };
 
+  const removeSet = (entryIdx: number, setIdx: number) => {
+    const updated = [...entries];
+    const newSets = updated[entryIdx].sets
+      .filter((_, i) => i !== setIdx)
+      .map((s, i) => ({ ...s, setNumber: i + 1 }));
+    updated[entryIdx] = { ...updated[entryIdx], sets: newSets };
+    setEntries(updated);
+  };
+
   const removeExercise = (entryIdx: number) => {
     setEntries(entries.filter((_, i) => i !== entryIdx));
   };
@@ -136,8 +221,11 @@ function StrengthWorkoutForm() {
               <div className="exercise-name">{entry.exercise.name}</div>
               <div className="exercise-muscle">{entry.exercise.muscleGroup}</div>
             </div>
-            <button className="exercise-remove" onClick={() => removeExercise(entryIdx)}>
-              Retirer
+            <button className="exercise-remove" onClick={() => removeExercise(entryIdx)} aria-label="Retirer">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="9" stroke="var(--danger)" strokeWidth="1.5" opacity="0.5" />
+                <path d="M7 7l6 6M13 7l-6 6" stroke="var(--danger)" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
 
@@ -152,8 +240,13 @@ function StrengthWorkoutForm() {
           {/* Sets */}
           {entry.sets.map((set, setIdx) => {
             const lastPerf = entry.lastPerformance.find((p) => p.setNumber === set.setNumber);
+            const canDelete = set.setNumber > 1;
             return (
-              <div key={setIdx} className="set-row">
+              <SwipeableSetRow
+                key={setIdx}
+                canSwipe={canDelete}
+                onDelete={() => removeSet(entryIdx, setIdx)}
+              >
                 <div className="set-num">{set.setNumber}</div>
                 <div className="set-prev">
                   {lastPerf ? `${lastPerf.reps} × ${lastPerf.weight}kg` : '-'}
@@ -173,7 +266,7 @@ function StrengthWorkoutForm() {
                   onChange={(e) => updateSet(entryIdx, setIdx, 'weight', e.target.value)}
                   placeholder={lastPerf ? String(lastPerf.weight) : '0'}
                 />
-              </div>
+              </SwipeableSetRow>
             );
           })}
 

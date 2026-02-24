@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Notion__notion-search",
+      "mcp__claude_ai_Notion__notion-get-teams",
+      "mcp__claude_ai_Notion__notion-create-pages",
+      "mcp__claude_ai_Notion__notion-update-page",
+      "Bash(git init:*)",
+      "Bash(cd:*)",
+      "Bash(npx create-next-app@14:*)",
+      "Bash(npm install:*)",
+      "Bash(git:*)",
+      "Bash(tail:*)",
+      "Bash(cd /Users/sylvainmerle/Documents/Sport/backend && npx tsc --noEmit 2>&1)",
+      "Bash(echo EXIT: $?:*)",
+      "Bash(cd /Users/sylvainmerle/Documents/Sport/frontend && npx next build 2>&1)",
+      "Bash(echo OK   $f:*)",
+      "Bash(gh repo:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}

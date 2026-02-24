@@ -76,7 +76,7 @@ export default function Calendar() {
       {/* Header */}
       <div className="app-header">
         <h1 style={{ fontFamily: 'var(--font-instrument-serif), serif' }}>
-          Sport <span>Tracker</span>
+          Jupiter <span>Tracker</span>
         </h1>
       </div>
 
