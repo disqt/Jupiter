@@ -25,16 +25,10 @@ export default function Calendar() {
   const stats = getMonthlyStats(year, month);
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7; // Monday = 0
+  const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7;
 
-  const prevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
-    setSelectedDate(null);
-  };
-  const nextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
-    setSelectedDate(null);
-  };
+  const prevMonth = () => { setCurrentDate(new Date(year, month - 1, 1)); setSelectedDate(null); };
+  const nextMonth = () => { setCurrentDate(new Date(year, month + 1, 1)); setSelectedDate(null); };
 
   const getWorkoutsForDay = (day: number): Workout[] => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -47,7 +41,6 @@ export default function Calendar() {
   const formatDateStr = (day: number) =>
     `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-  // Auto-select today on load
   useEffect(() => {
     if (month === today.getMonth() && year === today.getFullYear()) {
       setSelectedDate(formatDateStr(today.getDate()));
@@ -64,7 +57,6 @@ export default function Calendar() {
     }, 50);
   };
 
-  // Parse selected date
   const selectedDay = selectedDate ? parseInt(selectedDate.split('-')[2]) : null;
   const selectedDayWorkouts = selectedDay ? getWorkoutsForDay(selectedDay) : [];
   const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null;
@@ -73,168 +65,179 @@ export default function Calendar() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="app-header">
-        <h1 style={{ fontFamily: 'var(--font-instrument-serif), serif' }}>
-          Jupiter <span>Tracker</span>
+      {/* Header — visible on mobile/tablet only */}
+      <div className="sticky top-0 z-10 bg-gradient-to-b from-bg from-70% to-transparent px-5 pt-14 pb-3 lg:hidden">
+        <h1 className="font-serif text-[28px] font-normal tracking-tight">
+          Jupiter <span className="text-text-muted italic">Tracker</span>
         </h1>
       </div>
 
-      <div style={{ padding: '0 20px 20px' }}>
-        {/* Month navigation */}
-        <div className="month-nav">
-          <button className="month-nav-btn" onClick={prevMonth}>&#8249;</button>
-          <span className="month-label">{monthNames[month]} {year}</span>
-          <button className="month-nav-btn" onClick={nextMonth}>&#8250;</button>
+      {/* Desktop: two-column | Mobile: single column */}
+      <div className="px-5 pb-5 lg:flex lg:gap-8 lg:px-8 lg:pt-8 lg:max-w-6xl">
+
+        {/* Left column: month nav + calendar */}
+        <div className="lg:flex-1 lg:max-w-2xl">
+          {/* Month navigation */}
+          <div className="flex items-center justify-between py-4 pb-3 lg:pt-0">
+            <button onClick={prevMonth}
+              className="w-9 h-9 rounded-full bg-bg-card border border-border text-text-secondary flex items-center justify-center cursor-pointer transition-all duration-200 active:scale-[0.92] active:bg-bg-elevated text-base">
+              &#8249;
+            </button>
+            <span className="text-[17px] font-semibold tracking-tight">{monthNames[month]} {year}</span>
+            <button onClick={nextMonth}
+              className="w-9 h-9 rounded-full bg-bg-card border border-border text-text-secondary flex items-center justify-center cursor-pointer transition-all duration-200 active:scale-[0.92] active:bg-bg-elevated text-base">
+              &#8250;
+            </button>
+          </div>
+
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-1.5">
+            {dayNames.map((d) => (
+              <span key={d} className="text-center text-[11px] font-medium text-text-muted uppercase tracking-wide py-1">
+                {d}
+              </span>
+            ))}
+          </div>
+
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+              <div key={`empty-${i}`} className="min-h-[64px] md:min-h-[80px] lg:min-h-[90px]" />
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const dayWorkouts = getWorkoutsForDay(day);
+              const hasVelo = dayWorkouts.some((w) => w.type === 'velo');
+              const hasMuscu = dayWorkouts.some((w) => w.type === 'musculation');
+              const hasBoth = hasVelo && hasMuscu;
+              const dateStr = formatDateStr(day);
+              const isTodayCell = isToday(day);
+              const isSelected = selectedDate === dateStr;
+
+              const bgClass = hasBoth
+                ? 'bg-gradient-to-br from-cycling-soft to-strength-soft'
+                : hasVelo ? 'bg-cycling-soft' : hasMuscu ? 'bg-strength-soft' : '';
+
+              return (
+                <div
+                  key={day}
+                  onClick={() => selectDay(day)}
+                  className={`min-h-[64px] md:min-h-[80px] lg:min-h-[90px] flex flex-col items-center justify-start rounded-sm text-[13px] cursor-pointer relative transition-all duration-150 active:scale-[0.93] p-1 gap-0.5 overflow-hidden
+                    ${bgClass}
+                    ${isTodayCell ? 'text-text font-bold border-[1.5px] border-border' : 'text-text-secondary'}
+                    ${isSelected ? 'border-[1.5px] border-accent text-text font-semibold' : ''}
+                    ${dayWorkouts.length > 0 && !isTodayCell && !isSelected ? 'text-text' : ''}`}
+                >
+                  <span className="text-[13px] leading-none mb-px">{day}</span>
+                  {(hasVelo || hasMuscu) && (
+                    <div className="flex flex-col gap-px w-full px-0.5">
+                      {hasVelo && (
+                        <span className={`text-[8px] font-semibold leading-tight py-0.5 px-[3px] rounded-[3px] text-center line-clamp-2 bg-cycling/20 text-cycling ${isSelected ? 'bg-cycling/30' : ''}`}>
+                          🚴 Vélo
+                        </span>
+                      )}
+                      {hasMuscu && (
+                        <span className={`text-[8px] font-semibold leading-tight py-0.5 px-[3px] rounded-[3px] text-center line-clamp-2 bg-strength/20 text-strength ${isSelected ? 'bg-strength/30' : ''}`}>
+                          🏋️ Muscu
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Day headers */}
-        <div className="cal-days-header">
-          {dayNames.map((d) => (
-            <span key={d}>{d}</span>
-          ))}
-        </div>
-
-        {/* Calendar grid */}
-        <div className="cal-grid">
-          {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-            <div key={`empty-${i}`} className="cal-cell empty" />
-          ))}
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
-            const dayWorkouts = getWorkoutsForDay(day);
-            const hasVelo = dayWorkouts.some((w) => w.type === 'velo');
-            const hasMuscu = dayWorkouts.some((w) => w.type === 'musculation');
-            const hasBoth = hasVelo && hasMuscu;
-            const dateStr = formatDateStr(day);
-            const isTodayCell = isToday(day);
-            const isSelected = selectedDate === dateStr;
-
-            let cellClass = 'cal-cell';
-            if (isTodayCell) cellClass += ' today';
-            if (isSelected) cellClass += ' selected';
-            if (dayWorkouts.length > 0) cellClass += ' has-workout';
-            if (hasBoth) {
-              cellClass += ' has-both';
-            } else if (hasVelo) {
-              cellClass += ' has-cycling';
-            } else if (hasMuscu) {
-              cellClass += ' has-strength';
-            }
-
-            return (
-              <div
-                key={day}
-                className={cellClass}
-                onClick={() => selectDay(day)}
-              >
-                <span className="day-num">{day}</span>
-                {(hasVelo || hasMuscu) && (
-                  <div className="cal-tags">
-                    {hasVelo && <span className="cal-tag cycling">🚴 Vélo</span>}
-                    {hasMuscu && <span className="cal-tag strength">🏋️ Muscu</span>}
+        {/* Right column (desktop) / Below calendar (mobile) */}
+        <div className="lg:w-[360px] lg:shrink-0">
+          {/* Day panel */}
+          {selectedDate && (
+            <div ref={panelRef} className="mt-5 lg:mt-0 bg-bg-card border border-border rounded-card p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-[15px] font-semibold">{selectedDay} {monthNames[month]}</div>
+                  <div className="text-xs text-text-muted capitalize">
+                    {selectedWeekday}{isTodaySelected ? " — aujourd'hui" : ''}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Day panel */}
-        {selectedDate && (
-          <div className="day-panel" ref={panelRef}>
-            <div className="day-panel-header">
-              <div>
-                <div className="day-panel-date">{selectedDay} {monthNames[month]}</div>
-                <div className="day-panel-weekday">
-                  {selectedWeekday}{isTodaySelected ? " — aujourd'hui" : ''}
                 </div>
               </div>
-            </div>
 
-            {selectedDayWorkouts.length > 0 ? (
-              selectedDayWorkouts.map((w) => (
-                <Link
-                  key={w.id}
-                  href={w.type === 'velo' ? `/workout/cycling?date=${selectedDate}` : `/workout/strength?date=${selectedDate}`}
-                  className="day-workout"
-                >
-                  <div className={`day-workout-icon ${w.type === 'velo' ? 'cycling' : 'strength'}`}>
-                    {w.type === 'velo' ? '🚴' : '🏋️'}
-                  </div>
-                  <div className="day-workout-info">
-                    <div className="day-workout-type">
-                      {w.type === 'velo' ? 'Vélo' : 'Musculation'}
+              {selectedDayWorkouts.length > 0 ? (
+                selectedDayWorkouts.map((w) => (
+                  <Link
+                    key={w.id}
+                    href={w.type === 'velo' ? `/workout/cycling?date=${selectedDate}` : `/workout/strength?date=${selectedDate}`}
+                    className="flex items-center gap-2.5 px-3 py-2.5 bg-bg-elevated rounded-sm mb-1.5 cursor-pointer transition-all duration-150 active:scale-[0.98] no-underline text-inherit"
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[15px] shrink-0 ${w.type === 'velo' ? 'bg-cycling-soft' : 'bg-strength-soft'}`}>
+                      {w.type === 'velo' ? '🚴' : '🏋️'}
                     </div>
-                    <div className="day-workout-detail">{w.detail}</div>
-                  </div>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>›</span>
-                </Link>
-              ))
-            ) : (
-              <div className="day-empty">Aucune séance</div>
-            )}
-          </div>
-        )}
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{w.type === 'velo' ? 'Vélo' : 'Musculation'}</div>
+                      <div className="text-xs text-text-muted">{w.detail}</div>
+                    </div>
+                    <span className="text-text-muted text-sm">›</span>
+                  </Link>
+                ))
+              ) : (
+                <div className="text-text-muted text-[13px] text-center py-3">Aucune séance</div>
+              )}
+            </div>
+          )}
 
-        {/* Monthly stats */}
-        <div className="month-stats">
-          <div className="stat-card strength-stat">
-            <div className="stat-value">{stats.strengthCount}</div>
-            <div className="stat-label">Séances muscu</div>
-          </div>
-          <div className="stat-card cycling-stat">
-            <div className="stat-value">{stats.cyclingCount}</div>
-            <div className="stat-label">Séances vélo</div>
-          </div>
-          <div className="stat-card cycling-stat">
-            <div className="stat-value">
-              {stats.totalDistanceKm.toLocaleString('fr-FR')} <span className="stat-unit">km</span>
-            </div>
-            <div className="stat-label">Distance parcourue</div>
-          </div>
-          <div className="stat-card cycling-stat">
-            <div className="stat-value">
-              {stats.totalElevationM.toLocaleString('fr-FR')} <span className="stat-unit">m</span>
-            </div>
-            <div className="stat-label">Dénivelé cumulé</div>
+          {/* Monthly stats */}
+          <div className="grid grid-cols-2 gap-2.5 mt-5">
+            {[
+              { value: stats.strengthCount, label: 'Séances muscu', type: 'strength' as const },
+              { value: stats.cyclingCount, label: 'Séances vélo', type: 'cycling' as const },
+              { value: stats.totalDistanceKm.toLocaleString('fr-FR'), unit: 'km', label: 'Distance parcourue', type: 'cycling' as const },
+              { value: stats.totalElevationM.toLocaleString('fr-FR'), unit: 'm', label: 'Dénivelé cumulé', type: 'cycling' as const },
+            ].map((stat, i) => (
+              <div key={i} className="bg-bg-card border border-border rounded-card p-3.5 px-4 relative overflow-hidden">
+                <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${stat.type === 'strength' ? 'from-strength to-transparent' : 'from-cycling to-transparent'}`} />
+                <div className={`text-[26px] font-bold tracking-tight leading-none ${stat.type === 'strength' ? 'text-strength' : 'text-cycling'}`}>
+                  {stat.value}{stat.unit && <span className="text-sm font-normal opacity-60"> {stat.unit}</span>}
+                </div>
+                <div className="text-xs text-text-muted mt-1 font-medium">{stat.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* FAB */}
       {selectedDate && (
-        <button className="fab" onClick={() => setShowSheet(true)}>+</button>
+        <button onClick={() => setShowSheet(true)}
+          className="fixed bottom-[104px] lg:bottom-8 right-6 lg:right-8 w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-[#7c5ce0] border-none text-white text-[28px] font-light cursor-pointer shadow-[0_8px_32px_rgba(167,139,250,0.35)] flex items-center justify-center transition-all duration-200 active:scale-90 active:rotate-90 z-20">
+          +
+        </button>
       )}
 
       {/* Bottom sheet */}
       {showSheet && (
         <>
-          <div className="sheet-overlay" onClick={() => setShowSheet(false)} />
-          <div className="sheet">
-            <div className="sheet-handle" />
-            <h3 style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: '22px', fontWeight: 400, marginBottom: '20px' }}>
-              Nouvelle séance
-            </h3>
-            <div className="type-choice">
-              <Link
-                href={`/workout/cycling?date=${selectedDate}`}
-                className="type-btn cycling-choice"
+          <div onClick={() => setShowSheet(false)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
+          <div className="fixed bottom-0 left-0 right-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card rounded-t-3xl px-6 pt-7 pb-10 z-[51] animate-sheetUp">
+            <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
+            <h3 className="font-serif text-[22px] font-normal mb-5">Nouvelle séance</h3>
+            <div className="flex gap-3">
+              <Link href={`/workout/cycling?date=${selectedDate}`}
                 onClick={() => setShowSheet(false)}
-              >
-                <div className="type-icon">🚴</div>
-                <div className="type-label">Vélo</div>
+                className="flex-1 py-5 px-4 rounded-card border-[1.5px] border-cycling-soft bg-bg text-center no-underline transition-all duration-200 active:scale-[0.96] hover:bg-cycling-soft hover:border-cycling block">
+                <div className="text-[28px] mb-2">🚴</div>
+                <div className="text-sm font-semibold text-text">Vélo</div>
               </Link>
-              <Link
-                href={`/workout/strength?date=${selectedDate}`}
-                className="type-btn strength-choice"
+              <Link href={`/workout/strength?date=${selectedDate}`}
                 onClick={() => setShowSheet(false)}
-              >
-                <div className="type-icon">🏋️</div>
-                <div className="type-label">Musculation</div>
+                className="flex-1 py-5 px-4 rounded-card border-[1.5px] border-strength-soft bg-bg text-center no-underline transition-all duration-200 active:scale-[0.96] hover:bg-strength-soft hover:border-strength block">
+                <div className="text-[28px] mb-2">🏋️</div>
+                <div className="text-sm font-semibold text-text">Musculation</div>
               </Link>
             </div>
-            <button className="sheet-cancel" onClick={() => setShowSheet(false)}>
+            <button onClick={() => setShowSheet(false)}
+              className="block w-full mt-4 py-3 bg-transparent border-none text-text-muted text-sm cursor-pointer font-inherit">
               Annuler
             </button>
           </div>
