@@ -5,19 +5,17 @@ import { usePathname } from 'next/navigation';
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const isHome = pathname === '/';
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex">
-      <Link
-        href="/"
-        className={`flex-1 py-3 text-center text-sm font-medium ${
-          pathname === '/' ? 'text-blue-600' : 'text-gray-500'
-        }`}
-      >
-        Calendrier
+    <nav className="bottom-nav">
+      <Link href="/" className={`nav-item ${isHome ? 'active' : ''}`}>
+        <span className="nav-icon">📅</span>
+        <span className="nav-label">Calendrier</span>
       </Link>
-      <div className="flex-1 py-3 text-center text-sm font-medium text-gray-300 cursor-not-allowed">
-        Stats
+      <div className="nav-item disabled">
+        <span className="nav-icon">📊</span>
+        <span className="nav-label">Stats</span>
       </div>
     </nav>
   );

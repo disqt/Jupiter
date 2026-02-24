@@ -1,133 +1,244 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { getWorkoutsForMonth, getMonthlyStats, type Workout } from '@/lib/data';
 
-interface Workout {
-  id: number;
-  date: string;
-  type: 'musculation' | 'velo';
-}
+const monthNames = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+];
+const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const weekdays = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 
-interface MonthlyStats {
-  cycling_count: string;
-  strength_count: string;
-  total_distance_km: string;
-  total_elevation_m: string;
-  active_days: string;
-}
-
-interface CalendarProps {
-  onDayClick: (date: string, workouts: Workout[]) => void;
-}
-
-export default function Calendar({ onDayClick }: CalendarProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [stats, setStats] = useState<MonthlyStats | null>(null);
+export default function Calendar() {
+  const today = new Date();
+  const [currentDate, setCurrentDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [showSheet, setShowSheet] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
 
-  useEffect(() => {
-    api.getWorkouts(monthStr).then(setWorkouts).catch(console.error);
-    api.getMonthlyStats(monthStr).then(setStats).catch(console.error);
-  }, [monthStr]);
+  const workouts = getWorkoutsForMonth(year, month);
+  const stats = getMonthlyStats(year, month);
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7; // Monday = 0
 
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const prevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1));
+    setSelectedDate(null);
+  };
+  const nextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1));
+    setSelectedDate(null);
+  };
 
   const getWorkoutsForDay = (day: number): Workout[] => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return workouts.filter((w) => w.date === dateStr);
   };
 
-  const monthNames = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-  ];
+  const isToday = (day: number) =>
+    day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
 
-  const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const formatDateStr = (day: number) =>
+    `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  // Auto-select today on load
+  useEffect(() => {
+    if (month === today.getMonth() && year === today.getFullYear()) {
+      setSelectedDate(formatDateStr(today.getDate()));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const selectDay = (day: number) => {
+    const dateStr = formatDateStr(day);
+    setSelectedDate(dateStr);
+    setShowSheet(false);
+    setTimeout(() => {
+      panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  };
+
+  // Parse selected date
+  const selectedDay = selectedDate ? parseInt(selectedDate.split('-')[2]) : null;
+  const selectedDayWorkouts = selectedDay ? getWorkoutsForDay(selectedDay) : [];
+  const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null;
+  const selectedWeekday = selectedDateObj ? weekdays[selectedDateObj.getDay()] : '';
+  const isTodaySelected = selectedDay !== null && isToday(selectedDay);
 
   return (
-    <div className="p-4">
-      {/* Month navigation */}
-      <div className="flex items-center justify-between mb-4">
-        <button onClick={prevMonth} className="p-2 text-gray-600 text-lg">&larr;</button>
-        <h2 className="text-lg font-semibold">{monthNames[month]} {year}</h2>
-        <button onClick={nextMonth} className="p-2 text-gray-600 text-lg">&rarr;</button>
+    <div>
+      {/* Header */}
+      <div className="app-header">
+        <h1 style={{ fontFamily: 'var(--font-instrument-serif), serif' }}>
+          Sport <span>Tracker</span>
+        </h1>
       </div>
 
-      {/* Day headers */}
-      <div className="grid grid-cols-7 gap-1 mb-1">
-        {dayNames.map((d) => (
-          <div key={d} className="text-center text-xs text-gray-400 font-medium py-1">
-            {d}
-          </div>
-        ))}
-      </div>
+      <div style={{ padding: '0 20px 20px' }}>
+        {/* Month navigation */}
+        <div className="month-nav">
+          <button className="month-nav-btn" onClick={prevMonth}>&#8249;</button>
+          <span className="month-label">{monthNames[month]} {year}</span>
+          <button className="month-nav-btn" onClick={nextMonth}>&#8250;</button>
+        </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-          <div key={`empty-${i}`} />
-        ))}
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const day = i + 1;
-          const dayWorkouts = getWorkoutsForDay(day);
-          const hasVelo = dayWorkouts.some((w) => w.type === 'velo');
-          const hasMuscu = dayWorkouts.some((w) => w.type === 'musculation');
-          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const isToday =
-            day === new Date().getDate() &&
-            month === new Date().getMonth() &&
-            year === new Date().getFullYear();
+        {/* Day headers */}
+        <div className="cal-days-header">
+          {dayNames.map((d) => (
+            <span key={d}>{d}</span>
+          ))}
+        </div>
 
-          return (
-            <button
-              key={day}
-              onClick={() => onDayClick(dateStr, dayWorkouts)}
-              className={`aspect-square flex flex-col items-center justify-center rounded-lg text-sm relative
-                ${isToday ? 'ring-2 ring-blue-500' : ''}
-                ${dayWorkouts.length > 0 ? 'bg-gray-100' : 'hover:bg-gray-50'}
-              `}
-            >
-              <span className={isToday ? 'font-bold' : ''}>{day}</span>
-              {(hasVelo || hasMuscu) && (
-                <div className="flex gap-0.5 mt-0.5">
-                  {hasVelo && <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
-                  {hasMuscu && <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />}
+        {/* Calendar grid */}
+        <div className="cal-grid">
+          {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+            <div key={`empty-${i}`} className="cal-cell empty" />
+          ))}
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const day = i + 1;
+            const dayWorkouts = getWorkoutsForDay(day);
+            const hasVelo = dayWorkouts.some((w) => w.type === 'velo');
+            const hasMuscu = dayWorkouts.some((w) => w.type === 'musculation');
+            const hasBoth = hasVelo && hasMuscu;
+            const dateStr = formatDateStr(day);
+            const isTodayCell = isToday(day);
+            const isSelected = selectedDate === dateStr;
+
+            let cellClass = 'cal-cell';
+            if (isTodayCell) cellClass += ' today';
+            if (isSelected) cellClass += ' selected';
+            if (dayWorkouts.length > 0) cellClass += ' has-workout';
+            if (hasBoth) {
+              cellClass += ' has-both';
+            } else if (hasVelo) {
+              cellClass += ' has-cycling';
+            } else if (hasMuscu) {
+              cellClass += ' has-strength';
+            }
+
+            return (
+              <div
+                key={day}
+                className={cellClass}
+                onClick={() => selectDay(day)}
+              >
+                <span className="day-num">{day}</span>
+                {(hasVelo || hasMuscu) && (
+                  <div className="cal-tags">
+                    {hasVelo && <span className="cal-tag cycling">🚴 Vélo</span>}
+                    {hasMuscu && <span className="cal-tag strength">🏋️ Muscu</span>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Day panel */}
+        {selectedDate && (
+          <div className="day-panel" ref={panelRef}>
+            <div className="day-panel-header">
+              <div>
+                <div className="day-panel-date">{selectedDay} {monthNames[month]}</div>
+                <div className="day-panel-weekday">
+                  {selectedWeekday}{isTodaySelected ? " — aujourd'hui" : ''}
                 </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
+              </div>
+            </div>
 
-      {/* Monthly summary */}
-      {stats && (
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <div className="bg-orange-50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-orange-600">{stats.strength_count}</div>
-            <div className="text-xs text-orange-400">Séances muscu</div>
+            {selectedDayWorkouts.length > 0 ? (
+              selectedDayWorkouts.map((w) => (
+                <Link
+                  key={w.id}
+                  href={w.type === 'velo' ? `/workout/cycling?date=${selectedDate}` : `/workout/strength?date=${selectedDate}`}
+                  className="day-workout"
+                >
+                  <div className={`day-workout-icon ${w.type === 'velo' ? 'cycling' : 'strength'}`}>
+                    {w.type === 'velo' ? '🚴' : '🏋️'}
+                  </div>
+                  <div className="day-workout-info">
+                    <div className="day-workout-type">
+                      {w.type === 'velo' ? 'Vélo' : 'Musculation'}
+                    </div>
+                    <div className="day-workout-detail">{w.detail}</div>
+                  </div>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>›</span>
+                </Link>
+              ))
+            ) : (
+              <div className="day-empty">Aucune séance</div>
+            )}
           </div>
-          <div className="bg-blue-50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-blue-600">{stats.cycling_count}</div>
-            <div className="text-xs text-blue-400">Séances vélo</div>
+        )}
+
+        {/* Monthly stats */}
+        <div className="month-stats">
+          <div className="stat-card strength-stat">
+            <div className="stat-value">{stats.strengthCount}</div>
+            <div className="stat-label">Séances muscu</div>
           </div>
-          <div className="bg-blue-50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-blue-600">{stats.total_distance_km}</div>
-            <div className="text-xs text-blue-400">km parcourus</div>
+          <div className="stat-card cycling-stat">
+            <div className="stat-value">{stats.cyclingCount}</div>
+            <div className="stat-label">Séances vélo</div>
           </div>
-          <div className="bg-blue-50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-blue-600">{stats.total_elevation_m}</div>
-            <div className="text-xs text-blue-400">m de dénivelé</div>
+          <div className="stat-card cycling-stat">
+            <div className="stat-value">
+              {stats.totalDistanceKm.toLocaleString('fr-FR')} <span className="stat-unit">km</span>
+            </div>
+            <div className="stat-label">Distance parcourue</div>
+          </div>
+          <div className="stat-card cycling-stat">
+            <div className="stat-value">
+              {stats.totalElevationM.toLocaleString('fr-FR')} <span className="stat-unit">m</span>
+            </div>
+            <div className="stat-label">Dénivelé cumulé</div>
           </div>
         </div>
+      </div>
+
+      {/* FAB */}
+      {selectedDate && (
+        <button className="fab" onClick={() => setShowSheet(true)}>+</button>
+      )}
+
+      {/* Bottom sheet */}
+      {showSheet && (
+        <>
+          <div className="sheet-overlay" onClick={() => setShowSheet(false)} />
+          <div className="sheet">
+            <div className="sheet-handle" />
+            <h3 style={{ fontFamily: 'var(--font-instrument-serif), serif', fontSize: '22px', fontWeight: 400, marginBottom: '20px' }}>
+              Nouvelle séance
+            </h3>
+            <div className="type-choice">
+              <Link
+                href={`/workout/cycling?date=${selectedDate}`}
+                className="type-btn cycling-choice"
+                onClick={() => setShowSheet(false)}
+              >
+                <div className="type-icon">🚴</div>
+                <div className="type-label">Vélo</div>
+              </Link>
+              <Link
+                href={`/workout/strength?date=${selectedDate}`}
+                className="type-btn strength-choice"
+                onClick={() => setShowSheet(false)}
+              >
+                <div className="type-icon">🏋️</div>
+                <div className="type-label">Musculation</div>
+              </Link>
+            </div>
+            <button className="sheet-cancel" onClick={() => setShowSheet(false)}>
+              Annuler
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

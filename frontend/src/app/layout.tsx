@@ -1,9 +1,21 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { DM_Sans, Instrument_Serif } from 'next/font/google';
 import './globals.css';
 import BottomNav from '@/components/BottomNav';
 
-const inter = Inter({ subsets: ['latin'] });
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+  display: 'swap',
+});
+
+const instrumentSerif = Instrument_Serif({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-instrument-serif',
+  display: 'swap',
+  style: ['normal', 'italic'],
+});
 
 export const metadata: Metadata = {
   title: 'Sport Tracker',
@@ -20,8 +32,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body className={`${inter.className} bg-gray-50 pb-16`}>
-        <main className="max-w-md mx-auto">
+      <body className={`${dmSans.variable} ${instrumentSerif.variable} font-sans`}
+        style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
+        <main className="max-w-[430px] mx-auto relative pb-[80px]">
           {children}
         </main>
         <BottomNav />
