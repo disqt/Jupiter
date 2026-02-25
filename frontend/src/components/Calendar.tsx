@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, Suspense, useCallback, Fragment } from 'react';
 import Link from 'next/link';
-import { fetchWorkouts, fetchMonthlyStats, fetchWeeklyProgress, type Workout } from '@/lib/api';
+import { fetchWorkouts, fetchMonthlyStats, fetchWeeklyProgress, fetchWeeklyMedals, type Workout, type WeeklyMedal } from '@/lib/api';
 import WeeklyProgress from '@/components/WeeklyProgress';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
@@ -20,6 +20,7 @@ export default function Calendar() {
   const [stats, setStats] = useState({ cyclingCount: 0, strengthCount: 0, totalDistanceKm: 0, totalElevationM: 0 });
   const [totalMedals, setTotalMedals] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [weeklyMedals, setWeeklyMedals] = useState<WeeklyMedal[]>([]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -28,11 +29,13 @@ export default function Calendar() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [w, s] = await Promise.all([
+      const [w, s, wm] = await Promise.all([
         fetchWorkouts(monthStr),
         fetchMonthlyStats(monthStr),
+        fetchWeeklyMedals(monthStr),
       ]);
       setWorkouts(w);
+      setWeeklyMedals(wm);
       setStats({
         cyclingCount: parseInt(s.cycling_count) || 0,
         strengthCount: parseInt(s.strength_count) || 0,
@@ -97,6 +100,45 @@ export default function Calendar() {
 
   const numberLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
 
+  // Compute the Monday (ISO week start) for a given day in the current month
+  const getWeekMonday = (day: number): string => {
+    const date = new Date(year, month, day);
+    const dow = (date.getDay() + 6) % 7; // 0=Mon, 6=Sun
+    const monday = new Date(date);
+    monday.setDate(date.getDate() - dow);
+    return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+  };
+
+  // Build calendar rows (7 day cells + medal info per row)
+  const calendarRows = useMemo(() => {
+    const rows: { cells: (number | null)[]; medals: number }[] = [];
+    let cells: (number | null)[] = [];
+
+    for (let i = 0; i < firstDayOfWeek; i++) cells.push(null);
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      cells.push(day);
+      if (cells.length === 7) {
+        const refDay = cells.find(d => d !== null)!;
+        const weekMonday = getWeekMonday(refDay);
+        const weekData = weeklyMedals.find(w => w.week_start === weekMonday);
+        rows.push({ cells: [...cells], medals: weekData?.medals ?? 0 });
+        cells = [];
+      }
+    }
+
+    if (cells.length > 0) {
+      while (cells.length < 7) cells.push(null);
+      const refDay = cells.find(d => d !== null)!;
+      const weekMonday = getWeekMonday(refDay);
+      const weekData = weeklyMedals.find(w => w.week_start === weekMonday);
+      rows.push({ cells: [...cells], medals: weekData?.medals ?? 0 });
+    }
+
+    return rows;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstDayOfWeek, daysInMonth, year, month, weeklyMedals]);
+
   return (
     <div>
       {/* Header — visible on mobile/tablet only */}
@@ -147,61 +189,93 @@ export default function Calendar() {
           </div>
 
           {/* Day headers */}
-          <div className="grid grid-cols-7 gap-1 mb-1.5">
+          <div className="grid grid-cols-[repeat(7,1fr)_24px] gap-1 mb-1.5">
             {t.days.map((d) => (
               <span key={d} className="text-center text-[11px] font-medium text-text-muted uppercase tracking-wide py-1">
                 {d}
               </span>
             ))}
+            <span className="flex items-center justify-center text-accent">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="9" r="6" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.15" />
+                <polygon points="12,5 13.5,8 17,8.5 14.5,11 15,14.5 12,13 9,14.5 9.5,11 7,8.5 10.5,8" fill="currentColor" />
+                <path d="M8 14.5l-2 5.5 4-2M16 14.5l2 5.5-4-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </span>
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-              <div key={`empty-${i}`} className="min-h-[64px] md:min-h-[80px] lg:min-h-[90px]" />
-            ))}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const dayWorkouts = getWorkoutsForDay(day);
-              const hasVelo = dayWorkouts.some((w) => w.type === 'velo');
-              const hasMuscu = dayWorkouts.some((w) => w.type === 'musculation');
-              const hasBoth = hasVelo && hasMuscu;
-              const dateStr = formatDateStr(day);
-              const isTodayCell = isToday(day);
-              const isSelected = selectedDate === dateStr;
-
-              const bgClass = hasBoth
-                ? 'bg-gradient-to-br from-cycling-soft to-strength-soft'
-                : hasVelo ? 'bg-cycling-soft' : hasMuscu ? 'bg-strength-soft' : '';
-
+          <div className="flex flex-col gap-1">
+            {calendarRows.map((row, rowIdx) => {
+              const hasMedals = row.medals > 0;
               return (
-                <div
-                  key={day}
-                  onClick={() => selectDay(day)}
-                  className={`min-h-[64px] md:min-h-[80px] lg:min-h-[90px] flex flex-col items-center justify-start rounded-sm text-[13px] cursor-pointer relative transition-all duration-150 active:scale-[0.93] p-1 gap-0.5 overflow-hidden
-                    ${bgClass}
-                    ${isTodayCell ? 'text-text font-bold border-2 border-accent/60' : 'text-text-secondary'}
-                    ${isSelected ? 'border-2 border-accent text-text font-semibold' : ''}
-                    ${dayWorkouts.length > 0 && !isTodayCell && !isSelected ? 'text-text' : ''}`}
-                >
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[13px] leading-none">{day}</span>
-                    {isTodayCell && <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />}
+                <div key={rowIdx} className={`grid grid-cols-[repeat(7,1fr)_24px] gap-1 rounded-sm ${hasMedals ? 'bg-accent/[0.06]' : ''}`}>
+                  {row.cells.map((day, colIdx) => {
+                    if (day === null) {
+                      return (
+                        <div
+                          key={`empty-${rowIdx}-${colIdx}`}
+                          className="min-h-[64px] md:min-h-[80px] lg:min-h-[90px]"
+                        />
+                      );
+                    }
+
+                    const dayWorkouts = getWorkoutsForDay(day);
+                    const hasVelo = dayWorkouts.some((w) => w.type === 'velo');
+                    const hasMuscu = dayWorkouts.some((w) => w.type === 'musculation');
+                    const hasBoth = hasVelo && hasMuscu;
+                    const dateStr = formatDateStr(day);
+                    const isTodayCell = isToday(day);
+                    const isSelected = selectedDate === dateStr;
+
+                    const bgClass = hasBoth
+                      ? 'bg-gradient-to-br from-cycling-soft to-strength-soft'
+                      : hasVelo ? 'bg-cycling-soft' : hasMuscu ? 'bg-strength-soft' : '';
+
+                    return (
+                      <div
+                        key={day}
+                        onClick={() => selectDay(day)}
+                        className={`min-h-[64px] md:min-h-[80px] lg:min-h-[90px] flex flex-col items-center justify-start rounded-sm text-[13px] cursor-pointer relative transition-all duration-150 active:scale-[0.93] p-1 gap-0.5 overflow-hidden
+                          ${bgClass}
+                          ${isTodayCell ? 'text-text font-bold border-2 border-accent/60' : 'text-text-secondary'}
+                          ${isSelected ? 'border-2 border-accent text-text font-semibold' : ''}
+                          ${dayWorkouts.length > 0 && !isTodayCell && !isSelected ? 'text-text' : ''}`}
+                      >
+                        <div className="flex items-center gap-0.5">
+                          <span className="text-[13px] leading-none">{day}</span>
+                          {isTodayCell && <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />}
+                        </div>
+                        {dayWorkouts.length > 0 && (
+                          <div className="flex flex-col gap-px w-full px-0.5">
+                            {dayWorkouts.map((w) => (
+                              <span key={w.id} className={`text-[8px] font-semibold leading-tight py-0.5 px-[3px] rounded-[3px] text-center line-clamp-1 ${
+                                w.type === 'velo'
+                                  ? `bg-cycling/20 text-cycling ${isSelected ? 'bg-cycling/30' : ''}`
+                                  : `bg-strength/20 text-strength ${isSelected ? 'bg-strength/30' : ''}`
+                              }`}>
+                                <span className="lg:hidden">{w.type === 'velo' ? '🚴' : '🏋️'}</span>
+                                <span className="hidden lg:inline">{w.type === 'velo' ? t.cyclingTag : t.strengthTag}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {/* Medal badge */}
+                  <div className="flex items-center justify-center min-h-[64px] md:min-h-[80px] lg:min-h-[90px]">
+                    {hasMedals && (
+                      <div className="flex flex-col items-center gap-0.5 text-accent">
+                        <span className="text-[11px] font-bold leading-none">{row.medals}</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="9" r="6" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.15" />
+                          <polygon points="12,5 13.5,8 17,8.5 14.5,11 15,14.5 12,13 9,14.5 9.5,11 7,8.5 10.5,8" fill="currentColor" />
+                          <path d="M8 14.5l-2 5.5 4-2M16 14.5l2 5.5-4-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
-                  {dayWorkouts.length > 0 && (
-                    <div className="flex flex-col gap-px w-full px-0.5">
-                      {dayWorkouts.map((w) => (
-                        <span key={w.id} className={`text-[8px] font-semibold leading-tight py-0.5 px-[3px] rounded-[3px] text-center line-clamp-1 ${
-                          w.type === 'velo'
-                            ? `bg-cycling/20 text-cycling ${isSelected ? 'bg-cycling/30' : ''}`
-                            : `bg-strength/20 text-strength ${isSelected ? 'bg-strength/30' : ''}`
-                        }`}>
-                          <span className="lg:hidden">{w.type === 'velo' ? '🚴' : '🏋️'}</span>
-                          <span className="hidden lg:inline">{w.type === 'velo' ? t.cyclingTag : t.strengthTag}</span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               );
             })}

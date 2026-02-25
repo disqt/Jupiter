@@ -204,3 +204,13 @@ export interface WeeklyProgress {
 export async function fetchWeeklyProgress(): Promise<WeeklyProgress> {
   return request<WeeklyProgress>('/api/stats/weekly-progress');
 }
+
+export interface WeeklyMedal {
+  week_start: string;
+  workout_count: number;
+  medals: number;
+}
+
+export async function fetchWeeklyMedals(month: string): Promise<WeeklyMedal[]> {
+  return request<WeeklyMedal[]>(`/api/stats/weekly-medals?month=${month}`);
+}

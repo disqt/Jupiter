@@ -63,4 +63,39 @@ router.get('/weekly-progress', async (req, res) => {
   }
 });
 
+// GET /api/stats/weekly-medals?month=YYYY-MM
+router.get('/weekly-medals', async (req, res) => {
+  try {
+    const { month } = req.query;
+    if (!month || typeof month !== 'string') {
+      return res.status(400).json({ error: 'month query param required (YYYY-MM)' });
+    }
+
+    const result = await pool.query(`
+      WITH weekly_counts AS (
+        SELECT
+          date_trunc('week', date::timestamp) as week_start,
+          COUNT(*)::int as workout_count,
+          GREATEST(COUNT(*) - 2, 0)::int as medals
+        FROM workouts
+        WHERE user_id = $1
+        GROUP BY date_trunc('week', date::timestamp)
+      )
+      SELECT
+        to_char(week_start, 'YYYY-MM-DD') as week_start,
+        workout_count,
+        medals
+      FROM weekly_counts
+      WHERE week_start + interval '6 days' >= ($2 || '-01')::date
+        AND week_start < (($2 || '-01')::date + interval '1 month')
+      ORDER BY week_start
+    `, [req.userId, month]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;
