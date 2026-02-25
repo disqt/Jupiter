@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { getWorkoutsForMonth, getMonthlyStats, type Workout } from '@/lib/data';
+import { getWorkoutsForMonth, getMonthlyStats, getTotalMedals, type Workout } from '@/lib/data';
 import WeeklyProgress from '@/components/WeeklyProgress';
 
 const monthNames = [
@@ -24,6 +24,7 @@ export default function Calendar() {
 
   const workouts = getWorkoutsForMonth(year, month);
   const stats = getMonthlyStats(year, month);
+  const totalMedals = getTotalMedals();
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7;
@@ -205,6 +206,24 @@ export default function Calendar() {
                 <div className="text-xs text-text-muted mt-1 font-medium">{stat.label}</div>
               </div>
             ))}
+          </div>
+
+          {/* Medal card */}
+          <div className="mt-2.5 bg-bg-card border border-border rounded-card p-3.5 px-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent to-transparent" />
+            <div className="flex items-center gap-3">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-accent shrink-0">
+                <circle cx="12" cy="9" r="6" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.15" />
+                <polygon points="12,5 13.5,8 17,8.5 14.5,11 15,14.5 12,13 9,14.5 9.5,11 7,8.5 10.5,8" fill="currentColor" />
+                <path d="M8 14.5l-2 5.5 4-2M16 14.5l2 5.5-4-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <div>
+                <div className="text-[26px] font-bold tracking-tight leading-none text-accent">
+                  {totalMedals}
+                </div>
+                <div className="text-xs text-text-muted mt-1 font-medium">Médailles gagnées</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
