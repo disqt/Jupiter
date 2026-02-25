@@ -31,4 +31,33 @@ router.get('/monthly', async (req, res) => {
   }
 });
 
+// GET /api/stats/weekly-progress
+router.get('/weekly-progress', async (_req, res) => {
+  try {
+    const result = await pool.query(`
+      WITH weekly_counts AS (
+        SELECT
+          date_trunc('week', date::timestamp) as week_start,
+          COUNT(*) as count
+        FROM workouts
+        GROUP BY date_trunc('week', date::timestamp)
+      ),
+      current_week AS (
+        SELECT COUNT(*) as count
+        FROM workouts
+        WHERE date >= date_trunc('week', CURRENT_DATE)
+          AND date < date_trunc('week', CURRENT_DATE) + interval '7 days'
+      )
+      SELECT
+        (SELECT count FROM current_week) as week_count,
+        COALESCE((SELECT SUM(GREATEST(count - 2, 0)) FROM weekly_counts), 0) as total_medals
+    `);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

@@ -2,20 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getWeeklyProgress, getTotalMedals } from '@/lib/data';
+import { fetchWeeklyProgress } from '@/lib/api';
 
 export default function WeeklyProgress() {
   const searchParams = useSearchParams();
   const [showCelebration, setShowCelebration] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [count, setCount] = useState(0);
+  const [totalMedals, setTotalMedals] = useState(0);
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const { count } = getWeeklyProgress(todayStr);
-  const totalMedals = getTotalMedals();
-
-  const progress = Math.min(count / 3, 1);
-  const extra = Math.max(0, count - 3);
+  useEffect(() => {
+    fetchWeeklyProgress().then((data) => {
+      setCount(parseInt(data.week_count) || 0);
+      setTotalMedals(parseInt(data.total_medals) || 0);
+    }).catch(console.error);
+  }, []);
 
   useEffect(() => {
     if (searchParams.get('saved') === '1' && count >= 3) {
@@ -25,6 +26,9 @@ export default function WeeklyProgress() {
       return () => clearTimeout(timer);
     }
   }, [searchParams, count]);
+
+  const progress = Math.min(count / 3, 1);
+  const extra = Math.max(0, count - 3);
 
   const glowStyle = count >= 3
     ? { boxShadow: `0 0 ${8 + extra * 4}px ${2 + extra * 2}px rgba(167, 139, 250, ${0.3 + extra * 0.1})` }
