@@ -26,6 +26,11 @@ cd backend && npx tsc --noEmit
 # Database setup
 createdb sport_tracker
 psql sport_tracker < database/init.sql
+
+# Database migrations (Drizzle)
+cd backend && npm run db:generate   # Generate migration after schema.ts change
+cd backend && npm run db:migrate    # Apply pending migrations
+cd backend && npm run db:studio     # Web UI to explore DB
 ```
 
 ## Architecture
@@ -36,11 +41,11 @@ psql sport_tracker < database/init.sql
 └── database/    PostgreSQL init scripts
 ```
 
-**Backend:** Express.js 5 + TypeScript. Raw SQL via `pg` (no ORM). Routes at `src/routes/`. DB connection pool at `src/db.ts`. Uses transactions for multi-table writes (workout + cycling_details or exercise_logs).
+**Backend:** Express.js 5 + TypeScript. Drizzle ORM for schema + migrations, raw SQL via `pg` pool for existing routes (both exported from `src/db.ts`). Schema defined in `src/schema.ts`. Routes at `src/routes/`. Uses transactions for multi-table writes (workout + cycling_details or exercise_logs).
 
 **Frontend:** Next.js 14 (App Router) + Tailwind CSS + TypeScript. All pages are client components. API client at `src/lib/api.ts` talks to backend REST API. Path alias: `@/*` → `./src/*`.
 
-**Database:** 4 tables — `workouts` (parent), `cycling_details`, `exercises`, `exercise_logs`. Workout type is either `musculation` or `velo`. Foreign keys use ON DELETE CASCADE.
+**Database:** 4 tables — `workouts` (parent), `cycling_details`, `exercises`, `exercise_logs`. Workout type is either `musculation` or `velo`. Foreign keys use ON DELETE CASCADE. Schema changes go through Drizzle migrations: edit `backend/src/schema.ts` → `npm run db:generate` → review SQL → `npm run db:migrate`. Migration files live in `backend/drizzle/`.
 
 ## API Endpoints
 

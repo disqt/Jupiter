@@ -49,8 +49,17 @@ function StrengthWorkoutForm() {
       })
     : [];
 
+  const storageKey = `strength-draft-${date}`;
+
   const [exercises] = useState<Exercise[]>(EXERCISES);
-  const [entries, setEntries] = useState<ExerciseEntry[]>(initialEntries);
+  const [entries, setEntries] = useState<ExerciseEntry[]>(() => {
+    if (typeof window === 'undefined' || !date) return initialEntries;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return initialEntries;
+  });
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [showNewExercise, setShowNewExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
@@ -58,6 +67,16 @@ function StrengthWorkoutForm() {
   const [saving, setSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [historyExercise, setHistoryExercise] = useState<string | null>(null);
+
+  // Auto-save draft to localStorage
+  useEffect(() => {
+    if (!date) return;
+    if (entries.length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify(entries));
+    } else {
+      localStorage.removeItem(storageKey);
+    }
+  }, [entries, storageKey, date]);
 
   const clearPendingDelete = useCallback(() => {
     setPendingDelete(null);
@@ -134,6 +153,7 @@ function StrengthWorkoutForm() {
   const [showSaveAnimation, setShowSaveAnimation] = useState(false);
 
   const handleSave = () => {
+    localStorage.removeItem(storageKey);
     setSaving(true);
     setShowSaveAnimation(true);
   };
