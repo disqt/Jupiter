@@ -12,7 +12,8 @@ router.get('/', async (req, res) => {
     }
     const result = await pool.query(
       `SELECT w.*,
-        cd.duration, cd.distance, cd.elevation, cd.ride_type
+        cd.duration, cd.distance, cd.elevation, cd.ride_type,
+        (SELECT COUNT(DISTINCT el.exercise_id) FROM exercise_logs el WHERE el.workout_id = w.id) as exercise_count
        FROM workouts w
        LEFT JOIN cycling_details cd ON cd.workout_id = w.id
        WHERE to_char(w.date, 'YYYY-MM') = $1

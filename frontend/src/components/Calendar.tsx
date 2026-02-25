@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import Link from 'next/link';
-import { getWorkoutsForMonth, getMonthlyStats, getTotalMedals, type Workout } from '@/lib/data';
+import { fetchWorkouts, fetchMonthlyStats, type Workout } from '@/lib/api';
 import WeeklyProgress from '@/components/WeeklyProgress';
 
 const monthNames = [
@@ -19,12 +19,38 @@ export default function Calendar() {
   const [showSheet, setShowSheet] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [stats, setStats] = useState({ cyclingCount: 0, strengthCount: 0, totalDistanceKm: 0, totalElevationM: 0 });
+  const [loading, setLoading] = useState(true);
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
 
-  const workouts = getWorkoutsForMonth(year, month);
-  const stats = getMonthlyStats(year, month);
-  const totalMedals = getTotalMedals();
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [w, s] = await Promise.all([
+        fetchWorkouts(monthStr),
+        fetchMonthlyStats(monthStr),
+      ]);
+      setWorkouts(w);
+      setStats({
+        cyclingCount: parseInt(s.cycling_count) || 0,
+        strengthCount: parseInt(s.strength_count) || 0,
+        totalDistanceKm: parseFloat(s.total_distance_km) || 0,
+        totalElevationM: parseInt(s.total_elevation_m) || 0,
+      });
+    } catch (err) {
+      console.error('Failed to load data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [monthStr]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7;
@@ -138,18 +164,17 @@ export default function Calendar() {
                     ${dayWorkouts.length > 0 && !isTodayCell && !isSelected ? 'text-text' : ''}`}
                 >
                   <span className="text-[13px] leading-none mb-px">{day}</span>
-                  {(hasVelo || hasMuscu) && (
+                  {dayWorkouts.length > 0 && (
                     <div className="flex flex-col gap-px w-full px-0.5">
-                      {hasVelo && (
-                        <span className={`text-[8px] font-semibold leading-tight py-0.5 px-[3px] rounded-[3px] text-center line-clamp-2 bg-cycling/20 text-cycling ${isSelected ? 'bg-cycling/30' : ''}`}>
-                          🚴 Vélo
+                      {dayWorkouts.map((w) => (
+                        <span key={w.id} className={`text-[8px] font-semibold leading-tight py-0.5 px-[3px] rounded-[3px] text-center line-clamp-1 ${
+                          w.type === 'velo'
+                            ? `bg-cycling/20 text-cycling ${isSelected ? 'bg-cycling/30' : ''}`
+                            : `bg-strength/20 text-strength ${isSelected ? 'bg-strength/30' : ''}`
+                        }`}>
+                          {w.type === 'velo' ? '🚴 Vélo' : '🏋️ Muscu'}
                         </span>
-                      )}
-                      {hasMuscu && (
-                        <span className={`text-[8px] font-semibold leading-tight py-0.5 px-[3px] rounded-[3px] text-center line-clamp-2 bg-strength/20 text-strength ${isSelected ? 'bg-strength/30' : ''}`}>
-                          🏋️ Muscu
-                        </span>
-                      )}
+                      ))}
                     </div>
                   )}
                 </div>
@@ -172,11 +197,13 @@ export default function Calendar() {
                 </div>
               </div>
 
-              {selectedDayWorkouts.length > 0 ? (
+              {loading ? (
+                <div className="text-text-muted text-[13px] text-center py-3">Chargement...</div>
+              ) : selectedDayWorkouts.length > 0 ? (
                 selectedDayWorkouts.map((w) => (
                   <Link
                     key={w.id}
-                    href={w.type === 'velo' ? `/workout/cycling?date=${selectedDate}` : `/workout/strength?date=${selectedDate}`}
+                    href={w.type === 'velo' ? `/workout/cycling?date=${selectedDate}&id=${w.id}` : `/workout/strength?date=${selectedDate}&id=${w.id}`}
                     className="flex items-center gap-2.5 px-3 py-2.5 bg-bg-elevated rounded-sm mb-1.5 cursor-pointer transition-all duration-150 active:scale-[0.98] no-underline text-inherit"
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[15px] shrink-0 ${w.type === 'velo' ? 'bg-cycling-soft' : 'bg-strength-soft'}`}>
@@ -197,24 +224,6 @@ export default function Calendar() {
 
           {/* Monthly stats */}
           <h3 className="text-[15px] font-semibold mt-6 mb-2">Ce mois-ci</h3>
-
-          {/* Medal card */}
-          <div className="mb-2.5 bg-bg-card border border-border rounded-card p-3.5 px-4 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent to-transparent" />
-            <div className="flex items-center gap-3">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-accent shrink-0">
-                <circle cx="12" cy="9" r="6" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.15" />
-                <polygon points="12,5 13.5,8 17,8.5 14.5,11 15,14.5 12,13 9,14.5 9.5,11 7,8.5 10.5,8" fill="currentColor" />
-                <path d="M8 14.5l-2 5.5 4-2M16 14.5l2 5.5-4-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-              <div>
-                <div className="text-[26px] font-bold tracking-tight leading-none text-accent">
-                  {totalMedals}
-                </div>
-                <div className="text-xs text-text-muted mt-1 font-medium">Médailles gagnées</div>
-              </div>
-            </div>
-          </div>
 
           <div className="grid grid-cols-2 gap-2.5">
             {[

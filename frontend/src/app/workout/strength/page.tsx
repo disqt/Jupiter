@@ -2,7 +2,8 @@
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { EXERCISES, MUSCLE_GROUPS, DUMMY_WORKOUTS, getExerciseHistory, type Exercise } from '@/lib/data';
+import { MUSCLE_GROUPS, UPPER_BODY_GROUPS, LOWER_BODY_GROUPS } from '@/lib/data';
+import { fetchExercises, fetchLastPerformance, fetchWorkout, createWorkout, createExercise, deleteWorkout, type Exercise } from '@/lib/api';
 import SaveAnimation from '@/components/SaveAnimation';
 
 interface SetLog {
@@ -12,7 +13,7 @@ interface SetLog {
 }
 
 interface ExerciseEntry {
-  exercise: Exercise;
+  exercise: { id: number; name: string; muscleGroup: string };
   sets: SetLog[];
   lastPerformance: { setNumber: number; reps: number; weight: number }[];
   note: string;
@@ -24,59 +25,87 @@ function StrengthWorkoutForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const date = searchParams.get('date') || '';
-
-  const existingWorkout = DUMMY_WORKOUTS.find(
-    (w) => w.date === date && w.type === 'musculation' && w.exercises && w.exercises.length > 0
-  );
-
-  const initialEntries: ExerciseEntry[] = existingWorkout?.exercises
-    ? existingWorkout.exercises.map((ex) => {
-        const matchedExercise = EXERCISES.find((e) => e.name === ex.name) || {
-          id: 0, name: ex.name, muscleGroup: ex.muscleGroup,
-        };
-        return {
-          exercise: matchedExercise,
-          sets: ex.sets.map((s) => ({
-            setNumber: s.setNumber,
-            reps: s.reps > 0 ? String(s.reps) : '',
-            weight: s.weight > 0 ? String(s.weight) : '',
-          })),
-          lastPerformance: ex.lastPerformance || [],
-          note: '',
-          notePinned: false,
-          showNote: false,
-        };
-      })
-    : [];
+  const workoutId = searchParams.get('id');
 
   const storageKey = `strength-draft-${date}`;
 
-  const [exercises] = useState<Exercise[]>(EXERCISES);
+  const [exercises, setExercises] = useState<{ id: number; name: string; muscleGroup: string }[]>([]);
   const [entries, setEntries] = useState<ExerciseEntry[]>(() => {
-    if (typeof window === 'undefined' || !date) return initialEntries;
+    if (workoutId) return []; // Will load from API
+    if (typeof window === 'undefined' || !date) return [];
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) return JSON.parse(saved);
     } catch { /* ignore */ }
-    return initialEntries;
+    return [];
   });
+  const [loadingWorkout, setLoadingWorkout] = useState(!!workoutId);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [exerciseSearch, setExerciseSearch] = useState('');
+  const [filterUpper, setFilterUpper] = useState(true);
+  const [filterLower, setFilterLower] = useState(true);
   const [showNewExercise, setShowNewExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseMuscle, setNewExerciseMuscle] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [historyExercise, setHistoryExercise] = useState<string | null>(null);
 
-  // Auto-save draft to localStorage
+  // Load exercises from API
   useEffect(() => {
-    if (!date) return;
+    fetchExercises().then((data) => {
+      setExercises(data.map((e) => ({ id: e.id, name: e.name, muscleGroup: e.muscle_group })));
+    }).catch(console.error);
+  }, []);
+
+  // Load existing workout from API
+  useEffect(() => {
+    if (!workoutId || exercises.length === 0) return;
+    setLoadingWorkout(true);
+    fetchWorkout(parseInt(workoutId)).then((data) => {
+      if (data.exercise_logs && Array.isArray(data.exercise_logs)) {
+        // Group logs by exercise
+        const grouped = new Map<number, { name: string; muscleGroup: string; sets: { setNumber: number; reps: number; weight: string }[] }>();
+        for (const log of data.exercise_logs) {
+          const exId = (log as Record<string, unknown>).exercise_id as number;
+          const exName = (log as Record<string, unknown>).exercise_name as string;
+          const exGroup = (log as Record<string, unknown>).muscle_group as string;
+          if (!grouped.has(exId)) {
+            grouped.set(exId, { name: exName, muscleGroup: exGroup, sets: [] });
+          }
+          grouped.get(exId)!.sets.push({
+            setNumber: (log as Record<string, unknown>).set_number as number,
+            reps: (log as Record<string, unknown>).reps as number,
+            weight: String((log as Record<string, unknown>).weight),
+          });
+        }
+        const loadedEntries: ExerciseEntry[] = [];
+        grouped.forEach((val, exId) => {
+          loadedEntries.push({
+            exercise: { id: exId, name: val.name, muscleGroup: val.muscleGroup },
+            sets: val.sets.map((s) => ({ setNumber: s.setNumber, reps: String(s.reps), weight: s.weight })),
+            lastPerformance: [],
+            note: '',
+            notePinned: false,
+            showNote: false,
+          });
+        });
+        setEntries(loadedEntries);
+      }
+    }).catch(console.error).finally(() => setLoadingWorkout(false));
+  }, [workoutId, exercises]);
+
+  // Auto-save draft to localStorage (only for new workouts)
+  useEffect(() => {
+    if (!date || workoutId) return;
     if (entries.length > 0) {
       localStorage.setItem(storageKey, JSON.stringify(entries));
     } else {
       localStorage.removeItem(storageKey);
     }
-  }, [entries, storageKey, date]);
+  }, [entries, storageKey, date, workoutId]);
 
   const clearPendingDelete = useCallback(() => {
     setPendingDelete(null);
@@ -88,16 +117,37 @@ function StrengthWorkoutForm() {
     return () => document.removeEventListener('click', clearPendingDelete);
   }, [pendingDelete, clearPendingDelete]);
 
-  const addExercise = (exercise: Exercise) => {
-    setEntries([...entries, { exercise, sets: [{ setNumber: 1, reps: '', weight: '' }], lastPerformance: [], note: '', notePinned: false, showNote: false }]);
+  const addExercise = async (exercise: { id: number; name: string; muscleGroup: string }) => {
+    // Fetch last performance for this exercise
+    let lastPerf: { setNumber: number; reps: number; weight: number }[] = [];
+    try {
+      const perf = await fetchLastPerformance(exercise.id);
+      lastPerf = perf.map((p) => ({
+        setNumber: p.set_number,
+        reps: p.reps,
+        weight: parseFloat(p.weight),
+      }));
+    } catch { /* no previous performance */ }
+
+    const initialSets: SetLog[] = lastPerf.length > 0
+      ? lastPerf.map((p) => ({ setNumber: p.setNumber, reps: '', weight: '' }))
+      : [{ setNumber: 1, reps: '', weight: '' }];
+
+    setEntries([...entries, { exercise, sets: initialSets, lastPerformance: lastPerf, note: '', notePinned: false, showNote: false }]);
     setShowExercisePicker(false);
   };
 
-  const createAndAddExercise = () => {
+  const createAndAddExercise = async () => {
     if (!newExerciseName || !newExerciseMuscle) return;
-    const newEx: Exercise = { id: Date.now(), name: newExerciseName, muscleGroup: newExerciseMuscle };
-    setNewExerciseName(''); setNewExerciseMuscle(''); setShowNewExercise(false);
-    addExercise(newEx);
+    try {
+      const newEx = await createExercise(newExerciseName, newExerciseMuscle);
+      const mapped = { id: newEx.id, name: newEx.name, muscleGroup: newEx.muscle_group };
+      setExercises([...exercises, mapped]);
+      setNewExerciseName(''); setNewExerciseMuscle(''); setShowNewExercise(false);
+      addExercise(mapped);
+    } catch (err) {
+      console.error('Failed to create exercise:', err);
+    }
   };
 
   const updateSet = (entryIdx: number, setIdx: number, field: 'reps' | 'weight', value: string) => {
@@ -152,10 +202,32 @@ function StrengthWorkoutForm() {
 
   const [showSaveAnimation, setShowSaveAnimation] = useState(false);
 
-  const handleSave = () => {
-    localStorage.removeItem(storageKey);
+  const handleSave = async () => {
     setSaving(true);
-    setShowSaveAnimation(true);
+    try {
+      const exercise_logs = entries.flatMap((entry) =>
+        entry.sets
+          .filter((s) => s.reps && s.weight)
+          .map((s) => ({
+            exercise_id: entry.exercise.id,
+            set_number: s.setNumber,
+            reps: parseInt(s.reps),
+            weight: parseFloat(s.weight),
+          }))
+      );
+
+      await createWorkout({
+        date,
+        type: 'musculation',
+        exercise_logs,
+      });
+
+      localStorage.removeItem(storageKey);
+      setShowSaveAnimation(true);
+    } catch (err) {
+      console.error('Save failed:', err);
+      setSaving(false);
+    }
   };
 
   const dateDisplay = date
@@ -177,6 +249,9 @@ function StrengthWorkoutForm() {
       <div className="text-[13px] text-text-muted mb-6 pl-12 capitalize">{dateDisplay}</div>
 
       {/* Exercise cards — 2 columns on desktop */}
+      {loadingWorkout ? (
+        <div className="text-text-muted text-[13px] text-center py-8">Chargement de la séance...</div>
+      ) : (
       <div className="lg:grid lg:grid-cols-2 lg:gap-4">
         {entries.map((entry, entryIdx) => (
           <div key={entryIdx} className="bg-bg-card border border-border rounded-card p-4 mb-3 lg:mb-0">
@@ -194,15 +269,6 @@ function StrengthWorkoutForm() {
                 </svg>
               </button>
             </div>
-
-            {/* History link */}
-            <button onClick={() => setHistoryExercise(entry.exercise.name)}
-              className="w-full py-1.5 mb-3 bg-transparent border-none text-accent text-xs font-medium font-inherit cursor-pointer opacity-70 transition-opacity duration-150 active:opacity-100 text-left flex items-center gap-1.5">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-              </svg>
-              Voir l&apos;historique
-            </button>
 
             {/* Sets header */}
             <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 mb-2">
@@ -297,111 +363,177 @@ function StrengthWorkoutForm() {
           </div>
         ))}
       </div>
+      )}
 
       {/* Add exercise */}
-      <button onClick={() => setShowExercisePicker(true)}
-        className="w-full py-[18px] bg-transparent border-2 border-dashed border-border rounded-card text-text-muted text-sm font-medium font-inherit cursor-pointer mb-4 transition-all duration-200 active:border-strength active:text-strength mt-4">
-        + Ajouter un exercice
-      </button>
+      {!workoutId && (
+        <button onClick={() => setShowExercisePicker(true)}
+          className="w-full py-[18px] bg-transparent border-2 border-dashed border-border rounded-card text-text-muted text-sm font-medium font-inherit cursor-pointer mb-4 transition-all duration-200 active:border-strength active:text-strength mt-4">
+          + Ajouter un exercice
+        </button>
+      )}
 
       {/* Save */}
-      {entries.length > 0 && (
+      {entries.length > 0 && !workoutId && (
         <button onClick={handleSave} disabled={saving}
           className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] bg-strength text-white shadow-[0_4px_20px_rgba(255,138,59,0.3)] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide">
           {saving ? 'Sauvegarde...' : 'Sauvegarder la séance'}
         </button>
       )}
 
-      {/* History modal */}
-      {historyExercise && (() => {
-        const history = getExerciseHistory(historyExercise, date);
-        return (
-          <>
-            <div onClick={() => setHistoryExercise(null)}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
-            <div className="fixed bottom-0 left-0 right-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card rounded-t-3xl px-6 pt-7 pb-10 z-[51] animate-sheetUp max-h-[70vh] overflow-y-auto">
-              <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-serif text-xl font-normal m-0">{historyExercise}</h3>
-                <button onClick={() => setHistoryExercise(null)}
-                  className="bg-transparent border-none text-text-muted text-lg cursor-pointer py-1 px-2">✕</button>
-              </div>
-              {history.length === 0 ? (
-                <div className="text-text-muted text-sm text-center py-6">Aucun historique disponible</div>
-              ) : (
-                history.map((entry, i) => {
-                  const d = new Date(entry.date + 'T00:00:00');
-                  const label = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
-                  return (
-                    <div key={i} className="bg-bg border border-border rounded-sm p-3 mb-2.5">
-                      <div className="text-[13px] font-semibold text-text mb-2 capitalize">{label}</div>
-                      <div className="grid grid-cols-3 gap-1.5 mb-1">
-                        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">Série</span>
-                        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">Reps</span>
-                        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">Poids</span>
-                      </div>
-                      {entry.sets.map((s, j) => (
-                        <div key={j} className="grid grid-cols-3 gap-1.5 py-1">
-                          <span className="text-center text-[13px] font-semibold text-text-muted">{s.setNumber}</span>
-                          <span className="text-center text-[13px] text-text-secondary">{s.reps}</span>
-                          <span className="text-center text-[13px] text-text-secondary">{s.weight > 0 ? `${s.weight} kg` : '-'}</span>
-                        </div>
-                      ))}
-                      {entry.note && (
-                        <div className="flex items-start gap-1.5 mt-2 py-1.5 px-2 bg-accent/10 rounded-md">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px">
-                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" />
-                          </svg>
-                          <span className="text-[11px] text-accent leading-tight">{entry.note}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </>
-        );
-      })()}
+      {/* Delete workout */}
+      {workoutId && (
+        <button onClick={() => setShowDeleteConfirm(true)}
+          className="w-full py-3.5 bg-transparent border border-border rounded-card text-red-400 text-[14px] font-medium font-inherit cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] active:bg-red-500/10">
+          Supprimer la séance
+        </button>
+      )}
 
-      {/* Exercise picker modal */}
-      {showExercisePicker && (
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
         <>
-          <div onClick={() => setShowExercisePicker(false)}
+          <div onClick={() => setShowDeleteConfirm(false)}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
-          <div className="fixed bottom-0 left-0 right-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card rounded-t-3xl px-6 pt-7 pb-10 z-[51] animate-sheetUp max-h-[70vh] overflow-y-auto">
-            <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-serif text-[22px] font-normal m-0">Choisir un exercice</h3>
-              <button onClick={() => setShowExercisePicker(false)}
-                className="bg-transparent border-none text-text-muted text-lg cursor-pointer py-1 px-2">✕</button>
-            </div>
-            {MUSCLE_GROUPS.map((group) => {
-              const groupExercises = exercises.filter((e) => e.muscleGroup === group);
-              if (groupExercises.length === 0) return null;
-              return (
-                <div key={group}>
-                  <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wide pt-3 pb-1.5 border-b border-border mb-1">
-                    {group}
-                  </div>
-                  {groupExercises.map((ex) => (
-                    <button key={ex.id} onClick={() => addExercise(ex)}
-                      className="block w-full text-left py-3 px-2 bg-transparent border-none border-b border-border/50 text-text text-sm font-inherit cursor-pointer transition-all duration-100 active:bg-bg-elevated">
-                      {ex.name}
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-            <div className="py-5">
-              <button onClick={() => { setShowExercisePicker(false); setShowNewExercise(true); }}
-                className="w-full py-[18px] bg-transparent border-2 border-dashed border-accent text-accent rounded-card text-sm font-medium font-inherit cursor-pointer transition-all duration-200">
-                + Créer un nouvel exercice
-              </button>
+          <div className="fixed inset-0 z-[51] flex items-center justify-center px-8" onClick={() => setShowDeleteConfirm(false)}>
+            <div onClick={(e) => e.stopPropagation()}
+              className="bg-bg-card border border-border rounded-card p-5 w-full max-w-[320px] animate-fadeIn">
+              <h3 className="text-[15px] font-semibold mb-2">Supprimer cette séance ?</h3>
+              <p className="text-[13px] text-text-secondary leading-relaxed mb-4">
+                Cette action est irréversible. Tous les exercices et séries enregistrés seront supprimés.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-2.5 bg-bg-elevated border border-border rounded-sm text-text text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
+                  Annuler
+                </button>
+                <button onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    await deleteWorkout(parseInt(workoutId!));
+                    router.push('/');
+                  } catch (err) {
+                    console.error('Delete failed:', err);
+                    setDeleting(false);
+                    setShowDeleteConfirm(false);
+                  }
+                }} disabled={deleting}
+                  className="flex-1 py-2.5 bg-red-500/15 border border-red-500/30 rounded-sm text-red-400 text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98] disabled:opacity-50">
+                  {deleting ? 'Suppression...' : 'Supprimer'}
+                </button>
+              </div>
             </div>
           </div>
         </>
       )}
+
+      {/* Exercise picker modal */}
+      {showExercisePicker && (() => {
+        const query = exerciseSearch.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const allowedGroups = [
+          ...(filterUpper ? UPPER_BODY_GROUPS : []),
+          ...(filterLower ? LOWER_BODY_GROUPS : []),
+        ];
+        const filtered = exercises.filter((e) => {
+          if (!allowedGroups.includes(e.muscleGroup)) return false;
+          if (!query) return true;
+          return (
+            e.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(query) ||
+            e.muscleGroup.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(query)
+          );
+        });
+        return (
+          <>
+            <div onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
+            <div className="fixed inset-x-0 bottom-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card rounded-t-3xl z-[51] animate-sheetUp max-h-[85dvh] flex flex-col">
+              {/* Sticky header + search + filters */}
+              <div className="shrink-0 px-6 pt-7 pb-3">
+                <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-serif text-[22px] font-normal m-0">Choisir un exercice</h3>
+                  <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); }}
+                    className="bg-transparent border-none text-text-muted text-lg cursor-pointer py-1 px-2">✕</button>
+                </div>
+                <div className="relative">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
+                    <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={exerciseSearch}
+                    onChange={(e) => setExerciseSearch(e.target.value)}
+                    placeholder="Rechercher..."
+                    autoFocus
+                    className="w-full py-3 pl-10 pr-3 bg-bg border border-border rounded-xl text-text text-[14px] font-inherit outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted box-border"
+                  />
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => {
+                      if (filterUpper && !filterLower) { setFilterUpper(true); setFilterLower(true); }
+                      else { setFilterUpper(true); setFilterLower(false); }
+                    }}
+                    className={`flex-1 py-2 rounded-lg border text-[13px] font-medium cursor-pointer transition-all duration-150 active:scale-[0.97] ${
+                      filterUpper
+                        ? 'bg-bg-elevated border-accent text-accent'
+                        : 'bg-transparent border-border text-text-muted'
+                    }`}
+                  >
+                    Upper
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (filterLower && !filterUpper) { setFilterUpper(true); setFilterLower(true); }
+                      else { setFilterLower(true); setFilterUpper(false); }
+                    }}
+                    className={`flex-1 py-2 rounded-lg border text-[13px] font-medium cursor-pointer transition-all duration-150 active:scale-[0.97] ${
+                      filterLower
+                        ? 'bg-bg-elevated border-accent text-accent'
+                        : 'bg-transparent border-border text-text-muted'
+                    }`}
+                  >
+                    Lower
+                  </button>
+                </div>
+              </div>
+
+              {/* Scrollable exercise list */}
+              <div className="flex-1 overflow-y-auto px-6 pb-10 overscroll-contain">
+                {!filterUpper && !filterLower ? (
+                  <div className="text-text-muted text-sm text-center py-8">Active au moins un filtre</div>
+                ) : filtered.length === 0 ? (
+                  <div className="text-text-muted text-sm text-center py-8">Aucun exercice trouvé</div>
+                ) : (
+                  MUSCLE_GROUPS.map((group) => {
+                    const groupExercises = filtered.filter((e) => e.muscleGroup === group);
+                    if (groupExercises.length === 0) return null;
+                    return (
+                      <div key={group}>
+                        <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wide pt-3 pb-1.5 border-b border-border mb-1">
+                          {group}
+                        </div>
+                        {groupExercises.map((ex) => (
+                          <button key={ex.id} onClick={() => { addExercise(ex); setExerciseSearch(''); }}
+                            className="block w-full text-left py-3 px-2 bg-transparent border-none border-b border-border/50 text-text text-sm font-inherit cursor-pointer transition-all duration-100 active:bg-bg-elevated">
+                            {ex.name}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })
+                )}
+                <div className="py-5">
+                  <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); setShowNewExercise(true); }}
+                    className="w-full py-[18px] bg-transparent border-2 border-dashed border-accent text-accent rounded-card text-sm font-medium font-inherit cursor-pointer transition-all duration-200">
+                    + Créer un nouvel exercice
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Save animation */}
       {showSaveAnimation && <SaveAnimation onComplete={() => router.push('/?saved=1')} />}
