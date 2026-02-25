@@ -1,7 +1,9 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import WeeklyProgress from '@/components/WeeklyProgress';
 
 const navItems = [
   { href: '/', label: 'Calendrier', icon: '📅' },
@@ -34,9 +36,14 @@ export default function BottomNav() {
 
       {/* Desktop: sidebar */}
       <nav className="hidden lg:flex flex-col w-[200px] min-h-dvh bg-bg-card border-r border-border p-6 pt-8 shrink-0">
-        <h2 className="font-serif text-xl mb-8">
+        <h2 className="font-serif text-xl mb-4">
           Jupiter <span className="text-text-muted italic">Tracker</span>
         </h2>
+        <div className="mb-6">
+          <Suspense fallback={null}>
+            <WeeklyProgress />
+          </Suspense>
+        </div>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return item.disabled ? (

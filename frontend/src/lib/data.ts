@@ -14,6 +14,7 @@ export interface Workout {
     muscleGroup: string;
     sets: { setNumber: number; reps: number; weight: number }[];
     lastPerformance?: { setNumber: number; reps: number; weight: number }[];
+    note?: string;
   }[];
 }
 
@@ -66,7 +67,7 @@ export const DUMMY_WORKOUTS: Workout[] = [
   ]},
   { id: 6, date: '2026-02-11', type: 'velo', detail: '55 km — Route — 890m D+', duration: 120, distance: 55, elevation: 890, rideType: 'Route' },
   { id: 7, date: '2026-02-12', type: 'musculation', detail: '4 exercices — Push', exercises: [
-    { name: 'Développé couché', muscleGroup: 'Pectoraux', sets: [{setNumber:1,reps:10,weight:80},{setNumber:2,reps:9,weight:80},{setNumber:3,reps:8,weight:77.5}] },
+    { name: 'Développé couché', muscleGroup: 'Pectoraux', sets: [{setNumber:1,reps:10,weight:80},{setNumber:2,reps:9,weight:80},{setNumber:3,reps:8,weight:77.5}], note: 'Légère douleur épaule droite, surveiller' },
     { name: 'Développé incliné', muscleGroup: 'Pectoraux', sets: [{setNumber:1,reps:10,weight:30},{setNumber:2,reps:9,weight:30},{setNumber:3,reps:8,weight:28}] },
     { name: 'Développé militaire', muscleGroup: 'Épaules', sets: [{setNumber:1,reps:10,weight:40},{setNumber:2,reps:8,weight:40}] },
     { name: 'Extension triceps', muscleGroup: 'Triceps', sets: [{setNumber:1,reps:12,weight:20},{setNumber:2,reps:10,weight:20}] },
@@ -74,7 +75,7 @@ export const DUMMY_WORKOUTS: Workout[] = [
   { id: 8, date: '2026-02-14', type: 'velo', detail: '28 km — Vélotaf', duration: 45, distance: 28, elevation: 120, rideType: 'Vélotaf' },
   { id: 9, date: '2026-02-14', type: 'musculation', detail: '5 exercices — Upper body', exercises: [
     { name: 'Développé couché', muscleGroup: 'Pectoraux', sets: [{setNumber:1,reps:10,weight:82.5},{setNumber:2,reps:8,weight:80},{setNumber:3,reps:7,weight:80}] },
-    { name: 'Rowing barre', muscleGroup: 'Dos', sets: [{setNumber:1,reps:12,weight:62.5},{setNumber:2,reps:10,weight:60},{setNumber:3,reps:10,weight:60}] },
+    { name: 'Rowing barre', muscleGroup: 'Dos', sets: [{setNumber:1,reps:12,weight:62.5},{setNumber:2,reps:10,weight:60},{setNumber:3,reps:10,weight:60}], note: 'Prise pronation, bien serrer les omoplates' },
     { name: 'Curl biceps', muscleGroup: 'Biceps', sets: [{setNumber:1,reps:12,weight:15},{setNumber:2,reps:10,weight:14}] },
   ]},
   { id: 10, date: '2026-02-16', type: 'musculation', detail: '5 exercices — Pull', exercises: [
@@ -104,7 +105,7 @@ export function getExerciseHistory(exerciseName: string, excludeDate?: string) {
     .flatMap(w => {
       const match = w.exercises!.find(e => e.name === exerciseName);
       if (!match) return [];
-      return [{ date: w.date, sets: match.sets }];
+      return [{ date: w.date, sets: match.sets, note: match.note }];
     })
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 3);
@@ -120,4 +121,48 @@ export function getMonthlyStats(year: number, month: number) {
     totalDistanceKm: cyclingWorkouts.reduce((sum, w) => sum + (w.distance || 0), 0),
     totalElevationM: cyclingWorkouts.reduce((sum, w) => sum + (w.elevation || 0), 0),
   };
+}
+
+export function getWeekBounds(dateStr: string): { monday: string; sunday: string } {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  const diffToMonday = (day === 0 ? -6 : 1) - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diffToMonday);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmt = (dt: Date) =>
+    `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  return { monday: fmt(monday), sunday: fmt(sunday) };
+}
+
+export function getWeeklyProgress(dateStr: string): { count: number; medals: number; weekStart: string; weekEnd: string } {
+  const { monday, sunday } = getWeekBounds(dateStr);
+  const count = DUMMY_WORKOUTS.filter(w => w.date >= monday && w.date <= sunday).length;
+  const medals = Math.max(0, count - 2);
+  return { count, medals, weekStart: monday, weekEnd: sunday };
+}
+
+export function getTotalMedals(): number {
+  if (DUMMY_WORKOUTS.length === 0) return 0;
+  const sorted = [...DUMMY_WORKOUTS].sort((a, b) => a.date.localeCompare(b.date));
+  const firstDate = sorted[0].date;
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  let totalMedals = 0;
+  let { monday } = getWeekBounds(firstDate);
+
+  while (monday <= todayStr) {
+    const sun = new Date(monday + 'T00:00:00');
+    sun.setDate(sun.getDate() + 6);
+    const sundayStr = `${sun.getFullYear()}-${String(sun.getMonth() + 1).padStart(2, '0')}-${String(sun.getDate()).padStart(2, '0')}`;
+    const count = DUMMY_WORKOUTS.filter(w => w.date >= monday && w.date <= sundayStr).length;
+    totalMedals += Math.max(0, count - 2);
+    const nextMon = new Date(monday + 'T00:00:00');
+    nextMon.setDate(nextMon.getDate() + 7);
+    monday = `${nextMon.getFullYear()}-${String(nextMon.getMonth() + 1).padStart(2, '0')}-${String(nextMon.getDate()).padStart(2, '0')}`;
+  }
+
+  return totalMedals;
 }

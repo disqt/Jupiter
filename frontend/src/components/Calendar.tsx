@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
-import { getWorkoutsForMonth, getMonthlyStats, type Workout } from '@/lib/data';
+import { getWorkoutsForMonth, getMonthlyStats, getTotalMedals, type Workout } from '@/lib/data';
+import WeeklyProgress from '@/components/WeeklyProgress';
 
 const monthNames = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -23,6 +24,7 @@ export default function Calendar() {
 
   const workouts = getWorkoutsForMonth(year, month);
   const stats = getMonthlyStats(year, month);
+  const totalMedals = getTotalMedals();
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7;
@@ -66,10 +68,17 @@ export default function Calendar() {
   return (
     <div>
       {/* Header — visible on mobile/tablet only */}
-      <div className="sticky top-0 z-10 bg-gradient-to-b from-bg from-70% to-transparent px-5 pt-14 pb-3 lg:hidden">
-        <h1 className="font-serif text-[28px] font-normal tracking-tight">
-          Jupiter <span className="text-text-muted italic">Tracker</span>
-        </h1>
+      <div className="sticky top-0 z-10 bg-bg px-5 pt-14 pb-3 rounded-b-2xl lg:hidden">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="font-serif text-[28px] font-normal tracking-tight shrink-0">
+            <span className="text-accent">Jupiter</span> <span className="text-text-muted italic">Tracker</span>
+          </h1>
+          <div className="w-[130px] shrink-0">
+            <Suspense fallback={null}>
+              <WeeklyProgress />
+            </Suspense>
+          </div>
+        </div>
       </div>
 
       {/* Desktop: two-column | Mobile: single column */}
@@ -187,7 +196,27 @@ export default function Calendar() {
           )}
 
           {/* Monthly stats */}
-          <div className="grid grid-cols-2 gap-2.5 mt-5">
+          <h3 className="text-[15px] font-semibold mt-6 mb-2">Ce mois-ci</h3>
+
+          {/* Medal card */}
+          <div className="mb-2.5 bg-bg-card border border-border rounded-card p-3.5 px-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent to-transparent" />
+            <div className="flex items-center gap-3">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-accent shrink-0">
+                <circle cx="12" cy="9" r="6" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.15" />
+                <polygon points="12,5 13.5,8 17,8.5 14.5,11 15,14.5 12,13 9,14.5 9.5,11 7,8.5 10.5,8" fill="currentColor" />
+                <path d="M8 14.5l-2 5.5 4-2M16 14.5l2 5.5-4-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <div>
+                <div className="text-[26px] font-bold tracking-tight leading-none text-accent">
+                  {totalMedals}
+                </div>
+                <div className="text-xs text-text-muted mt-1 font-medium">Médailles gagnées</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
             {[
               { value: stats.strengthCount, label: 'Séances muscu', type: 'strength' as const },
               { value: stats.cyclingCount, label: 'Séances vélo', type: 'cycling' as const },
@@ -209,7 +238,7 @@ export default function Calendar() {
       {/* FAB */}
       {selectedDate && (
         <button onClick={() => setShowSheet(true)}
-          className="fixed bottom-[104px] lg:bottom-8 right-6 lg:right-8 w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-[#7c5ce0] border-none text-white text-[28px] font-light cursor-pointer shadow-[0_8px_32px_rgba(167,139,250,0.35)] flex items-center justify-center transition-all duration-200 active:scale-90 active:rotate-90 z-20">
+          className="fixed bottom-[104px] lg:bottom-8 right-6 lg:right-8 w-14 h-14 rounded-full bg-gradient-to-br from-accent to-[#7c5ce0] border-none text-white text-[28px] font-light cursor-pointer shadow-[0_8px_32px_rgba(167,139,250,0.35)] flex items-center justify-center transition-all duration-200 active:scale-90 active:rotate-90 z-20">
           +
         </button>
       )}

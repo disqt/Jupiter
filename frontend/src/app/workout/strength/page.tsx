@@ -1,8 +1,9 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { EXERCISES, MUSCLE_GROUPS, DUMMY_WORKOUTS, getExerciseHistory, type Exercise } from '@/lib/data';
+import SaveAnimation from '@/components/SaveAnimation';
 
 interface SetLog {
   setNumber: number;
@@ -14,6 +15,9 @@ interface ExerciseEntry {
   exercise: Exercise;
   sets: SetLog[];
   lastPerformance: { setNumber: number; reps: number; weight: number }[];
+  note: string;
+  notePinned: boolean;
+  showNote: boolean;
 }
 
 function StrengthWorkoutForm() {
@@ -38,12 +42,24 @@ function StrengthWorkoutForm() {
             weight: s.weight > 0 ? String(s.weight) : '',
           })),
           lastPerformance: ex.lastPerformance || [],
+          note: '',
+          notePinned: false,
+          showNote: false,
         };
       })
     : [];
 
+  const storageKey = `strength-draft-${date}`;
+
   const [exercises] = useState<Exercise[]>(EXERCISES);
-  const [entries, setEntries] = useState<ExerciseEntry[]>(initialEntries);
+  const [entries, setEntries] = useState<ExerciseEntry[]>(() => {
+    if (typeof window === 'undefined' || !date) return initialEntries;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return initialEntries;
+  });
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [showNewExercise, setShowNewExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
@@ -52,8 +68,28 @@ function StrengthWorkoutForm() {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [historyExercise, setHistoryExercise] = useState<string | null>(null);
 
+  // Auto-save draft to localStorage
+  useEffect(() => {
+    if (!date) return;
+    if (entries.length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify(entries));
+    } else {
+      localStorage.removeItem(storageKey);
+    }
+  }, [entries, storageKey, date]);
+
+  const clearPendingDelete = useCallback(() => {
+    setPendingDelete(null);
+  }, []);
+
+  useEffect(() => {
+    if (pendingDelete === null) return;
+    document.addEventListener('click', clearPendingDelete);
+    return () => document.removeEventListener('click', clearPendingDelete);
+  }, [pendingDelete, clearPendingDelete]);
+
   const addExercise = (exercise: Exercise) => {
-    setEntries([...entries, { exercise, sets: [{ setNumber: 1, reps: '', weight: '' }], lastPerformance: [] }]);
+    setEntries([...entries, { exercise, sets: [{ setNumber: 1, reps: '', weight: '' }], lastPerformance: [], note: '', notePinned: false, showNote: false }]);
     setShowExercisePicker(false);
   };
 
@@ -96,9 +132,30 @@ function StrengthWorkoutForm() {
     setEntries(entries.filter((_, i) => i !== entryIdx));
   };
 
+  const toggleShowNote = (entryIdx: number) => {
+    const updated = [...entries];
+    updated[entryIdx] = { ...updated[entryIdx], showNote: !updated[entryIdx].showNote };
+    setEntries(updated);
+  };
+
+  const updateNote = (entryIdx: number, value: string) => {
+    const updated = [...entries];
+    updated[entryIdx] = { ...updated[entryIdx], note: value };
+    setEntries(updated);
+  };
+
+  const togglePin = (entryIdx: number) => {
+    const updated = [...entries];
+    updated[entryIdx] = { ...updated[entryIdx], notePinned: !updated[entryIdx].notePinned };
+    setEntries(updated);
+  };
+
+  const [showSaveAnimation, setShowSaveAnimation] = useState(false);
+
   const handleSave = () => {
+    localStorage.removeItem(storageKey);
     setSaving(true);
-    setTimeout(() => { router.push('/'); }, 300);
+    setShowSaveAnimation(true);
   };
 
   const dateDisplay = date
@@ -138,6 +195,15 @@ function StrengthWorkoutForm() {
               </button>
             </div>
 
+            {/* History link */}
+            <button onClick={() => setHistoryExercise(entry.exercise.name)}
+              className="w-full py-1.5 mb-3 bg-transparent border-none text-accent text-xs font-medium font-inherit cursor-pointer opacity-70 transition-opacity duration-150 active:opacity-100 text-left flex items-center gap-1.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              </svg>
+              Voir l&apos;historique
+            </button>
+
             {/* Sets header */}
             <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 mb-2">
               <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">Série</span>
@@ -156,7 +222,7 @@ function StrengthWorkoutForm() {
                 <div key={setIdx} className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 mb-1.5 items-center">
                   {canDelete ? (
                     isDeleting ? (
-                      <button onClick={() => { removeSet(entryIdx, setIdx); setPendingDelete(null); }}
+                      <button onClick={(e) => { e.stopPropagation(); removeSet(entryIdx, setIdx); setPendingDelete(null); }}
                         aria-label="Confirmer suppression"
                         className="flex items-center justify-center w-7 h-7 mx-auto bg-danger/15 border border-danger/30 rounded-lg cursor-pointer p-0 animate-pulseDelete">
                         <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
@@ -165,7 +231,7 @@ function StrengthWorkoutForm() {
                         </svg>
                       </button>
                     ) : (
-                      <button onClick={() => setPendingDelete(deleteKey)}
+                      <button onClick={(e) => { e.stopPropagation(); setPendingDelete(deleteKey); }}
                         className="text-center text-[13px] font-bold text-text bg-white/[0.08] border border-white/[0.15] rounded-lg w-7 h-7 leading-7 mx-auto cursor-pointer transition-all duration-200 p-0 font-inherit active:bg-white/[0.15]">
                         {set.setNumber}
                       </button>
@@ -188,13 +254,45 @@ function StrengthWorkoutForm() {
               );
             })}
 
+            {/* Note section */}
+            {entry.showNote ? (
+              <div className="relative mt-2 mb-1">
+                <input
+                  type="text"
+                  value={entry.note}
+                  onChange={(e) => updateNote(entryIdx, e.target.value)}
+                  placeholder="Ajouter une note..."
+                  className="w-full py-2.5 pl-3 pr-10 bg-bg border border-border rounded-lg text-text text-[13px] font-inherit outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted box-border"
+                />
+                <button
+                  onClick={() => togglePin(entryIdx)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-1 flex items-center justify-center"
+                  aria-label={entry.notePinned ? 'Désépingler' : 'Épingler'}
+                >
+                  {entry.notePinned ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#a78bfa" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 17v5M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7" /><path d="M5 11h14l-1.5 6h-11z" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#55545e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 17v5M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7" /><path d="M5 11h14l-1.5 6h-11z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => toggleShowNote(entryIdx)}
+                className="w-full py-2 mt-2 bg-transparent border-none text-text-muted text-xs font-medium font-inherit cursor-pointer opacity-70 transition-opacity duration-150 active:opacity-100 flex items-center justify-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+                Note
+              </button>
+            )}
+
             <button onClick={() => addSet(entryIdx)}
-              className="w-full py-2.5 mt-2 bg-transparent border border-dashed border-border rounded-lg text-text-muted text-[13px] font-inherit cursor-pointer transition-all duration-150 active:bg-bg-elevated">
+              className="w-full py-2.5 mt-1 bg-transparent border border-dashed border-border rounded-lg text-text-muted text-[13px] font-inherit cursor-pointer transition-all duration-150 active:bg-bg-elevated">
               + Ajouter une série
-            </button>
-            <button onClick={() => setHistoryExercise(entry.exercise.name)}
-              className="w-full py-2 mt-1 bg-transparent border-none text-accent text-xs font-medium font-inherit cursor-pointer opacity-70 transition-opacity duration-150 active:opacity-100">
-              Voir l&apos;historique
             </button>
           </div>
         ))}
@@ -249,6 +347,14 @@ function StrengthWorkoutForm() {
                           <span className="text-center text-[13px] text-text-secondary">{s.weight > 0 ? `${s.weight} kg` : '-'}</span>
                         </div>
                       ))}
+                      {entry.note && (
+                        <div className="flex items-start gap-1.5 mt-2 py-1.5 px-2 bg-accent/10 rounded-md">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" />
+                          </svg>
+                          <span className="text-[11px] text-accent leading-tight">{entry.note}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -296,6 +402,9 @@ function StrengthWorkoutForm() {
           </div>
         </>
       )}
+
+      {/* Save animation */}
+      {showSaveAnimation && <SaveAnimation onComplete={() => router.push('/?saved=1')} />}
 
       {/* New exercise modal */}
       {showNewExercise && (

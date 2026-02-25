@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { RIDE_TYPES } from '@/lib/data';
+import SaveAnimation from '@/components/SaveAnimation';
 
 function CyclingWorkoutForm() {
   const searchParams = useSearchParams();
@@ -15,9 +16,11 @@ function CyclingWorkoutForm() {
   const [rideType, setRideType] = useState(RIDE_TYPES[0]);
   const [saving, setSaving] = useState(false);
 
+  const [showSaveAnimation, setShowSaveAnimation] = useState(false);
+
   const handleSave = () => {
     setSaving(true);
-    setTimeout(() => { router.push('/'); }, 300);
+    setShowSaveAnimation(true);
   };
 
   const dateDisplay = date
@@ -67,6 +70,8 @@ function CyclingWorkoutForm() {
             className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted" />
         </div>
       </div>
+
+      {showSaveAnimation && <SaveAnimation onComplete={() => router.push('/?saved=1')} />}
 
       <button onClick={handleSave} disabled={saving}
         className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] bg-cycling text-white shadow-[0_4px_20px_rgba(59,158,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide">
