@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import WeeklyProgress from '@/components/WeeklyProgress';
@@ -39,7 +40,9 @@ export default function BottomNav() {
           Jupiter <span className="text-text-muted italic">Tracker</span>
         </h2>
         <div className="mb-6">
-          <WeeklyProgress />
+          <Suspense fallback={null}>
+            <WeeklyProgress />
+          </Suspense>
         </div>
         {navItems.map((item) => {
           const isActive = pathname === item.href;

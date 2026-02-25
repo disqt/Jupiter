@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { getWorkoutsForMonth, getMonthlyStats, getTotalMedals, type Workout } from '@/lib/data';
 import WeeklyProgress from '@/components/WeeklyProgress';
@@ -72,7 +72,9 @@ export default function Calendar() {
         <h1 className="font-serif text-[28px] font-normal tracking-tight mb-2.5">
           <span className="text-accent">Jupiter</span> <span className="text-text-muted italic">Tracker</span>
         </h1>
-        <WeeklyProgress />
+        <Suspense fallback={null}>
+          <WeeklyProgress />
+        </Suspense>
       </div>
 
       {/* Desktop: two-column | Mobile: single column */}
