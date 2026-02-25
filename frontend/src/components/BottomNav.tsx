@@ -52,18 +52,10 @@ export default function BottomNav() {
             {user.nickname}
           </Link>
         )}
-        <div className="flex items-center gap-2 mb-6">
-          <div className="flex-1">
-            <Suspense fallback={null}>
-              <WeeklyProgress />
-            </Suspense>
-          </div>
-          <button
-            onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
-            className="text-[11px] font-bold text-text-muted bg-bg border border-border rounded-md px-1.5 py-1 cursor-pointer transition-all duration-150 active:scale-95 uppercase tracking-wide shrink-0"
-          >
-            {locale === 'fr' ? 'EN' : 'FR'}
-          </button>
+        <div className="mb-6">
+          <Suspense fallback={null}>
+            <WeeklyProgress />
+          </Suspense>
         </div>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -81,12 +73,20 @@ export default function BottomNav() {
             </Link>
           );
         })}
-        <button
-          onClick={logout}
-          className="mt-auto text-sm text-text-muted hover:text-red-400 transition-colors cursor-pointer bg-transparent border-none font-inherit text-left px-3 py-2"
-        >
-          {t.logout}
-        </button>
+        <div className="mt-auto flex flex-col gap-2">
+          <button
+            onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
+            className="text-[11px] font-bold text-text-muted bg-bg border border-border rounded-md px-3 py-1.5 cursor-pointer transition-all duration-150 active:scale-95 uppercase tracking-wide"
+          >
+            {locale === 'fr' ? 'EN' : 'FR'}
+          </button>
+          <button
+            onClick={logout}
+            className="text-sm text-text-muted hover:text-red-400 transition-colors cursor-pointer bg-transparent border border-border rounded-md font-inherit text-center px-3 py-2"
+          >
+            {t.logout}
+          </button>
+        </div>
       </nav>
     </>
   );

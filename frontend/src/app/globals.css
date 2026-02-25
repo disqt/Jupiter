@@ -16,3 +16,17 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* Auth illustration floating animation */
+@keyframes authFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.auth-float {
+  animation: authFloat 5s ease-in-out infinite;
+}
+
+.auth-float-delayed {
+  animation: authFloat 5s ease-in-out 1.5s infinite;
+}
