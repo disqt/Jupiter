@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { getWorkoutsForMonth, getMonthlyStats, type Workout } from '@/lib/data';
+import WeeklyProgress from '@/components/WeeklyProgress';
 
 const monthNames = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -67,9 +68,10 @@ export default function Calendar() {
     <div>
       {/* Header — visible on mobile/tablet only */}
       <div className="sticky top-0 z-10 bg-gradient-to-b from-bg from-70% to-transparent px-5 pt-14 pb-3 lg:hidden">
-        <h1 className="font-serif text-[28px] font-normal tracking-tight">
-          Jupiter <span className="text-text-muted italic">Tracker</span>
+        <h1 className="font-serif text-[28px] font-normal tracking-tight mb-2.5">
+          <span className="text-accent">Jupiter</span> <span className="text-text-muted italic">Tracker</span>
         </h1>
+        <WeeklyProgress />
       </div>
 
       {/* Desktop: two-column | Mobile: single column */}
@@ -187,7 +189,8 @@ export default function Calendar() {
           )}
 
           {/* Monthly stats */}
-          <div className="grid grid-cols-2 gap-2.5 mt-5">
+          <h3 className="text-[15px] font-semibold mt-6 mb-2">Ce mois-ci</h3>
+          <div className="grid grid-cols-2 gap-2.5">
             {[
               { value: stats.strengthCount, label: 'Séances muscu', type: 'strength' as const },
               { value: stats.cyclingCount, label: 'Séances vélo', type: 'cycling' as const },
@@ -209,7 +212,7 @@ export default function Calendar() {
       {/* FAB */}
       {selectedDate && (
         <button onClick={() => setShowSheet(true)}
-          className="fixed bottom-[104px] lg:bottom-8 right-6 lg:right-8 w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-[#7c5ce0] border-none text-white text-[28px] font-light cursor-pointer shadow-[0_8px_32px_rgba(167,139,250,0.35)] flex items-center justify-center transition-all duration-200 active:scale-90 active:rotate-90 z-20">
+          className="fixed bottom-[104px] lg:bottom-8 right-6 lg:right-8 w-14 h-14 rounded-full bg-gradient-to-br from-accent to-[#7c5ce0] border-none text-white text-[28px] font-light cursor-pointer shadow-[0_8px_32px_rgba(167,139,250,0.35)] flex items-center justify-center transition-all duration-200 active:scale-90 active:rotate-90 z-20">
           +
         </button>
       )}
