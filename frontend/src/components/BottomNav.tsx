@@ -5,10 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import WeeklyProgress from '@/components/WeeklyProgress';
 import { useI18n } from '@/lib/i18n';
+import { useAuth } from '@/lib/auth';
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { t, locale, setLocale } = useI18n();
+  const { user, logout } = useAuth();
+
+  if (pathname === '/login' || pathname === '/register') return null;
 
   const navItems = [
     { href: '/', label: t.calendar, icon: '📅' },
@@ -38,9 +42,14 @@ export default function BottomNav() {
 
       {/* Desktop: sidebar */}
       <nav className="hidden lg:flex flex-col w-[200px] min-h-dvh bg-bg-card border-r border-border p-6 pt-8 shrink-0">
-        <h2 className="font-serif text-xl mb-4">
+        <h2 className="font-serif text-xl mb-1">
           Jupiter <span className="text-text-muted italic">Tracker</span>
         </h2>
+        {user && (
+          <Link href="/profile" className="text-xs text-text-muted no-underline hover:text-accent transition-colors mb-3">
+            {user.nickname}
+          </Link>
+        )}
         <div className="flex items-center gap-2 mb-6">
           <div className="flex-1">
             <Suspense fallback={null}>
@@ -69,6 +78,12 @@ export default function BottomNav() {
             </Link>
           );
         })}
+        <button
+          onClick={logout}
+          className="mt-auto text-sm text-text-muted hover:text-red-400 transition-colors cursor-pointer bg-transparent border-none font-inherit text-left px-3 py-2"
+        >
+          {t.logout}
+        </button>
       </nav>
     </>
   );

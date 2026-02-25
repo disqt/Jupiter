@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import Link from 'next/link';
-import { fetchWorkouts, fetchMonthlyStats, type Workout } from '@/lib/api';
+import { fetchWorkouts, fetchMonthlyStats, fetchWeeklyProgress, type Workout } from '@/lib/api';
 import WeeklyProgress from '@/components/WeeklyProgress';
 import { useI18n } from '@/lib/i18n';
+import { useAuth } from '@/lib/auth';
 
 export default function Calendar() {
   const { t, locale, setLocale } = useI18n();
+  const { user } = useAuth();
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -16,6 +18,7 @@ export default function Calendar() {
 
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [stats, setStats] = useState({ cyclingCount: 0, strengthCount: 0, totalDistanceKm: 0, totalElevationM: 0 });
+  const [totalMedals, setTotalMedals] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const year = currentDate.getFullYear();
@@ -42,6 +45,12 @@ export default function Calendar() {
       setLoading(false);
     }
   }, [monthStr]);
+
+  useEffect(() => {
+    fetchWeeklyProgress()
+      .then((wp) => setTotalMedals(parseInt(wp.total_medals) || 0))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -93,9 +102,16 @@ export default function Calendar() {
       {/* Header — visible on mobile/tablet only */}
       <div className="sticky top-0 z-10 bg-bg px-5 pt-14 pb-3 rounded-b-2xl lg:hidden">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="font-serif text-[28px] font-normal tracking-tight shrink-0">
-            <span className="text-accent">Jupiter</span> <span className="text-text-muted italic">Tracker</span>
-          </h1>
+          <div className="shrink-0">
+            <h1 className="font-serif text-[28px] font-normal tracking-tight leading-none">
+              <span className="text-accent">Jupiter</span> <span className="text-text-muted italic">Tracker</span>
+            </h1>
+            {user && (
+              <Link href="/profile" className="text-xs text-text-muted no-underline hover:text-accent transition-colors">
+                {user.nickname}
+              </Link>
+            )}
+          </div>
           <div className="flex items-center gap-2.5 shrink-0">
             <div className="w-[130px]">
               <Suspense fallback={null}>
@@ -232,6 +248,14 @@ export default function Calendar() {
 
           {/* Monthly stats */}
           <h3 className="text-[15px] font-semibold mt-6 mb-2">{t.thisMonth}</h3>
+
+          <div className="bg-bg-card border border-border rounded-card p-3.5 px-4 relative overflow-hidden mb-2.5">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent to-transparent" />
+            <div className="text-[26px] font-bold tracking-tight leading-none text-accent">
+              {totalMedals}<span className="text-sm font-normal opacity-60"> 🏅</span>
+            </div>
+            <div className="text-xs text-text-muted mt-1 font-medium">{t.totalMedals}</div>
+          </div>
 
           <div className="grid grid-cols-2 gap-2.5">
             {[
