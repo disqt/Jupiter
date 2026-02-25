@@ -51,6 +51,9 @@ const translations = {
     currentMedals: (count: number) => `Tu as actuellement ${count} médaille${count > 1 ? 's' : ''}.`,
     understood: 'Compris',
 
+    // Stats
+    totalMedals: 'Médailles cumulées',
+
     // Save animation
     workoutSaved: 'Séance sauvegardée',
 
@@ -124,6 +127,34 @@ const translations = {
       'VTT': 'VTT',
       'Vélotaf': 'Vélotaf',
     } as Record<string, string>,
+
+    // Auth
+    login: 'Connexion',
+    register: 'Créer un compte',
+    nickname: 'Pseudo',
+    password: 'Mot de passe',
+    inviteCode: "Code d'invitation",
+    loginButton: 'Se connecter',
+    registerButton: 'Créer mon compte',
+    noAccount: 'Pas encore de compte ?',
+    hasAccount: 'Déjà un compte ?',
+    logout: 'Déconnexion',
+
+    // Profile
+    profile: 'Profil',
+    currentPassword: 'Mot de passe actuel',
+    newPassword: 'Nouveau mot de passe',
+    saveChanges: 'Enregistrer',
+    profileUpdated: 'Profil mis à jour',
+
+    // Auth errors
+    errorInvalidCredentials: 'Pseudo ou mot de passe incorrect',
+    errorNicknameTaken: 'Ce pseudo est déjà pris',
+    errorInvalidInviteCode: "Code d'invitation invalide",
+    errorPasswordTooShort: 'Le mot de passe doit faire au moins 6 caractères',
+    errorCurrentPasswordRequired: 'Le mot de passe actuel est requis',
+    errorCurrentPasswordWrong: 'Le mot de passe actuel est incorrect',
+    errorAllFieldsRequired: 'Tous les champs sont requis',
   },
   en: {
     appTitle: 'Jupiter',
@@ -165,6 +196,8 @@ const translations = {
     medalsExtra: '+1 per extra session',
     currentMedals: (count: number) => `You currently have ${count} medal${count > 1 ? 's' : ''}.`,
     understood: 'Got it',
+
+    totalMedals: 'Total medals',
 
     workoutSaved: 'Workout saved',
 
@@ -232,6 +265,34 @@ const translations = {
       'VTT': 'MTB',
       'Vélotaf': 'Commute',
     } as Record<string, string>,
+
+    // Auth
+    login: 'Log in',
+    register: 'Create account',
+    nickname: 'Nickname',
+    password: 'Password',
+    inviteCode: 'Invite code',
+    loginButton: 'Log in',
+    registerButton: 'Create account',
+    noAccount: "Don't have an account?",
+    hasAccount: 'Already have an account?',
+    logout: 'Log out',
+
+    // Profile
+    profile: 'Profile',
+    currentPassword: 'Current password',
+    newPassword: 'New password',
+    saveChanges: 'Save changes',
+    profileUpdated: 'Profile updated',
+
+    // Auth errors
+    errorInvalidCredentials: 'Invalid nickname or password',
+    errorNicknameTaken: 'This nickname is already taken',
+    errorInvalidInviteCode: 'Invalid invite code',
+    errorPasswordTooShort: 'Password must be at least 6 characters',
+    errorCurrentPasswordRequired: 'Current password is required',
+    errorCurrentPasswordWrong: 'Current password is incorrect',
+    errorAllFieldsRequired: 'All fields are required',
   },
 };
 
