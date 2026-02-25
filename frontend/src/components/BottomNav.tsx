@@ -27,9 +27,10 @@ export default function BottomNav() {
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return item.disabled ? (
-            <div key={item.href} className="flex-1 flex flex-col items-center gap-0.5 pt-1 opacity-25 cursor-not-allowed">
+            <div key={item.href} className="flex-1 flex flex-col items-center gap-0.5 pt-1 opacity-25 cursor-not-allowed relative">
               <span className="text-xl">{item.icon}</span>
               <span className="text-[11px] font-medium">{item.label}</span>
+              <span className="absolute -top-0.5 right-1/2 translate-x-[18px] text-[8px] font-bold text-accent bg-accent/15 rounded-full px-1.5 py-0.5 leading-none">soon</span>
             </div>
           ) : (
             <Link key={item.href} href={item.href}
@@ -70,6 +71,7 @@ export default function BottomNav() {
             <div key={item.href} className="flex items-center gap-3 px-3 py-2.5 rounded-sm mb-1 opacity-25 cursor-not-allowed">
               <span>{item.icon}</span>
               <span className="text-sm font-medium">{item.label}</span>
+              <span className="text-[9px] font-bold text-accent bg-accent/15 rounded-full px-1.5 py-0.5 leading-none ml-auto">soon</span>
             </div>
           ) : (
             <Link key={item.href} href={item.href}
