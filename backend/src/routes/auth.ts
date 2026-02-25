@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import pool from '../db';
+import { seedDefaultExercises } from '../seedExercises';
 
 const router = Router();
 const SALT_ROUNDS = 12;
@@ -49,6 +50,10 @@ router.post('/register', async (req, res) => {
     );
 
     const user = result.rows[0];
+
+    // Seed default exercises for the new user
+    await seedDefaultExercises(user.id);
+
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || '', { expiresIn: '30d' });
 
     res.status(201).json({ token, user: { id: user.id, nickname: user.nickname } });
