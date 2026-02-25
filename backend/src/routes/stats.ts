@@ -20,8 +20,9 @@ router.get('/monthly', async (req, res) => {
         COUNT(DISTINCT w.date) AS active_days
        FROM workouts w
        LEFT JOIN cycling_details cd ON cd.workout_id = w.id
-       WHERE to_char(w.date, 'YYYY-MM') = $1`,
-      [month]
+       WHERE to_char(w.date, 'YYYY-MM') = $1
+         AND w.user_id = $2`,
+      [month, req.userId]
     );
 
     res.json(result.rows[0]);
@@ -32,7 +33,7 @@ router.get('/monthly', async (req, res) => {
 });
 
 // GET /api/stats/weekly-progress
-router.get('/weekly-progress', async (_req, res) => {
+router.get('/weekly-progress', async (req, res) => {
   try {
     const result = await pool.query(`
       WITH weekly_counts AS (
@@ -40,18 +41,20 @@ router.get('/weekly-progress', async (_req, res) => {
           date_trunc('week', date::timestamp) as week_start,
           COUNT(*) as count
         FROM workouts
+        WHERE user_id = $1
         GROUP BY date_trunc('week', date::timestamp)
       ),
       current_week AS (
         SELECT COUNT(*) as count
         FROM workouts
-        WHERE date >= date_trunc('week', CURRENT_DATE)
+        WHERE user_id = $1
+          AND date >= date_trunc('week', CURRENT_DATE)
           AND date < date_trunc('week', CURRENT_DATE) + interval '7 days'
       )
       SELECT
         (SELECT count FROM current_week) as week_count,
         COALESCE((SELECT SUM(GREATEST(count - 2, 0)) FROM weekly_counts), 0) as total_medals
-    `);
+    `, [req.userId]);
 
     res.json(result.rows[0]);
   } catch (err) {

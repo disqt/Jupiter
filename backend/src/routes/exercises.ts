@@ -4,10 +4,11 @@ import pool from '../db';
 const router = Router();
 
 // GET /api/exercises
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM exercises ORDER BY muscle_group, name'
+      'SELECT * FROM exercises WHERE user_id = $1 ORDER BY muscle_group, name',
+      [req.userId]
     );
     res.json(result.rows);
   } catch (err) {
@@ -21,8 +22,8 @@ router.post('/', async (req, res) => {
   try {
     const { name, muscle_group } = req.body;
     const result = await pool.query(
-      'INSERT INTO exercises (name, muscle_group) VALUES ($1, $2) RETURNING *',
-      [name, muscle_group]
+      'INSERT INTO exercises (name, muscle_group, user_id) VALUES ($1, $2, $3) RETURNING *',
+      [name, muscle_group, req.userId]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -37,8 +38,8 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { name, muscle_group } = req.body;
     const result = await pool.query(
-      'UPDATE exercises SET name = $1, muscle_group = $2 WHERE id = $3 RETURNING *',
-      [name, muscle_group, id]
+      'UPDATE exercises SET name = $1, muscle_group = $2 WHERE id = $3 AND user_id = $4 RETURNING *',
+      [name, muscle_group, id, req.userId]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Exercise not found' });
@@ -55,8 +56,8 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      'DELETE FROM exercises WHERE id = $1 RETURNING *',
-      [id]
+      'DELETE FROM exercises WHERE id = $1 AND user_id = $2 RETURNING *',
+      [id, req.userId]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Exercise not found' });
@@ -77,13 +78,15 @@ router.get('/:id/last-performance', async (req, res) => {
        FROM exercise_logs el
        JOIN workouts w ON w.id = el.workout_id
        WHERE el.exercise_id = $1
-       AND w.date = (
-         SELECT MAX(w2.date) FROM workouts w2
-         JOIN exercise_logs el2 ON el2.workout_id = w2.id
-         WHERE el2.exercise_id = $1
-       )
+         AND w.user_id = $2
+         AND w.date = (
+           SELECT MAX(w2.date) FROM workouts w2
+           JOIN exercise_logs el2 ON el2.workout_id = w2.id
+           WHERE el2.exercise_id = $1
+             AND w2.user_id = $2
+         )
        ORDER BY el.set_number`,
-      [id]
+      [id, req.userId]
     );
     res.json(result.rows);
   } catch (err) {
