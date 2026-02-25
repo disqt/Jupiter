@@ -60,12 +60,56 @@ const config: Config = {
           '50%': { transform: 'scale(1.15)' },
           '100%': { transform: 'scale(1)' },
         },
+        saveOverlayIn: {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
+        saveGlow: {
+          from: { opacity: '0', transform: 'scale(0.5)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
+        saveCircleDraw: {
+          to: { 'stroke-dashoffset': '0' },
+        },
+        saveCheckDraw: {
+          to: { 'stroke-dashoffset': '0' },
+        },
+        saveTextReveal: {
+          from: { opacity: '0', transform: 'translateY(10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        saveFadeOut: {
+          to: { opacity: '0', transform: 'scale(0.97)' },
+        },
+        medalBounce: {
+          '0%': { transform: 'scale(1)' },
+          '30%': { transform: 'scale(1.3)' },
+          '60%': { transform: 'scale(0.95)' },
+          '100%': { transform: 'scale(1)' },
+        },
+        medalFloatUp: {
+          from: { opacity: '1', transform: 'translateY(0)' },
+          to: { opacity: '0', transform: 'translateY(-20px)' },
+        },
+        progressGlow: {
+          '0%, 100%': { opacity: '0.5' },
+          '50%': { opacity: '1' },
+        },
       },
       animation: {
         fadeIn: 'fadeIn 0.3s ease',
         overlayIn: 'overlayIn 0.2s ease',
         sheetUp: 'sheetUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         pulseDelete: 'pulseDelete 0.3s ease',
+        saveOverlayIn: 'saveOverlayIn 300ms ease forwards',
+        saveGlow: 'saveGlow 800ms ease-out 200ms both',
+        saveCircleDraw: 'saveCircleDraw 700ms ease-in-out 200ms forwards',
+        saveCheckDraw: 'saveCheckDraw 400ms ease-out 600ms forwards',
+        saveTextReveal: 'saveTextReveal 300ms ease 800ms both',
+        saveFadeOut: 'saveFadeOut 400ms ease 1500ms forwards',
+        medalBounce: 'medalBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+        medalFloatUp: 'medalFloatUp 0.8s ease-out forwards',
+        progressGlow: 'progressGlow 2s ease-in-out infinite',
       },
     },
   },
