@@ -5,8 +5,6 @@ import rateLimit from 'express-rate-limit';
 import pool from '../db';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || '';
-const INVITE_CODE = process.env.INVITE_CODE || '';
 const SALT_ROUNDS = 12;
 
 const authLimiter = rateLimit({
@@ -26,7 +24,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
-    if (invite_code !== INVITE_CODE) {
+    if (invite_code !== (process.env.INVITE_CODE || '')) {
       return res.status(403).json({ error: 'Invalid invite code' });
     }
 
@@ -51,7 +49,7 @@ router.post('/register', async (req, res) => {
     );
 
     const user = result.rows[0];
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || '', { expiresIn: '30d' });
 
     res.status(201).json({ token, user: { id: user.id, nickname: user.nickname } });
   } catch (err) {
@@ -80,7 +78,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid nickname or password' });
     }
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || '', { expiresIn: '30d' });
 
     res.json({ token, user: { id: user.id, nickname: user.nickname } });
   } catch (err) {

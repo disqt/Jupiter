@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || '';
-
 // Extend Express Request
 declare global {
   namespace Express {
@@ -28,7 +26,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
 
   try {
     const token = header.slice(7);
-    const payload = jwt.verify(token, JWT_SECRET) as { userId: number };
+    const payload = jwt.verify(token, process.env.JWT_SECRET || '') as { userId: number };
     req.userId = payload.userId;
     next();
   } catch {
