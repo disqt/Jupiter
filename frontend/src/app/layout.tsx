@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Instrument_Serif } from 'next/font/google';
 import './globals.css';
 import BottomNav from '@/components/BottomNav';
+import Providers from '@/components/Providers';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -33,12 +34,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr">
       <body className={`${dmSans.variable} ${instrumentSerif.variable} font-sans bg-bg text-text min-h-dvh overflow-x-hidden`}>
-        <div className="flex min-h-dvh">
-          <BottomNav />
-          <main className="flex-1 pb-20 lg:pb-0">
-            {children}
-          </main>
-        </div>
+        <Providers>
+          <div className="flex min-h-dvh">
+            <BottomNav />
+            <main className="flex-1 pb-20 lg:pb-0">
+              {children}
+            </main>
+          </div>
+        </Providers>
       </body>
     </html>
   );

@@ -4,14 +4,16 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import WeeklyProgress from '@/components/WeeklyProgress';
-
-const navItems = [
-  { href: '/', label: 'Calendrier', icon: '📅' },
-  { href: '/stats', label: 'Stats', icon: '📊', disabled: true },
-];
+import { useI18n } from '@/lib/i18n';
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { t, locale, setLocale } = useI18n();
+
+  const navItems = [
+    { href: '/', label: t.calendar, icon: '📅' },
+    { href: '/stats', label: t.stats, icon: '📊', disabled: true },
+  ];
 
   return (
     <>
@@ -39,10 +41,18 @@ export default function BottomNav() {
         <h2 className="font-serif text-xl mb-4">
           Jupiter <span className="text-text-muted italic">Tracker</span>
         </h2>
-        <div className="mb-6">
-          <Suspense fallback={null}>
-            <WeeklyProgress />
-          </Suspense>
+        <div className="flex items-center gap-2 mb-6">
+          <div className="flex-1">
+            <Suspense fallback={null}>
+              <WeeklyProgress />
+            </Suspense>
+          </div>
+          <button
+            onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
+            className="text-[11px] font-bold text-text-muted bg-bg border border-border rounded-md px-1.5 py-1 cursor-pointer transition-all duration-150 active:scale-95 uppercase tracking-wide shrink-0"
+          >
+            {locale === 'fr' ? 'EN' : 'FR'}
+          </button>
         </div>
         {navItems.map((item) => {
           const isActive = pathname === item.href;

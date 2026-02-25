@@ -108,6 +108,19 @@ export async function createWorkout(data: {
   });
 }
 
+export async function updateWorkout(id: number, data: {
+  date: string;
+  type: 'velo' | 'musculation';
+  notes?: string;
+  cycling_details?: { duration?: number; distance?: number; elevation?: number; ride_type?: string };
+  exercise_logs?: { exercise_id: number; set_number: number; reps: number; weight: number }[];
+}) {
+  return request<ApiWorkout>(`/api/workouts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function deleteWorkout(id: number) {
   return request(`/api/workouts/${id}`, { method: 'DELETE' });
 }
