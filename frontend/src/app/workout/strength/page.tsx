@@ -3,8 +3,9 @@
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { MUSCLE_GROUPS, UPPER_BODY_GROUPS, LOWER_BODY_GROUPS } from '@/lib/data';
-import { fetchExercises, fetchLastPerformance, fetchWorkout, createWorkout, createExercise, deleteWorkout, type Exercise } from '@/lib/api';
+import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, fetchWorkout, createWorkout, updateWorkout, createExercise, deleteWorkout, type Exercise, type HistorySet } from '@/lib/api';
 import SaveAnimation from '@/components/SaveAnimation';
+import { useI18n } from '@/lib/i18n';
 
 interface SetLog {
   setNumber: number;
@@ -24,6 +25,7 @@ interface ExerciseEntry {
 function StrengthWorkoutForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t, locale } = useI18n();
   const date = searchParams.get('date') || '';
   const workoutId = searchParams.get('id');
 
@@ -48,10 +50,12 @@ function StrengthWorkoutForm() {
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseMuscle, setNewExerciseMuscle] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [historyExercise, setHistoryExercise] = useState<string | null>(null);
+  const [historyExercise, setHistoryExercise] = useState<{ id: number; name: string } | null>(null);
+  const [historyData, setHistoryData] = useState<HistorySet[]>([]);
 
   // Load exercises from API
   useEffect(() => {
@@ -216,22 +220,25 @@ function StrengthWorkoutForm() {
           }))
       );
 
-      await createWorkout({
-        date,
-        type: 'musculation',
-        exercise_logs,
-      });
+      const payload = { date, type: 'musculation' as const, exercise_logs };
 
-      localStorage.removeItem(storageKey);
-      setShowSaveAnimation(true);
+      if (workoutId && editing) {
+        await updateWorkout(parseInt(workoutId), payload);
+        router.push('/');
+      } else {
+        await createWorkout(payload);
+        localStorage.removeItem(storageKey);
+        setShowSaveAnimation(true);
+      }
     } catch (err) {
       console.error('Save failed:', err);
       setSaving(false);
     }
   };
 
+  const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
   const dateDisplay = date
-    ? new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', {
+    ? new Date(date + 'T00:00:00').toLocaleDateString(dateLocale, {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       })
     : '';
@@ -244,13 +251,13 @@ function StrengthWorkoutForm() {
           className="w-9 h-9 rounded-full bg-bg-card border border-border text-text-secondary flex items-center justify-center cursor-pointer text-base transition-all duration-150 active:scale-90 shrink-0">
           &#8249;
         </button>
-        <span className="font-serif text-[22px] font-normal">Séance musculation</span>
+        <span className="font-serif text-[22px] font-normal">{t.strengthWorkout}</span>
       </div>
       <div className="text-[13px] text-text-muted mb-6 pl-12 capitalize">{dateDisplay}</div>
 
       {/* Exercise cards — 2 columns on desktop */}
       {loadingWorkout ? (
-        <div className="text-text-muted text-[13px] text-center py-8">Chargement de la séance...</div>
+        <div className="text-text-muted text-[13px] text-center py-8">{t.loadingWorkout}</div>
       ) : (
       <div className="lg:grid lg:grid-cols-2 lg:gap-4">
         {entries.map((entry, entryIdx) => (
@@ -259,23 +266,25 @@ function StrengthWorkoutForm() {
             <div className="flex items-start justify-between mb-3.5">
               <div>
                 <div className="text-[15px] font-semibold">{entry.exercise.name}</div>
-                <div className="text-[11px] text-strength font-medium mt-0.5">{entry.exercise.muscleGroup}</div>
+                <div className="text-[11px] text-strength font-medium mt-0.5">{t.muscleGroups[entry.exercise.muscleGroup] || entry.exercise.muscleGroup}</div>
               </div>
-              <button onClick={() => removeExercise(entryIdx)} aria-label="Retirer"
-                className="bg-transparent border-none cursor-pointer p-1 opacity-70 flex items-center justify-center">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <circle cx="10" cy="10" r="9" stroke="#ef4444" strokeWidth="1.5" opacity="0.5" />
-                  <path d="M7 7l6 6M13 7l-6 6" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
+              {(!workoutId || editing) && (
+                <button onClick={() => removeExercise(entryIdx)} aria-label="Retirer"
+                  className="bg-transparent border-none cursor-pointer p-1 opacity-70 flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="10" r="9" stroke="#ef4444" strokeWidth="1.5" opacity="0.5" />
+                    <path d="M7 7l6 6M13 7l-6 6" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             {/* Sets header */}
             <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 mb-2">
-              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">Série</span>
-              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">Précéd.</span>
-              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">Reps</span>
-              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">Poids</span>
+              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.set}</span>
+              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.previous}</span>
+              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.reps}</span>
+              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.weight}</span>
             </div>
 
             {/* Set rows */}
@@ -286,7 +295,7 @@ function StrengthWorkoutForm() {
               const isDeleting = pendingDelete === deleteKey;
               return (
                 <div key={setIdx} className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 mb-1.5 items-center">
-                  {canDelete ? (
+                  {canDelete && (!workoutId || editing) ? (
                     isDeleting ? (
                       <button onClick={(e) => { e.stopPropagation(); removeSet(entryIdx, setIdx); setPendingDelete(null); }}
                         aria-label="Confirmer suppression"
@@ -310,55 +319,72 @@ function StrengthWorkoutForm() {
                   </div>
                   <input type="number" value={set.reps}
                     onChange={(e) => updateSet(entryIdx, setIdx, 'reps', e.target.value)}
+                    disabled={!!workoutId && !editing}
                     placeholder={lastPerf ? String(lastPerf.reps) : '0'}
-                    className="w-full min-w-0 text-center text-sm font-medium text-text bg-bg border border-border rounded-md h-10 leading-10 font-inherit outline-none transition-colors duration-200 focus:border-strength p-0 box-border placeholder:text-text-muted" />
+                    className={`w-full min-w-0 text-center text-sm font-medium text-text bg-bg border border-border rounded-md h-10 leading-10 font-inherit outline-none transition-colors duration-200 focus:border-strength p-0 box-border placeholder:text-text-muted ${workoutId && !editing ? 'opacity-50 cursor-not-allowed' : ''}`} />
                   <input type="number" step="0.5" value={set.weight}
                     onChange={(e) => updateSet(entryIdx, setIdx, 'weight', e.target.value)}
+                    disabled={!!workoutId && !editing}
                     placeholder={lastPerf ? String(lastPerf.weight) : '0'}
-                    className="w-full min-w-0 text-center text-sm font-medium text-text bg-bg border border-border rounded-md h-10 leading-10 font-inherit outline-none transition-colors duration-200 focus:border-strength p-0 box-border placeholder:text-text-muted" />
+                    className={`w-full min-w-0 text-center text-sm font-medium text-text bg-bg border border-border rounded-md h-10 leading-10 font-inherit outline-none transition-colors duration-200 focus:border-strength p-0 box-border placeholder:text-text-muted ${workoutId && !editing ? 'opacity-50 cursor-not-allowed' : ''}`} />
                 </div>
               );
             })}
 
             {/* Note section */}
-            {entry.showNote ? (
-              <div className="relative mt-2 mb-1">
-                <input
-                  type="text"
-                  value={entry.note}
-                  onChange={(e) => updateNote(entryIdx, e.target.value)}
-                  placeholder="Ajouter une note..."
-                  className="w-full py-2.5 pl-3 pr-10 bg-bg border border-border rounded-lg text-text text-[13px] font-inherit outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted box-border"
-                />
-                <button
-                  onClick={() => togglePin(entryIdx)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-1 flex items-center justify-center"
-                  aria-label={entry.notePinned ? 'Désépingler' : 'Épingler'}
-                >
-                  {entry.notePinned ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#a78bfa" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 17v5M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7" /><path d="M5 11h14l-1.5 6h-11z" />
-                    </svg>
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#55545e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 17v5M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7" /><path d="M5 11h14l-1.5 6h-11z" />
-                    </svg>
-                  )}
+            {(!workoutId || editing) && (
+              entry.showNote ? (
+                <div className="relative mt-2 mb-1">
+                  <input
+                    type="text"
+                    value={entry.note}
+                    onChange={(e) => updateNote(entryIdx, e.target.value)}
+                    placeholder={t.addNote}
+                    className="w-full py-2.5 pl-3 pr-10 bg-bg border border-border rounded-lg text-text text-[13px] font-inherit outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted box-border"
+                  />
+                  <button
+                    onClick={() => togglePin(entryIdx)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-1 flex items-center justify-center"
+                    aria-label={entry.notePinned ? t.unpin : t.pin}
+                  >
+                    {entry.notePinned ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#a78bfa" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 17v5M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7" /><path d="M5 11h14l-1.5 6h-11z" />
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#55545e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 17v5M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7" /><path d="M5 11h14l-1.5 6h-11z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => toggleShowNote(entryIdx)}
+                  className="w-full py-2 mt-2 bg-transparent border-none text-text-muted text-xs font-medium font-inherit cursor-pointer opacity-70 transition-opacity duration-150 active:opacity-100 flex items-center justify-center gap-1.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+                  </svg>
+                  {t.note}
                 </button>
-              </div>
-            ) : (
-              <button onClick={() => toggleShowNote(entryIdx)}
-                className="w-full py-2 mt-2 bg-transparent border-none text-text-muted text-xs font-medium font-inherit cursor-pointer opacity-70 transition-opacity duration-150 active:opacity-100 flex items-center justify-center gap-1.5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
-                </svg>
-                Note
+              )
+            )}
+
+            {(!workoutId || editing) && (
+              <button onClick={() => addSet(entryIdx)}
+                className="w-full py-2.5 mt-1 bg-transparent border border-dashed border-border rounded-lg text-text-muted text-[13px] font-inherit cursor-pointer transition-all duration-150 active:bg-bg-elevated">
+                {t.addSet}
               </button>
             )}
 
-            <button onClick={() => addSet(entryIdx)}
-              className="w-full py-2.5 mt-1 bg-transparent border border-dashed border-border rounded-lg text-text-muted text-[13px] font-inherit cursor-pointer transition-all duration-150 active:bg-bg-elevated">
-              + Ajouter une série
+            <button onClick={async () => {
+              setHistoryExercise({ id: entry.exercise.id, name: entry.exercise.name });
+              try {
+                const data = await fetchExerciseHistory(entry.exercise.id);
+                setHistoryData(data);
+              } catch { setHistoryData([]); }
+            }}
+              className="w-full py-2 mt-1 bg-transparent border-none text-accent text-xs font-medium font-inherit cursor-pointer opacity-70 transition-opacity duration-150 active:opacity-100">
+              {t.viewHistory}
             </button>
           </div>
         ))}
@@ -366,26 +392,32 @@ function StrengthWorkoutForm() {
       )}
 
       {/* Add exercise */}
-      {!workoutId && (
+      {(!workoutId || editing) && (
         <button onClick={() => setShowExercisePicker(true)}
           className="w-full py-[18px] bg-transparent border-2 border-dashed border-border rounded-card text-text-muted text-sm font-medium font-inherit cursor-pointer mb-4 transition-all duration-200 active:border-strength active:text-strength mt-4">
-          + Ajouter un exercice
+          {t.addExercise}
         </button>
       )}
 
       {/* Save */}
-      {entries.length > 0 && !workoutId && (
+      {entries.length > 0 && (!workoutId || editing) && (
         <button onClick={handleSave} disabled={saving}
           className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] bg-strength text-white shadow-[0_4px_20px_rgba(255,138,59,0.3)] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide">
-          {saving ? 'Sauvegarde...' : 'Sauvegarder la séance'}
+          {saving ? t.saving : t.saveWorkout}
         </button>
       )}
 
-      {/* Delete workout */}
+      {/* Edit / Delete buttons for existing workout */}
+      {workoutId && !editing && (
+        <button onClick={() => setEditing(true)}
+          className="w-full py-3.5 bg-bg-elevated border border-border rounded-card text-text text-[14px] font-medium font-inherit cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98]">
+          {t.editWorkout}
+        </button>
+      )}
       {workoutId && (
         <button onClick={() => setShowDeleteConfirm(true)}
-          className="w-full py-3.5 bg-transparent border border-border rounded-card text-red-400 text-[14px] font-medium font-inherit cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] active:bg-red-500/10">
-          Supprimer la séance
+          className="w-full py-3.5 bg-transparent border border-border rounded-card text-red-400 text-[14px] font-medium font-inherit cursor-pointer mt-3 transition-all duration-200 active:scale-[0.98] active:bg-red-500/10">
+          {t.deleteWorkout}
         </button>
       )}
 
@@ -397,14 +429,14 @@ function StrengthWorkoutForm() {
           <div className="fixed inset-0 z-[51] flex items-center justify-center px-8" onClick={() => setShowDeleteConfirm(false)}>
             <div onClick={(e) => e.stopPropagation()}
               className="bg-bg-card border border-border rounded-card p-5 w-full max-w-[320px] animate-fadeIn">
-              <h3 className="text-[15px] font-semibold mb-2">Supprimer cette séance ?</h3>
+              <h3 className="text-[15px] font-semibold mb-2">{t.deleteConfirmTitle}</h3>
               <p className="text-[13px] text-text-secondary leading-relaxed mb-4">
-                Cette action est irréversible. Tous les exercices et séries enregistrés seront supprimés.
+                {t.deleteConfirmStrength}
               </p>
               <div className="flex gap-2">
                 <button onClick={() => setShowDeleteConfirm(false)}
                   className="flex-1 py-2.5 bg-bg-elevated border border-border rounded-sm text-text text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
-                  Annuler
+                  {t.cancel}
                 </button>
                 <button onClick={async () => {
                   setDeleting(true);
@@ -418,13 +450,66 @@ function StrengthWorkoutForm() {
                   }
                 }} disabled={deleting}
                   className="flex-1 py-2.5 bg-red-500/15 border border-red-500/30 rounded-sm text-red-400 text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98] disabled:opacity-50">
-                  {deleting ? 'Suppression...' : 'Supprimer'}
+                  {deleting ? t.deleting : t.delete}
                 </button>
               </div>
             </div>
           </div>
         </>
       )}
+
+      {/* History modal */}
+      {historyExercise && (() => {
+        // Group history sets by date
+        const grouped = new Map<string, { reps: number; weight: string; set_number: number }[]>();
+        for (const row of historyData) {
+          const d = row.date.includes('T')
+            ? `${new Date(row.date).getFullYear()}-${String(new Date(row.date).getMonth() + 1).padStart(2, '0')}-${String(new Date(row.date).getDate()).padStart(2, '0')}`
+            : row.date;
+          if (!grouped.has(d)) grouped.set(d, []);
+          grouped.get(d)!.push({ reps: row.reps, weight: row.weight, set_number: row.set_number });
+        }
+        const dateLocaleStr = locale === 'fr' ? 'fr-FR' : 'en-US';
+        return (
+          <>
+            <div onClick={() => setHistoryExercise(null)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
+            <div className="fixed bottom-0 left-0 right-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card rounded-t-3xl px-6 pt-7 pb-10 z-[51] animate-sheetUp max-h-[70vh] overflow-y-auto">
+              <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif text-xl font-normal m-0">{historyExercise.name}</h3>
+                <button onClick={() => setHistoryExercise(null)}
+                  className="bg-transparent border-none text-text-muted text-lg cursor-pointer py-1 px-2">✕</button>
+              </div>
+              {grouped.size === 0 ? (
+                <div className="text-text-muted text-sm text-center py-6">{t.noHistory}</div>
+              ) : (
+                Array.from(grouped.entries()).map(([dateStr, sets]) => {
+                  const d = new Date(dateStr + 'T00:00:00');
+                  const label = d.toLocaleDateString(dateLocaleStr, { weekday: 'short', day: 'numeric', month: 'short' });
+                  return (
+                    <div key={dateStr} className="bg-bg border border-border rounded-sm p-3 mb-2.5">
+                      <div className="text-[13px] font-semibold text-text mb-2 capitalize">{label}</div>
+                      <div className="grid grid-cols-3 gap-1.5 mb-1">
+                        <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.set}</span>
+                        <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.reps}</span>
+                        <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.weight}</span>
+                      </div>
+                      {sets.map((s, j) => (
+                        <div key={j} className="grid grid-cols-3 gap-1.5 py-1">
+                          <span className="text-center text-[13px] font-semibold text-text-muted">{s.set_number}</span>
+                          <span className="text-center text-[13px] text-text-secondary">{s.reps}</span>
+                          <span className="text-center text-[13px] text-text-secondary">{parseFloat(s.weight) > 0 ? `${parseFloat(s.weight)} kg` : '-'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </>
+        );
+      })()}
 
       {/* Exercise picker modal */}
       {showExercisePicker && (() => {
@@ -450,7 +535,7 @@ function StrengthWorkoutForm() {
               <div className="shrink-0 px-6 pt-7 pb-3">
                 <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-serif text-[22px] font-normal m-0">Choisir un exercice</h3>
+                  <h3 className="font-serif text-[22px] font-normal m-0">{t.chooseExercise}</h3>
                   <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); }}
                     className="bg-transparent border-none text-text-muted text-lg cursor-pointer py-1 px-2">✕</button>
                 </div>
@@ -463,7 +548,7 @@ function StrengthWorkoutForm() {
                     type="text"
                     value={exerciseSearch}
                     onChange={(e) => setExerciseSearch(e.target.value)}
-                    placeholder="Rechercher..."
+                    placeholder={t.search}
                     autoFocus
                     className="w-full py-3 pl-10 pr-3 bg-bg border border-border rounded-xl text-text text-[14px] font-inherit outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted box-border"
                   />
@@ -501,9 +586,9 @@ function StrengthWorkoutForm() {
               {/* Scrollable exercise list */}
               <div className="flex-1 overflow-y-auto px-6 pb-10 overscroll-contain">
                 {!filterUpper && !filterLower ? (
-                  <div className="text-text-muted text-sm text-center py-8">Active au moins un filtre</div>
+                  <div className="text-text-muted text-sm text-center py-8">{t.enableFilter}</div>
                 ) : filtered.length === 0 ? (
-                  <div className="text-text-muted text-sm text-center py-8">Aucun exercice trouvé</div>
+                  <div className="text-text-muted text-sm text-center py-8">{t.noExerciseFound}</div>
                 ) : (
                   MUSCLE_GROUPS.map((group) => {
                     const groupExercises = filtered.filter((e) => e.muscleGroup === group);
@@ -511,7 +596,7 @@ function StrengthWorkoutForm() {
                     return (
                       <div key={group}>
                         <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wide pt-3 pb-1.5 border-b border-border mb-1">
-                          {group}
+                          {t.muscleGroups[group] || group}
                         </div>
                         {groupExercises.map((ex) => (
                           <button key={ex.id} onClick={() => { addExercise(ex); setExerciseSearch(''); }}
@@ -526,7 +611,7 @@ function StrengthWorkoutForm() {
                 <div className="py-5">
                   <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); setShowNewExercise(true); }}
                     className="w-full py-[18px] bg-transparent border-2 border-dashed border-accent text-accent rounded-card text-sm font-medium font-inherit cursor-pointer transition-all duration-200">
-                    + Créer un nouvel exercice
+                    {t.createExercise}
                   </button>
                 </div>
               </div>
@@ -545,10 +630,10 @@ function StrengthWorkoutForm() {
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
           <div className="fixed bottom-0 left-0 right-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card rounded-t-3xl px-6 pt-7 pb-10 z-[51] animate-sheetUp">
             <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
-            <h3 className="font-serif text-[22px] font-normal mb-5">Nouvel exercice</h3>
+            <h3 className="font-serif text-[22px] font-normal mb-5">{t.newExercise}</h3>
             <div className="mb-4">
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-                Nom de l&apos;exercice
+                {t.exerciseName}
               </label>
               <input type="text" value={newExerciseName} onChange={(e) => setNewExerciseName(e.target.value)}
                 placeholder="Ex: Développé couché"
@@ -556,21 +641,21 @@ function StrengthWorkoutForm() {
             </div>
             <div className="mb-4">
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-                Groupe musculaire
+                {t.muscleGroup}
               </label>
               <select value={newExerciseMuscle} onChange={(e) => setNewExerciseMuscle(e.target.value)}
                 className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent appearance-none">
-                <option value="">Choisir...</option>
-                {MUSCLE_GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
+                <option value="">{t.choose}</option>
+                {MUSCLE_GROUPS.map((g) => <option key={g} value={g}>{t.muscleGroups[g] || g}</option>)}
               </select>
             </div>
             <button onClick={createAndAddExercise}
               className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] bg-strength text-white shadow-[0_4px_20px_rgba(255,138,59,0.3)]">
-              Créer et ajouter
+              {t.createAndAdd}
             </button>
             <button onClick={() => setShowNewExercise(false)}
               className="block w-full mt-4 py-3 bg-transparent border-none text-text-muted text-sm cursor-pointer font-inherit">
-              Annuler
+              {t.cancel}
             </button>
           </div>
         </>
@@ -581,7 +666,7 @@ function StrengthWorkoutForm() {
 
 export default function StrengthWorkout() {
   return (
-    <Suspense fallback={<div className="p-5 text-text-muted">Chargement...</div>}>
+    <Suspense fallback={<div className="p-5 text-text-muted">Loading...</div>}>
       <StrengthWorkoutForm />
     </Suspense>
   );

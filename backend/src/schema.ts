@@ -1,7 +1,15 @@
 import { pgTable, serial, varchar, date, text, integer, decimal, timestamp } from 'drizzle-orm/pg-core';
 
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  nickname: varchar('nickname', { length: 50 }).unique().notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const workouts = pgTable('workouts', {
   id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id),
   date: date('date').notNull(),
   type: varchar('type', { length: 20 }).notNull(),
   notes: text('notes'),
@@ -19,6 +27,7 @@ export const cyclingDetails = pgTable('cycling_details', {
 
 export const exercises = pgTable('exercises', {
   id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id),
   name: varchar('name', { length: 100 }).notNull(),
   muscleGroup: varchar('muscle_group', { length: 50 }).notNull(),
 });

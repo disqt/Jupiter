@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useI18n } from '@/lib/i18n';
 
 interface SaveAnimationProps {
   onComplete: () => void;
@@ -11,6 +12,7 @@ const CIRCUMFERENCE = 2 * Math.PI * CIRCLE_R;
 const CHECK_LENGTH = 29;
 
 export default function SaveAnimation({ onComplete }: SaveAnimationProps) {
+  const { t } = useI18n();
   useEffect(() => {
     const timer = setTimeout(onComplete, 1900);
     return () => clearTimeout(timer);
@@ -57,7 +59,7 @@ export default function SaveAnimation({ onComplete }: SaveAnimationProps) {
 
       {/* Text */}
       <p className="mt-5 text-[15px] font-medium text-text/90 tracking-wide animate-saveTextReveal">
-        Séance sauvegardée
+        {t.workoutSaved}
       </p>
     </div>
   );

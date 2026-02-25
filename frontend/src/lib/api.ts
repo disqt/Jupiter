@@ -1,10 +1,26 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+function getToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('token');
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     ...options,
   });
+
+  if (res.status === 401) {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+    throw new Error('Session expired');
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `API error ${res.status}`);
@@ -108,6 +124,19 @@ export async function createWorkout(data: {
   });
 }
 
+export async function updateWorkout(id: number, data: {
+  date: string;
+  type: 'velo' | 'musculation';
+  notes?: string;
+  cycling_details?: { duration?: number; distance?: number; elevation?: number; ride_type?: string };
+  exercise_logs?: { exercise_id: number; set_number: number; reps: number; weight: number }[];
+}) {
+  return request<ApiWorkout>(`/api/workouts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function deleteWorkout(id: number) {
   return request(`/api/workouts/${id}`, { method: 'DELETE' });
 }
@@ -140,6 +169,17 @@ export interface LastPerformanceSet {
 
 export async function fetchLastPerformance(exerciseId: number): Promise<LastPerformanceSet[]> {
   return request<LastPerformanceSet[]>(`/api/exercises/${exerciseId}/last-performance`);
+}
+
+export interface HistorySet {
+  set_number: number;
+  reps: number;
+  weight: string;
+  date: string;
+}
+
+export async function fetchExerciseHistory(exerciseId: number): Promise<HistorySet[]> {
+  return request<HistorySet[]>(`/api/exercises/${exerciseId}/history`);
 }
 
 // --- Stats ---

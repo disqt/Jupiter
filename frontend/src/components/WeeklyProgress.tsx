@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchWeeklyProgress } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 
 export default function WeeklyProgress() {
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const [showCelebration, setShowCelebration] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [count, setCount] = useState(0);
@@ -39,7 +41,7 @@ export default function WeeklyProgress() {
       <div className="w-full cursor-pointer" onClick={() => setShowInfo(true)}>
         {/* Medal counter */}
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[11px] font-medium text-text-muted">{count}/3 cette semaine</span>
+          <span className="text-[11px] font-medium text-text-muted">{t.weekCount(count)}</span>
           <div className="flex items-center gap-1 relative">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
               className={`text-accent ${showCelebration ? 'animate-medalBounce' : ''}`}>
@@ -77,39 +79,39 @@ export default function WeeklyProgress() {
                   <polygon points="12,5 13.5,8 17,8.5 14.5,11 15,14.5 12,13 9,14.5 9.5,11 7,8.5 10.5,8" fill="currentColor" />
                   <path d="M8 14.5l-2 5.5 4-2M16 14.5l2 5.5-4-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
-                <h3 className="text-[15px] font-semibold">Médailles</h3>
+                <h3 className="text-[15px] font-semibold">{t.medals}</h3>
               </div>
               <p className="text-[13px] text-text-secondary leading-relaxed mb-3">
-                Gagne des médailles en t&apos;entraînant régulièrement chaque semaine (lundi au dimanche).
+                {t.medalsDescription}
               </p>
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">3 séances</span>
+                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions3}</span>
                   <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">1 médaille</span>
+                  <span className="text-text-secondary">{t.medal1}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">4 séances</span>
+                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions4}</span>
                   <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">2 médailles</span>
+                  <span className="text-text-secondary">{t.medals2}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">5 séances</span>
+                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions5}</span>
                   <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">3 médailles</span>
+                  <span className="text-text-secondary">{t.medals3}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">6+</span>
+                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions6plus}</span>
                   <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">+1 par séance supplémentaire</span>
+                  <span className="text-text-secondary">{t.medalsExtra}</span>
                 </div>
               </div>
               <p className="text-[11px] text-text-muted mt-3">
-                Tu as actuellement <span className="text-accent font-semibold">{totalMedals}</span> médaille{totalMedals > 1 ? 's' : ''}.
+                {t.currentMedals(totalMedals)}
               </p>
               <button onClick={() => setShowInfo(false)}
                 className="w-full mt-4 py-2.5 bg-bg-elevated border border-border rounded-sm text-text text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
-                Compris
+                {t.understood}
               </button>
             </div>
           </div>
