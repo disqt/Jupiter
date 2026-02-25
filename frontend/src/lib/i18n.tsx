@@ -85,6 +85,8 @@ const translations = {
     pin: 'Épingler',
     note: 'Note',
     addSet: '+ Ajouter une série',
+    viewHistory: "Voir l'historique",
+    noHistory: 'Aucun historique disponible',
     addExercise: '+ Ajouter un exercice',
     saveWorkout: 'Sauvegarder la séance',
 
@@ -227,6 +229,8 @@ const translations = {
     pin: 'Pin',
     note: 'Note',
     addSet: '+ Add a set',
+    viewHistory: 'View history',
+    noHistory: 'No history available',
     addExercise: '+ Add an exercise',
     saveWorkout: 'Save workout',
 

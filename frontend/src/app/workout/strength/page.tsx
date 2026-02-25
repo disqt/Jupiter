@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { MUSCLE_GROUPS, UPPER_BODY_GROUPS, LOWER_BODY_GROUPS } from '@/lib/data';
-import { fetchExercises, fetchLastPerformance, fetchWorkout, createWorkout, updateWorkout, createExercise, deleteWorkout, type Exercise } from '@/lib/api';
+import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, fetchWorkout, createWorkout, updateWorkout, createExercise, deleteWorkout, type Exercise, type HistorySet } from '@/lib/api';
 import SaveAnimation from '@/components/SaveAnimation';
 import { useI18n } from '@/lib/i18n';
 
@@ -54,7 +54,8 @@ function StrengthWorkoutForm() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [historyExercise, setHistoryExercise] = useState<string | null>(null);
+  const [historyExercise, setHistoryExercise] = useState<{ id: number; name: string } | null>(null);
+  const [historyData, setHistoryData] = useState<HistorySet[]>([]);
 
   // Load exercises from API
   useEffect(() => {
@@ -374,6 +375,17 @@ function StrengthWorkoutForm() {
                 {t.addSet}
               </button>
             )}
+
+            <button onClick={async () => {
+              setHistoryExercise({ id: entry.exercise.id, name: entry.exercise.name });
+              try {
+                const data = await fetchExerciseHistory(entry.exercise.id);
+                setHistoryData(data);
+              } catch { setHistoryData([]); }
+            }}
+              className="w-full py-2 mt-1 bg-transparent border-none text-accent text-xs font-medium font-inherit cursor-pointer opacity-70 transition-opacity duration-150 active:opacity-100">
+              {t.viewHistory}
+            </button>
           </div>
         ))}
       </div>
@@ -445,6 +457,59 @@ function StrengthWorkoutForm() {
           </div>
         </>
       )}
+
+      {/* History modal */}
+      {historyExercise && (() => {
+        // Group history sets by date
+        const grouped = new Map<string, { reps: number; weight: string; set_number: number }[]>();
+        for (const row of historyData) {
+          const d = row.date.includes('T')
+            ? `${new Date(row.date).getFullYear()}-${String(new Date(row.date).getMonth() + 1).padStart(2, '0')}-${String(new Date(row.date).getDate()).padStart(2, '0')}`
+            : row.date;
+          if (!grouped.has(d)) grouped.set(d, []);
+          grouped.get(d)!.push({ reps: row.reps, weight: row.weight, set_number: row.set_number });
+        }
+        const dateLocaleStr = locale === 'fr' ? 'fr-FR' : 'en-US';
+        return (
+          <>
+            <div onClick={() => setHistoryExercise(null)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
+            <div className="fixed bottom-0 left-0 right-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card rounded-t-3xl px-6 pt-7 pb-10 z-[51] animate-sheetUp max-h-[70vh] overflow-y-auto">
+              <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif text-xl font-normal m-0">{historyExercise.name}</h3>
+                <button onClick={() => setHistoryExercise(null)}
+                  className="bg-transparent border-none text-text-muted text-lg cursor-pointer py-1 px-2">✕</button>
+              </div>
+              {grouped.size === 0 ? (
+                <div className="text-text-muted text-sm text-center py-6">{t.noHistory}</div>
+              ) : (
+                Array.from(grouped.entries()).map(([dateStr, sets]) => {
+                  const d = new Date(dateStr + 'T00:00:00');
+                  const label = d.toLocaleDateString(dateLocaleStr, { weekday: 'short', day: 'numeric', month: 'short' });
+                  return (
+                    <div key={dateStr} className="bg-bg border border-border rounded-sm p-3 mb-2.5">
+                      <div className="text-[13px] font-semibold text-text mb-2 capitalize">{label}</div>
+                      <div className="grid grid-cols-3 gap-1.5 mb-1">
+                        <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.set}</span>
+                        <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.reps}</span>
+                        <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.weight}</span>
+                      </div>
+                      {sets.map((s, j) => (
+                        <div key={j} className="grid grid-cols-3 gap-1.5 py-1">
+                          <span className="text-center text-[13px] font-semibold text-text-muted">{s.set_number}</span>
+                          <span className="text-center text-[13px] text-text-secondary">{s.reps}</span>
+                          <span className="text-center text-[13px] text-text-secondary">{parseFloat(s.weight) > 0 ? `${parseFloat(s.weight)} kg` : '-'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </>
+        );
+      })()}
 
       {/* Exercise picker modal */}
       {showExercisePicker && (() => {

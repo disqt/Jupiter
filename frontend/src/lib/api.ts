@@ -171,6 +171,17 @@ export async function fetchLastPerformance(exerciseId: number): Promise<LastPerf
   return request<LastPerformanceSet[]>(`/api/exercises/${exerciseId}/last-performance`);
 }
 
+export interface HistorySet {
+  set_number: number;
+  reps: number;
+  weight: string;
+  date: string;
+}
+
+export async function fetchExerciseHistory(exerciseId: number): Promise<HistorySet[]> {
+  return request<HistorySet[]>(`/api/exercises/${exerciseId}/history`);
+}
+
 // --- Stats ---
 
 export interface MonthlyStats {
