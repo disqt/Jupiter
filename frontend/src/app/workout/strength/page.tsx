@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { MUSCLE_GROUPS, UPPER_BODY_GROUPS, LOWER_BODY_GROUPS } from '@/lib/data';
 import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, fetchWorkout, createWorkout, updateWorkout, createExercise, deleteWorkout, type Exercise, type HistorySet } from '@/lib/api';
@@ -56,6 +56,7 @@ function StrengthWorkoutForm() {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [historyExercise, setHistoryExercise] = useState<{ id: number; name: string } | null>(null);
   const [historyData, setHistoryData] = useState<HistorySet[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Load exercises from API
   useEffect(() => {
@@ -114,6 +115,14 @@ function StrengthWorkoutForm() {
   const clearPendingDelete = useCallback(() => {
     setPendingDelete(null);
   }, []);
+
+  // Delay focus on search input so keyboard opens after modal is positioned
+  useEffect(() => {
+    if (showExercisePicker) {
+      const timer = setTimeout(() => searchInputRef.current?.focus(), 400);
+      return () => clearTimeout(timer);
+    }
+  }, [showExercisePicker]);
 
   useEffect(() => {
     if (pendingDelete === null) return;
@@ -530,10 +539,10 @@ function StrengthWorkoutForm() {
           <>
             <div onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); }}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
-            <div className="fixed inset-x-0 bottom-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card rounded-t-3xl z-[51] animate-sheetUp max-h-[85dvh] flex flex-col">
+            <div className="fixed inset-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card z-[51] animate-sheetUp flex flex-col lg:inset-x-0 lg:bottom-0 lg:top-auto lg:rounded-t-3xl lg:max-h-[85dvh]">
               {/* Sticky header + search + filters */}
-              <div className="shrink-0 px-6 pt-7 pb-3">
-                <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
+              <div className="shrink-0 px-6 pt-[max(1.75rem,env(safe-area-inset-top))] pb-3 lg:pt-7">
+                <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5 hidden lg:block" />
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-serif text-[22px] font-normal m-0">{t.chooseExercise}</h3>
                   <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); }}
@@ -546,10 +555,10 @@ function StrengthWorkoutForm() {
                   </svg>
                   <input
                     type="text"
+                    ref={searchInputRef}
                     value={exerciseSearch}
                     onChange={(e) => setExerciseSearch(e.target.value)}
                     placeholder={t.search}
-                    autoFocus
                     className="w-full py-3 pl-10 pr-3 bg-bg border border-border rounded-xl text-text text-[14px] font-inherit outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted box-border"
                   />
                 </div>

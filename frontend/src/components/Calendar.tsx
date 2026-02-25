@@ -196,7 +196,8 @@ export default function Calendar() {
                             ? `bg-cycling/20 text-cycling ${isSelected ? 'bg-cycling/30' : ''}`
                             : `bg-strength/20 text-strength ${isSelected ? 'bg-strength/30' : ''}`
                         }`}>
-                          {w.type === 'velo' ? t.cyclingTag : t.strengthTag}
+                          <span className="lg:hidden">{w.type === 'velo' ? '🚴' : '🏋️'}</span>
+                          <span className="hidden lg:inline">{w.type === 'velo' ? t.cyclingTag : t.strengthTag}</span>
                         </span>
                       ))}
                     </div>
