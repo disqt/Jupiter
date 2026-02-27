@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { fetchWeeklyProgress } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 
 export default function WeeklyProgress() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { t } = useI18n();
   const [showCelebration, setShowCelebration] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -18,7 +19,7 @@ export default function WeeklyProgress() {
       setCount(parseInt(data.week_count) || 0);
       setTotalMedals(parseInt(data.total_medals) || 0);
     }).catch(console.error);
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     if (searchParams.get('saved') === '1' && count >= 3) {

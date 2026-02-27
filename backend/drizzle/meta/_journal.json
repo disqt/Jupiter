@@ -8,6 +8,13 @@
       "when": 1772016807453,
       "tag": "0000_goofy_omega_red",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772190129669,
+      "tag": "0001_giant_masque",
+      "breakpoints": true
     }
   ]
 }

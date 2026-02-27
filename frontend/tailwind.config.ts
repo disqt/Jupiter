@@ -31,6 +31,21 @@ const config: Config = {
           glow: 'rgba(255, 138, 59, 0.15)',
           soft: '#2d1f14',
         },
+        running: {
+          DEFAULT: '#34d399',
+          glow: 'rgba(52, 211, 153, 0.15)',
+          soft: '#142a22',
+        },
+        swimming: {
+          DEFAULT: '#06b6d4',
+          glow: 'rgba(6, 182, 212, 0.15)',
+          soft: '#0c2a30',
+        },
+        'custom-workout': {
+          DEFAULT: '#a78bfa',
+          glow: 'rgba(167, 139, 250, 0.15)',
+          soft: '#1f1a2e',
+        },
         accent: '#a78bfa',
         danger: '#ef4444',
       },

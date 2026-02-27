@@ -11,21 +11,35 @@ router.get('/monthly', async (req, res) => {
       return res.status(400).json({ error: 'month query param required (YYYY-MM)' });
     }
 
-    const result = await pool.query(
+    // Counts by type
+    const countsResult = await pool.query(
+      `SELECT type, COUNT(*)::text as count
+       FROM workouts
+       WHERE to_char(date, 'YYYY-MM') = $1 AND user_id = $2
+       GROUP BY type`,
+      [month, req.userId]
+    );
+    const counts_by_type: Record<string, string> = {};
+    for (const row of countsResult.rows) {
+      counts_by_type[row.type] = row.count;
+    }
+
+    // Aggregates
+    const aggResult = await pool.query(
       `SELECT
-        COUNT(*) FILTER (WHERE w.type = 'velo') AS cycling_count,
-        COUNT(*) FILTER (WHERE w.type = 'musculation') AS strength_count,
-        COALESCE(SUM(cd.distance), 0) AS total_distance_km,
-        COALESCE(SUM(cd.elevation), 0) AS total_elevation_m,
-        COUNT(DISTINCT w.date) AS active_days
+        COUNT(*)::text AS total_count,
+        COALESCE(SUM(COALESCE(cd.distance, wd.distance)), 0)::text AS total_distance_km,
+        COALESCE(SUM(COALESCE(cd.elevation, wd.elevation)), 0)::text AS total_elevation_m,
+        COUNT(DISTINCT w.date)::text AS active_days
        FROM workouts w
        LEFT JOIN cycling_details cd ON cd.workout_id = w.id
+       LEFT JOIN workout_details wd ON wd.workout_id = w.id
        WHERE to_char(w.date, 'YYYY-MM') = $1
          AND w.user_id = $2`,
       [month, req.userId]
     );
 
-    res.json(result.rows[0]);
+    res.json({ ...aggResult.rows[0], counts_by_type });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });

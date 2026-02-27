@@ -2,9 +2,10 @@
 
 import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { MUSCLE_GROUPS, UPPER_BODY_GROUPS, LOWER_BODY_GROUPS } from '@/lib/data';
+import { MUSCLE_GROUPS, UPPER_BODY_GROUPS, LOWER_BODY_GROUPS, WORKOUT_CONFIG } from '@/lib/data';
 import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, fetchWorkout, createWorkout, updateWorkout, createExercise, deleteWorkout, type Exercise, type HistorySet } from '@/lib/api';
 import SaveAnimation from '@/components/SaveAnimation';
+import WorkoutFormHeader from '@/components/WorkoutFormHeader';
 import { useI18n } from '@/lib/i18n';
 
 interface SetLog {
@@ -29,11 +30,11 @@ function StrengthWorkoutForm() {
   const date = searchParams.get('date') || '';
   const workoutId = searchParams.get('id');
 
-  const storageKey = `strength-draft-${date}`;
+  const storageKey = workoutId ? `strength-edit-${workoutId}` : `strength-draft-${date}`;
 
   const [exercises, setExercises] = useState<{ id: number; name: string; muscleGroup: string }[]>([]);
   const [entries, setEntries] = useState<ExerciseEntry[]>(() => {
-    if (workoutId) return []; // Will load from API
+    if (workoutId) return []; // Will load from API (then check for edit draft)
     if (typeof window === 'undefined' || !date) return [];
     try {
       const saved = localStorage.getItem(storageKey);
@@ -41,6 +42,7 @@ function StrengthWorkoutForm() {
     } catch { /* ignore */ }
     return [];
   });
+  const [hasDraft, setHasDraft] = useState(false);
   const [loadingWorkout, setLoadingWorkout] = useState(!!workoutId);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [exerciseSearch, setExerciseSearch] = useState('');
@@ -54,6 +56,22 @@ function StrengthWorkoutForm() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [customEmoji, setCustomEmoji] = useState(() => {
+    if (workoutId || typeof window === 'undefined' || !date) return '';
+    try {
+      const meta = localStorage.getItem(storageKey + '-meta');
+      if (meta) return JSON.parse(meta).customEmoji || '';
+    } catch { /* ignore */ }
+    return '';
+  });
+  const [customName, setCustomName] = useState(() => {
+    if (workoutId || typeof window === 'undefined' || !date) return '';
+    try {
+      const meta = localStorage.getItem(storageKey + '-meta');
+      if (meta) return JSON.parse(meta).customName || '';
+    } catch { /* ignore */ }
+    return '';
+  });
   const [historyExercise, setHistoryExercise] = useState<{ id: number; name: string } | null>(null);
   const [historyData, setHistoryData] = useState<HistorySet[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -65,9 +83,28 @@ function StrengthWorkoutForm() {
     }).catch(console.error);
   }, []);
 
-  // Load existing workout from API
+  // Load existing workout from API (or edit draft from localStorage)
   useEffect(() => {
     if (!workoutId || exercises.length === 0) return;
+    // Check for edit draft first
+    try {
+      const draft = localStorage.getItem(storageKey);
+      if (draft) {
+        setEntries(JSON.parse(draft));
+        try {
+          const meta = localStorage.getItem(storageKey + '-meta');
+          if (meta) {
+            const parsed = JSON.parse(meta);
+            if (parsed.customEmoji) setCustomEmoji(parsed.customEmoji);
+            if (parsed.customName) setCustomName(parsed.customName);
+          }
+        } catch { /* ignore */ }
+        setHasDraft(true);
+        setEditing(true);
+        setLoadingWorkout(false);
+        return;
+      }
+    } catch { /* ignore */ }
     setLoadingWorkout(true);
     fetchWorkout(parseInt(workoutId)).then((data) => {
       if (data.exercise_logs && Array.isArray(data.exercise_logs)) {
@@ -99,18 +136,23 @@ function StrengthWorkoutForm() {
         });
         setEntries(loadedEntries);
       }
+      if (data.custom_emoji) setCustomEmoji(data.custom_emoji);
+      if (data.custom_name) setCustomName(data.custom_name);
     }).catch(console.error).finally(() => setLoadingWorkout(false));
-  }, [workoutId, exercises]);
+  }, [workoutId, exercises, storageKey]);
 
-  // Auto-save draft to localStorage (only for new workouts)
+  // Auto-save draft to localStorage (new + edit)
   useEffect(() => {
-    if (!date || workoutId) return;
+    if (!date && !workoutId) return;
+    if (workoutId && !editing) return; // Don't save in read-only mode
     if (entries.length > 0) {
       localStorage.setItem(storageKey, JSON.stringify(entries));
+      localStorage.setItem(storageKey + '-meta', JSON.stringify({ customEmoji, customName }));
     } else {
       localStorage.removeItem(storageKey);
+      localStorage.removeItem(storageKey + '-meta');
     }
-  }, [entries, storageKey, date, workoutId]);
+  }, [entries, customEmoji, customName, storageKey, date, workoutId, editing]);
 
   const clearPendingDelete = useCallback(() => {
     setPendingDelete(null);
@@ -229,14 +271,21 @@ function StrengthWorkoutForm() {
           }))
       );
 
-      const payload = { date, type: 'musculation' as const, exercise_logs };
+      const payload = {
+        date,
+        type: 'musculation' as const,
+        custom_emoji: customEmoji || undefined,
+        custom_name: customName || undefined,
+        exercise_logs,
+      };
 
+      localStorage.removeItem(storageKey);
+      localStorage.removeItem(storageKey + '-meta');
       if (workoutId && editing) {
         await updateWorkout(parseInt(workoutId), payload);
         router.push('/');
       } else {
         await createWorkout(payload);
-        localStorage.removeItem(storageKey);
         setShowSaveAnimation(true);
       }
     } catch (err) {
@@ -254,15 +303,16 @@ function StrengthWorkoutForm() {
 
   return (
     <div className="px-5 pb-36 lg:max-w-4xl lg:mx-auto lg:pb-20">
-      {/* Header */}
-      <div className="flex items-center gap-3 pt-14 pb-5 lg:pt-8">
-        <button onClick={() => router.push('/')}
-          className="w-9 h-9 rounded-full bg-bg-card border border-border text-text-secondary flex items-center justify-center cursor-pointer text-base transition-all duration-150 active:scale-90 shrink-0">
-          &#8249;
-        </button>
-        <span className="font-serif text-[22px] font-normal">{t.strengthWorkout}</span>
-      </div>
-      <div className="text-[13px] text-text-muted mb-6 pl-12 capitalize">{dateDisplay}</div>
+      <WorkoutFormHeader
+        emoji={customEmoji || WORKOUT_CONFIG.musculation.defaultEmoji}
+        name={customName || t.strengthWorkout}
+        defaultName={t.strengthWorkout}
+        onEmojiChange={setCustomEmoji}
+        onNameChange={setCustomName}
+        onBack={() => router.push('/')}
+        dateDisplay={dateDisplay}
+        hasDraft={hasDraft}
+      />
 
       {/* Exercise cards — 2 columns on desktop */}
       {loadingWorkout ? (
@@ -451,6 +501,8 @@ function StrengthWorkoutForm() {
                   setDeleting(true);
                   try {
                     await deleteWorkout(parseInt(workoutId!));
+                    localStorage.removeItem(storageKey);
+                    localStorage.removeItem(storageKey + '-meta');
                     router.push('/');
                   } catch (err) {
                     console.error('Delete failed:', err);
