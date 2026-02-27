@@ -13,6 +13,8 @@ export const workouts = pgTable('workouts', {
   date: date('date').notNull(),
   type: varchar('type', { length: 20 }).notNull(),
   notes: text('notes'),
+  customEmoji: varchar('custom_emoji', { length: 10 }),
+  customName: varchar('custom_name', { length: 100 }),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -23,6 +25,15 @@ export const cyclingDetails = pgTable('cycling_details', {
   distance: decimal('distance', { precision: 6, scale: 2 }),
   elevation: integer('elevation'),
   rideType: varchar('ride_type', { length: 50 }),
+});
+
+export const workoutDetails = pgTable('workout_details', {
+  id: serial('id').primaryKey(),
+  workoutId: integer('workout_id').notNull().references(() => workouts.id, { onDelete: 'cascade' }),
+  duration: integer('duration'),
+  distance: decimal('distance', { precision: 10, scale: 2 }),
+  elevation: integer('elevation'),
+  laps: integer('laps'),
 });
 
 export const exercises = pgTable('exercises', {

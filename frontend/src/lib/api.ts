@@ -1,3 +1,5 @@
+import { type WorkoutType } from './data';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function getToken(): string | null {
@@ -33,7 +35,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export interface ApiWorkout {
   id: number;
   date: string;
-  type: 'velo' | 'musculation';
+  type: WorkoutType;
   notes: string | null;
   created_at: string;
   // cycling fields (null for musculation)
@@ -43,12 +45,19 @@ export interface ApiWorkout {
   ride_type: string | null;
   // exercise count for musculation
   exercise_count: string;
+  // new workout type fields
+  custom_emoji: string | null;
+  custom_name: string | null;
+  wd_duration: number | null;
+  wd_distance: string | null;
+  wd_elevation: number | null;
+  wd_laps: number | null;
 }
 
 export interface Workout {
   id: number;
   date: string;
-  type: 'velo' | 'musculation';
+  type: WorkoutType;
   detail: string;
   notes?: string;
   duration?: number;
@@ -56,6 +65,9 @@ export interface Workout {
   elevation?: number;
   rideType?: string;
   exerciseCount?: number;
+  customEmoji?: string;
+  customName?: string;
+  laps?: number;
 }
 
 function parseDate(d: string): string {
@@ -69,11 +81,12 @@ function parseDate(d: string): string {
 }
 
 function toWorkout(raw: ApiWorkout): Workout {
-  const distance = raw.distance ? parseFloat(raw.distance) : undefined;
-  const elevation = raw.elevation ?? undefined;
+  const distance = raw.distance ? parseFloat(raw.distance) : (raw.wd_distance ? parseFloat(raw.wd_distance) : undefined);
+  const elevation = raw.elevation ?? raw.wd_elevation ?? undefined;
   const rideType = raw.ride_type ?? undefined;
-  const duration = raw.duration ?? undefined;
+  const duration = raw.duration ?? raw.wd_duration ?? undefined;
   const exerciseCount = parseInt(raw.exercise_count) || 0;
+  const laps = raw.wd_laps ?? undefined;
 
   let detail = '';
   if (raw.type === 'velo') {
@@ -82,10 +95,26 @@ function toWorkout(raw: ApiWorkout): Workout {
     if (rideType) parts.push(rideType);
     if (elevation) parts.push(`${elevation}m D+`);
     detail = parts.join(' — ') || 'Vélo';
-  } else {
+  } else if (raw.type === 'musculation') {
     detail = exerciseCount > 0
       ? `${exerciseCount} exercice${exerciseCount > 1 ? 's' : ''}`
       : 'Musculation';
+  } else if (raw.type === 'course') {
+    const parts: string[] = [];
+    if (duration) parts.push(`${duration} min`);
+    if (distance) parts.push(`${distance} km`);
+    detail = parts.join(' — ') || 'Course';
+  } else if (raw.type === 'natation') {
+    const parts: string[] = [];
+    if (duration) parts.push(`${duration} min`);
+    if (laps) parts.push(`${laps} longueurs`);
+    detail = parts.join(' — ') || 'Natation';
+  } else {
+    const parts: string[] = [];
+    if (duration) parts.push(`${duration} min`);
+    if (distance) parts.push(`${distance} km`);
+    if (elevation) parts.push(`${elevation}m D+`);
+    detail = parts.join(' — ') || raw.custom_name || 'Custom';
   }
 
   return {
@@ -99,6 +128,9 @@ function toWorkout(raw: ApiWorkout): Workout {
     elevation,
     rideType,
     exerciseCount,
+    laps,
+    customEmoji: raw.custom_emoji ?? undefined,
+    customName: raw.custom_name ?? undefined,
   };
 }
 
@@ -113,10 +145,13 @@ export async function fetchWorkout(id: number) {
 
 export async function createWorkout(data: {
   date: string;
-  type: 'velo' | 'musculation';
+  type: WorkoutType;
   notes?: string;
   cycling_details?: { duration?: number; distance?: number; elevation?: number; ride_type?: string };
   exercise_logs?: { exercise_id: number; set_number: number; reps: number; weight: number }[];
+  workout_details?: { duration?: number; distance?: number; elevation?: number; laps?: number };
+  custom_emoji?: string;
+  custom_name?: string;
 }) {
   return request<ApiWorkout>('/api/workouts', {
     method: 'POST',
@@ -126,10 +161,13 @@ export async function createWorkout(data: {
 
 export async function updateWorkout(id: number, data: {
   date: string;
-  type: 'velo' | 'musculation';
+  type: WorkoutType;
   notes?: string;
   cycling_details?: { duration?: number; distance?: number; elevation?: number; ride_type?: string };
   exercise_logs?: { exercise_id: number; set_number: number; reps: number; weight: number }[];
+  workout_details?: { duration?: number; distance?: number; elevation?: number; laps?: number };
+  custom_emoji?: string;
+  custom_name?: string;
 }) {
   return request<ApiWorkout>(`/api/workouts/${id}`, {
     method: 'PUT',
@@ -185,8 +223,8 @@ export async function fetchExerciseHistory(exerciseId: number): Promise<HistoryS
 // --- Stats ---
 
 export interface MonthlyStats {
-  cycling_count: string;
-  strength_count: string;
+  total_count: string;
+  counts_by_type: Record<string, string>;
   total_distance_km: string;
   total_elevation_m: string;
   active_days: string;

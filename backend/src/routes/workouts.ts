@@ -13,9 +13,11 @@ router.get('/', async (req, res) => {
     const result = await pool.query(
       `SELECT w.*,
         cd.duration, cd.distance, cd.elevation, cd.ride_type,
+        wd.duration as wd_duration, wd.distance as wd_distance, wd.elevation as wd_elevation, wd.laps as wd_laps,
         (SELECT COUNT(DISTINCT el.exercise_id) FROM exercise_logs el WHERE el.workout_id = w.id) as exercise_count
        FROM workouts w
        LEFT JOIN cycling_details cd ON cd.workout_id = w.id
+       LEFT JOIN workout_details wd ON wd.workout_id = w.id
        WHERE to_char(w.date, 'YYYY-MM') = $1
          AND w.user_id = $2
        ORDER BY w.date, w.created_at`,
@@ -43,20 +45,23 @@ router.get('/:id', async (req, res) => {
 
     if (workout.type === 'velo') {
       const cyclingResult = await pool.query(
-        'SELECT * FROM cycling_details WHERE workout_id = $1',
-        [id]
+        'SELECT * FROM cycling_details WHERE workout_id = $1', [id]
       );
       workout.cycling_details = cyclingResult.rows[0] || null;
-    } else {
+    } else if (workout.type === 'musculation') {
       const logsResult = await pool.query(
         `SELECT el.*, e.name as exercise_name, e.muscle_group
          FROM exercise_logs el
          JOIN exercises e ON e.id = el.exercise_id
          WHERE el.workout_id = $1
-         ORDER BY el.exercise_id, el.set_number`,
-        [id]
+         ORDER BY el.exercise_id, el.set_number`, [id]
       );
       workout.exercise_logs = logsResult.rows;
+    } else {
+      const detailsResult = await pool.query(
+        'SELECT * FROM workout_details WHERE workout_id = $1', [id]
+      );
+      workout.workout_details = detailsResult.rows[0] || null;
     }
 
     res.json(workout);
@@ -71,11 +76,11 @@ router.post('/', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { date, type, notes, cycling_details, exercise_logs } = req.body;
+    const { date, type, notes, cycling_details, exercise_logs, workout_details, custom_emoji, custom_name } = req.body;
 
     const workoutResult = await client.query(
-      'INSERT INTO workouts (date, type, notes, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
-      [date, type, notes || null, req.userId]
+      'INSERT INTO workouts (date, type, notes, user_id, custom_emoji, custom_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [date, type, notes || null, req.userId, custom_emoji || null, custom_name || null]
     );
     const workout = workoutResult.rows[0];
 
@@ -98,6 +103,15 @@ router.post('/', async (req, res) => {
       }
     }
 
+    if (['course', 'natation', 'custom'].includes(type) && workout_details) {
+      const { duration, distance, elevation, laps } = workout_details;
+      await client.query(
+        `INSERT INTO workout_details (workout_id, duration, distance, elevation, laps)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [workout.id, duration || null, distance || null, elevation || null, laps || null]
+      );
+    }
+
     await client.query('COMMIT');
     res.status(201).json(workout);
   } catch (err) {
@@ -115,11 +129,11 @@ router.put('/:id', async (req, res) => {
   try {
     await client.query('BEGIN');
     const { id } = req.params;
-    const { date, type, notes, cycling_details, exercise_logs } = req.body;
+    const { date, type, notes, cycling_details, exercise_logs, workout_details, custom_emoji, custom_name } = req.body;
 
     const workoutResult = await client.query(
-      'UPDATE workouts SET date = $1, type = $2, notes = $3 WHERE id = $4 AND user_id = $5 RETURNING *',
-      [date, type, notes || null, id, req.userId]
+      'UPDATE workouts SET date = $1, type = $2, notes = $3, custom_emoji = $5, custom_name = $6 WHERE id = $4 AND user_id = $7 RETURNING *',
+      [date, type, notes || null, id, custom_emoji || null, custom_name || null, req.userId]
     );
     if (workoutResult.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -147,6 +161,17 @@ router.put('/:id', async (req, res) => {
           [id, log.exercise_id, log.set_number, log.reps, log.weight]
         );
       }
+    }
+
+    // Replace workout details
+    await client.query('DELETE FROM workout_details WHERE workout_id = $1', [id]);
+    if (['course', 'natation', 'custom'].includes(type) && workout_details) {
+      const { duration, distance, elevation, laps } = workout_details;
+      await client.query(
+        `INSERT INTO workout_details (workout_id, duration, distance, elevation, laps)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [id, duration || null, distance || null, elevation || null, laps || null]
+      );
     }
 
     await client.query('COMMIT');
