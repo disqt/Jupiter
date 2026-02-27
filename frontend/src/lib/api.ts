@@ -109,6 +109,11 @@ function toWorkout(raw: ApiWorkout): Workout {
     if (duration) parts.push(`${duration} min`);
     if (laps) parts.push(`${laps} longueurs`);
     detail = parts.join(' — ') || 'Natation';
+  } else if (raw.type === 'marche') {
+    const parts: string[] = [];
+    if (duration) parts.push(`${duration} min`);
+    if (distance) parts.push(`${distance} km`);
+    detail = parts.join(' — ') || 'Marche';
   } else {
     const parts: string[] = [];
     if (duration) parts.push(`${duration} min`);
@@ -171,6 +176,13 @@ export async function updateWorkout(id: number, data: {
 }) {
   return request<ApiWorkout>(`/api/workouts/${id}`, {
     method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function patchWorkoutMeta(id: number, data: { custom_emoji?: string | null; custom_name?: string | null }) {
+  return request<ApiWorkout>(`/api/workouts/${id}`, {
+    method: 'PATCH',
     body: JSON.stringify(data),
   });
 }

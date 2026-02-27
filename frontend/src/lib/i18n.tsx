@@ -40,6 +40,9 @@ const translations = {
     customWorkout: 'Personnalisé',
     runningTag: '🏃 Course',
     swimmingTag: '🏊 Natation',
+    walking: 'Marche à pied',
+    walkingTag: '🚶 Marche',
+    walkingWorkout: 'Marche à pied',
     customTag: '🎯 Perso',
     laps: 'Longueurs',
     lapsPlaceholder: 'ex: 40',
@@ -57,6 +60,7 @@ const translations = {
       musculation: 'Musculation',
       course: 'Course à pied',
       natation: 'Natation',
+      marche: 'Marche à pied',
       custom: 'Personnalisé',
     } as Record<string, string>,
     workoutTypeTags: {
@@ -64,6 +68,7 @@ const translations = {
       musculation: '🏋️ Muscu',
       course: '🏃 Course',
       natation: '🏊 Natation',
+      marche: '🚶 Marche',
       custom: '🎯 Perso',
     } as Record<string, string>,
 
@@ -83,7 +88,8 @@ const translations = {
     understood: 'Compris',
 
     // Stats
-    totalMedals: 'Médailles cumulées',
+    totalMedals: 'Médailles totales',
+    monthlyMedals: 'Médailles ce mois',
 
     // Save animation
     workoutSaved: 'Séance sauvegardée',
@@ -223,6 +229,9 @@ const translations = {
     customWorkout: 'Custom',
     runningTag: '🏃 Running',
     swimmingTag: '🏊 Swimming',
+    walking: 'Walking',
+    walkingTag: '🚶 Walking',
+    walkingWorkout: 'Walking',
     customTag: '🎯 Custom',
     laps: 'Laps',
     lapsPlaceholder: 'e.g. 40',
@@ -240,6 +249,7 @@ const translations = {
       musculation: 'Strength',
       course: 'Running',
       natation: 'Swimming',
+      marche: 'Walking',
       custom: 'Custom',
     } as Record<string, string>,
     workoutTypeTags: {
@@ -247,6 +257,7 @@ const translations = {
       musculation: '🏋️ Strength',
       course: '🏃 Running',
       natation: '🏊 Swimming',
+      marche: '🚶 Walking',
       custom: '🎯 Custom',
     } as Record<string, string>,
 
@@ -265,6 +276,7 @@ const translations = {
     understood: 'Got it',
 
     totalMedals: 'Total medals',
+    monthlyMedals: 'Medals this month',
 
     workoutSaved: 'Workout saved',
 
