@@ -13,8 +13,9 @@ Dev database hosted on Supabase (EU West — Ireland). MCP server `mcp__supabase
 ## Tables (schema `public`)
 
 - `users` — id, nickname (unique), password_hash, created_at
-- `workouts` — id, user_id (FK → users), date, type (`musculation`|`velo`), notes, created_at
+- `workouts` — id, user_id (FK → users), date, type (CHECK: `velo`|`musculation`|`course`|`natation`|`custom`), notes, custom_emoji, custom_name, created_at
 - `cycling_details` — id, workout_id (FK CASCADE), duration, distance, elevation, ride_type
+- `workout_details` — id, workout_id (FK CASCADE), duration, distance, elevation, laps. Used by course/natation/custom types.
 - `exercises` — id, user_id (FK → users), name, muscle_group (58 defaults seeded per user on registration)
 - `exercise_logs` — id, workout_id (FK CASCADE), exercise_id (FK CASCADE), set_number, reps, weight
 

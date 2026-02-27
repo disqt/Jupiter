@@ -17,7 +17,7 @@ paths:
 - `GET/POST /api/exercises`, `PUT/DELETE /api/exercises/:id` — scoped by `user_id`.
 - `GET /api/exercises/:id/last-performance` — sets/reps/weight from most recent session.
 - `GET /api/exercises/:id/history` — sets from last 3 sessions.
-- `GET /api/stats/monthly?month=YYYY-MM` — aggregated monthly stats.
+- `GET /api/stats/monthly?month=YYYY-MM` — returns `{ total_count, counts_by_type: Record<type, count>, total_distance_km, total_elevation_m, active_days }`.
 - `GET /api/stats/weekly-progress` — `week_count` and `total_medals`.
 - `GET /api/stats/weekly-medals?month=YYYY-MM` — medals per week overlapping the month (for calendar highlights).
 
@@ -25,4 +25,6 @@ paths:
 
 All backend communication goes through typed functions. All requests include `Authorization: Bearer <token>` via `getToken()`. On 401, token cleared + redirect to `/login`.
 
-Functions: `fetchWorkouts(month)`, `fetchWorkout(id)`, `createWorkout(data)`, `deleteWorkout(id)`, `fetchExercises()`, `createExercise(name, muscleGroup)`, `fetchLastPerformance(id)`, `fetchExerciseHistory(id)`, `fetchMonthlyStats(month)`, `fetchWeeklyProgress()`, `fetchWeeklyMedals(month)`.
+Functions: `fetchWorkouts(month)`, `fetchWorkout(id)`, `createWorkout(data)`, `updateWorkout(id, data)`, `deleteWorkout(id)`, `fetchExercises()`, `createExercise(name, muscleGroup)`, `fetchLastPerformance(id)`, `fetchExerciseHistory(id)`, `fetchMonthlyStats(month)`, `fetchWeeklyProgress()`, `fetchWeeklyMedals(month)`.
+
+`createWorkout`/`updateWorkout` accept: `cycling_details` (velo), `exercise_logs` (musculation), or `workout_details` (course/natation/custom), plus optional `custom_emoji`/`custom_name`.
