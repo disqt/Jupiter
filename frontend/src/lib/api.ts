@@ -264,3 +264,40 @@ export interface WeeklyMedal {
 export async function fetchWeeklyMedals(month: string): Promise<WeeklyMedal[]> {
   return request<WeeklyMedal[]>(`/api/stats/weekly-medals?month=${month}`);
 }
+
+export interface MedalHistory {
+  week_start: string;
+  workout_count: number;
+  medals: number;
+  cumulative: number;
+}
+
+export async function fetchMedalsHistory(): Promise<MedalHistory[]> {
+  return request<MedalHistory[]>('/api/stats/medals-history');
+}
+
+export interface DistanceByType {
+  period_num: number | string;
+  type: string;
+  distance: number;
+}
+
+export async function fetchDistanceByType(params: { month?: string; year?: string }): Promise<DistanceByType[]> {
+  const query = params.month ? `month=${params.month}` : `year=${params.year}`;
+  return request<DistanceByType[]>(`/api/stats/distance-by-type?${query}`);
+}
+
+export interface StrengthVolume {
+  total_tonnage: number;
+  exercise_count: number;
+  total_sets: number;
+}
+
+export async function fetchStrengthVolume(params: { month?: string; year?: string }): Promise<StrengthVolume> {
+  const query = params.month ? `month=${params.month}` : `year=${params.year}`;
+  return request<StrengthVolume>(`/api/stats/strength-volume?${query}`);
+}
+
+export async function fetchYearlyStats(year: string): Promise<MonthlyStats> {
+  return request<MonthlyStats>(`/api/stats/monthly?year=${year}`);
+}

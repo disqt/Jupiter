@@ -66,4 +66,15 @@ cd backend && npm run db:studio     # Web UI to explore DB
 
 ## Pages
 
-`/login`, `/register`, `/profile`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`. Nav hidden on auth pages.
+`/login`, `/register`, `/profile`, `/stats`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`. Nav hidden on auth pages.
+
+## Stats Page
+
+`StatsPage` component (`frontend/src/components/StatsPage.tsx`) — single scrollable page with Recharts graphs:
+- Period selector: month/year toggle + navigation arrows
+- Summary cards: total sessions, distance (km), elevation (m), active days
+- Medal progression: AreaChart with cumulative medals (always full history, not filtered by period)
+- Type distribution: PieChart donut with sport colors + legend
+- Distance by sport: stacked BarChart with sport filter chips
+- Strength volume: conditional card (tonnage, exercises, sets) — only if musculation data exists
+- Recharts dependency in frontend/package.json
