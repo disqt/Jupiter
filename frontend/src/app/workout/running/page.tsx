@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { WORKOUT_CONFIG } from '@/lib/data';
-import { createWorkout, updateWorkout, fetchWorkout, deleteWorkout } from '@/lib/api';
+import { createWorkout, updateWorkout, fetchWorkout, deleteWorkout, patchWorkoutMeta } from '@/lib/api';
 import SaveAnimation from '@/components/SaveAnimation';
 import WorkoutFormHeader from '@/components/WorkoutFormHeader';
 import { useI18n } from '@/lib/i18n';
@@ -173,6 +173,7 @@ function RunningWorkoutForm() {
         onBack={() => router.push('/')}
         dateDisplay={dateDisplay}
         hasDraft={hasDraft}
+        onPersistMeta={workoutId ? (e, n) => { patchWorkoutMeta(parseInt(workoutId), { custom_emoji: e || null, custom_name: n || null }); } : undefined}
       />
 
       {/* Fields — 2 columns on tablet+ */}

@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { MUSCLE_GROUPS, UPPER_BODY_GROUPS, LOWER_BODY_GROUPS, WORKOUT_CONFIG } from '@/lib/data';
-import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, fetchWorkout, createWorkout, updateWorkout, createExercise, deleteWorkout, type Exercise, type HistorySet } from '@/lib/api';
+import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, fetchWorkout, createWorkout, updateWorkout, createExercise, deleteWorkout, patchWorkoutMeta, type Exercise, type HistorySet } from '@/lib/api';
 import SaveAnimation from '@/components/SaveAnimation';
 import WorkoutFormHeader from '@/components/WorkoutFormHeader';
 import { useI18n } from '@/lib/i18n';
@@ -312,6 +312,7 @@ function StrengthWorkoutForm() {
         onBack={() => router.push('/')}
         dateDisplay={dateDisplay}
         hasDraft={hasDraft}
+        onPersistMeta={workoutId ? (e, n) => { patchWorkoutMeta(parseInt(workoutId), { custom_emoji: e || null, custom_name: n || null }); } : undefined}
       />
 
       {/* Exercise cards — 2 columns on desktop */}

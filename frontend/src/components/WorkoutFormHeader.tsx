@@ -14,6 +14,7 @@ interface WorkoutFormHeaderProps {
   onBack: () => void;
   dateDisplay: string;
   hasDraft?: boolean;
+  onPersistMeta?: (emoji: string, name: string) => void;
 }
 
 export default function WorkoutFormHeader({
@@ -25,12 +26,27 @@ export default function WorkoutFormHeader({
   onBack,
   dateDisplay,
   hasDraft,
+  onPersistMeta,
 }: WorkoutFormHeaderProps) {
   const { t } = useI18n();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showNameEditor, setShowNameEditor] = useState(false);
 
   const displayName = name || defaultName;
+
+  const handleEmojiSelect = (newEmoji: string) => {
+    onEmojiChange(newEmoji);
+    if (onPersistMeta) {
+      onPersistMeta(newEmoji, name);
+    }
+  };
+
+  const handleNameSave = (newName: string) => {
+    onNameChange(newName);
+    if (onPersistMeta) {
+      onPersistMeta(emoji, newName);
+    }
+  };
 
   return (
     <>
@@ -68,14 +84,15 @@ export default function WorkoutFormHeader({
       <EmojiPicker
         isOpen={showEmojiPicker}
         onClose={() => setShowEmojiPicker(false)}
-        onSelect={onEmojiChange}
+        onSelect={handleEmojiSelect}
         currentEmoji={emoji}
+        showSaveButton={!!onPersistMeta}
       />
 
       <NameEditor
         isOpen={showNameEditor}
         onClose={() => setShowNameEditor(false)}
-        onSave={onNameChange}
+        onSave={handleNameSave}
         currentName={name}
         defaultName={defaultName}
       />

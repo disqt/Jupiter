@@ -20,8 +20,10 @@ export default function Calendar() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [stats, setStats] = useState({ totalCount: 0, countsByType: {} as Record<string, number>, totalDistanceKm: 0, totalElevationM: 0 });
   const [totalMedals, setTotalMedals] = useState(0);
+  const [weekCount, setWeekCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [weeklyMedals, setWeeklyMedals] = useState<WeeklyMedal[]>([]);
+  const [showMedalInfo, setShowMedalInfo] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -54,7 +56,10 @@ export default function Calendar() {
 
   useEffect(() => {
     fetchWeeklyProgress()
-      .then((wp) => setTotalMedals(parseInt(wp.total_medals) || 0))
+      .then((wp) => {
+        setTotalMedals(parseInt(wp.total_medals) || 0);
+        setWeekCount(parseInt(wp.week_count) || 0);
+      })
       .catch(() => {});
   }, []);
 
@@ -102,6 +107,8 @@ export default function Calendar() {
   const isTodaySelected = selectedDay !== null && isToday(selectedDay);
 
   const numberLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
+  const monthMedals = weeklyMedals.reduce((sum, w) => sum + w.medals, 0);
+  const weekProgress = Math.min(weekCount / 3, 1);
 
   const getTypeBgClass = (type: string): string => {
     const map: Record<string, string> = {
@@ -109,6 +116,7 @@ export default function Calendar() {
       musculation: 'bg-strength-soft',
       course: 'bg-running-soft',
       natation: 'bg-swimming-soft',
+      marche: 'bg-walking-soft',
       custom: 'bg-custom-workout-soft',
     };
     return map[type] || '';
@@ -120,6 +128,7 @@ export default function Calendar() {
       musculation: `bg-strength/20 text-strength ${isSelected ? 'bg-strength/30' : ''}`,
       course: `bg-running/20 text-running ${isSelected ? 'bg-running/30' : ''}`,
       natation: `bg-swimming/20 text-swimming ${isSelected ? 'bg-swimming/30' : ''}`,
+      marche: `bg-walking/20 text-walking ${isSelected ? 'bg-walking/30' : ''}`,
       custom: `bg-custom-workout/20 text-custom-workout ${isSelected ? 'bg-custom-workout/30' : ''}`,
     };
     return map[type] || '';
@@ -131,6 +140,7 @@ export default function Calendar() {
       musculation: 'from-strength to-transparent',
       course: 'from-running to-transparent',
       natation: 'from-swimming to-transparent',
+      marche: 'from-walking to-transparent',
       custom: 'from-custom-workout to-transparent',
     };
     return map[type] || 'from-accent to-transparent';
@@ -142,6 +152,7 @@ export default function Calendar() {
       musculation: 'text-strength',
       course: 'text-running',
       natation: 'text-swimming',
+      marche: 'text-walking',
       custom: 'text-custom-workout',
     };
     return map[type] || 'text-accent';
@@ -373,12 +384,26 @@ export default function Calendar() {
           {/* Monthly stats */}
           <h3 className="text-[15px] font-semibold mt-6 mb-2">{t.thisMonth}</h3>
 
-          <div className="bg-bg-card border border-border rounded-card p-3.5 px-4 relative overflow-hidden mb-2.5">
+          <div className="bg-bg-card border border-border rounded-card p-3.5 px-4 relative overflow-hidden mb-2.5 cursor-pointer" onClick={() => setShowMedalInfo(true)}>
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-accent to-transparent" />
-            <div className="text-[26px] font-bold tracking-tight leading-none text-accent">
-              {totalMedals}<span className="text-sm font-normal opacity-60"> 🏅</span>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[26px] font-bold tracking-tight leading-none text-accent">
+                  {monthMedals}<span className="text-sm font-normal opacity-60"> 🏅</span>
+                </div>
+                <div className="text-xs text-text-muted mt-1 font-medium">{t.monthlyMedals}</div>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <div className="w-5 h-5 rounded-full border border-border flex items-center justify-center text-text-muted text-[11px] font-semibold shrink-0">i</div>
+                <div className="text-[11px] text-text-muted font-medium">{t.weekCount(weekCount)}</div>
+              </div>
             </div>
-            <div className="text-xs text-text-muted mt-1 font-medium">{t.totalMedals}</div>
+            <div className="h-1.5 bg-border rounded-full overflow-hidden mt-2.5">
+              <div
+                className={`h-full rounded-full bg-gradient-to-r from-accent to-[#8b5cf6] transition-all duration-500 ease-out ${weekCount >= 3 ? 'animate-progressGlow' : ''}`}
+                style={{ width: `${weekProgress * 100}%` }}
+              />
+            </div>
           </div>
 
           {/* Total sessions with type breakdown */}
@@ -444,6 +469,7 @@ export default function Calendar() {
                   musculation: 'border-strength-soft hover:bg-strength-soft hover:border-strength',
                   course: 'border-running-soft hover:bg-running-soft hover:border-running',
                   natation: 'border-swimming-soft hover:bg-swimming-soft hover:border-swimming',
+                  marche: 'border-walking-soft hover:bg-walking-soft hover:border-walking',
                   custom: 'border-custom-workout-soft hover:bg-custom-workout-soft hover:border-custom-workout',
                 };
                 return (
@@ -460,6 +486,58 @@ export default function Calendar() {
               className="block w-full mt-4 py-3 bg-transparent border-none text-text-muted text-sm cursor-pointer font-inherit">
               {t.cancel}
             </button>
+          </div>
+        </>
+      )}
+      {/* Medal info modal */}
+      {showMedalInfo && (
+        <>
+          <div onClick={() => setShowMedalInfo(false)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
+          <div className="fixed inset-0 z-[51] flex items-center justify-center px-8" onClick={() => setShowMedalInfo(false)}>
+            <div onClick={(e) => e.stopPropagation()}
+              className="bg-bg-card border border-border rounded-card p-5 w-full max-w-[320px] animate-fadeIn">
+              <div className="flex items-center gap-2 mb-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-accent shrink-0">
+                  <circle cx="12" cy="9" r="6" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.15" />
+                  <polygon points="12,5 13.5,8 17,8.5 14.5,11 15,14.5 12,13 9,14.5 9.5,11 7,8.5 10.5,8" fill="currentColor" />
+                  <path d="M8 14.5l-2 5.5 4-2M16 14.5l2 5.5-4-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                <h3 className="text-[15px] font-semibold">{t.medals}</h3>
+              </div>
+              <p className="text-[13px] text-text-secondary leading-relaxed mb-3">
+                {t.medalsDescription}
+              </p>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-[12px]">
+                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions3}</span>
+                  <span className="text-text-muted">&rarr;</span>
+                  <span className="text-text-secondary">{t.medal1}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[12px]">
+                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions4}</span>
+                  <span className="text-text-muted">&rarr;</span>
+                  <span className="text-text-secondary">{t.medals2}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[12px]">
+                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions5}</span>
+                  <span className="text-text-muted">&rarr;</span>
+                  <span className="text-text-secondary">{t.medals3}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[12px]">
+                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions6plus}</span>
+                  <span className="text-text-muted">&rarr;</span>
+                  <span className="text-text-secondary">{t.medalsExtra}</span>
+                </div>
+              </div>
+              <p className="text-[11px] text-text-muted mt-3">
+                {t.currentMedals(totalMedals)}
+              </p>
+              <button onClick={() => setShowMedalInfo(false)}
+                className="w-full mt-4 py-2.5 bg-bg-elevated border border-border rounded-sm text-text text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
+                {t.understood}
+              </button>
+            </div>
           </div>
         </>
       )}

@@ -103,7 +103,7 @@ router.post('/', async (req, res) => {
       }
     }
 
-    if (['course', 'natation', 'custom'].includes(type) && workout_details) {
+    if (['course', 'natation', 'marche', 'custom'].includes(type) && workout_details) {
       const { duration, distance, elevation, laps } = workout_details;
       await client.query(
         `INSERT INTO workout_details (workout_id, duration, distance, elevation, laps)
@@ -165,7 +165,7 @@ router.put('/:id', async (req, res) => {
 
     // Replace workout details
     await client.query('DELETE FROM workout_details WHERE workout_id = $1', [id]);
-    if (['course', 'natation', 'custom'].includes(type) && workout_details) {
+    if (['course', 'natation', 'marche', 'custom'].includes(type) && workout_details) {
       const { duration, distance, elevation, laps } = workout_details;
       await client.query(
         `INSERT INTO workout_details (workout_id, duration, distance, elevation, laps)
@@ -182,6 +182,25 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   } finally {
     client.release();
+  }
+});
+
+// PATCH /api/workouts/:id — update only emoji/name without touching workout details
+router.patch('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { custom_emoji, custom_name } = req.body;
+    const result = await pool.query(
+      'UPDATE workouts SET custom_emoji = $1, custom_name = $2 WHERE id = $3 AND user_id = $4 RETURNING *',
+      [custom_emoji || null, custom_name || null, id, req.userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Workout not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

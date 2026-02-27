@@ -41,6 +41,11 @@ const config: Config = {
           glow: 'rgba(6, 182, 212, 0.15)',
           soft: '#0c2a30',
         },
+        walking: {
+          DEFAULT: '#f59e0b',
+          glow: 'rgba(245, 158, 11, 0.15)',
+          soft: '#2d2410',
+        },
         'custom-workout': {
           DEFAULT: '#a78bfa',
           glow: 'rgba(167, 139, 250, 0.15)',

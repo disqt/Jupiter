@@ -1,6 +1,6 @@
-export type WorkoutType = 'velo' | 'musculation' | 'course' | 'natation' | 'custom';
+export type WorkoutType = 'velo' | 'musculation' | 'course' | 'natation' | 'marche' | 'custom';
 
-export const WORKOUT_TYPES: WorkoutType[] = ['velo', 'musculation', 'course', 'natation', 'custom'];
+export const WORKOUT_TYPES: WorkoutType[] = ['velo', 'musculation', 'course', 'natation', 'marche', 'custom'];
 
 export const WORKOUT_CONFIG: Record<WorkoutType, {
   defaultEmoji: string;
@@ -12,11 +12,12 @@ export const WORKOUT_CONFIG: Record<WorkoutType, {
   musculation: { defaultEmoji: '🏋️', color: 'strength', colorSoft: 'strength-soft', route: '/workout/strength' },
   course: { defaultEmoji: '🏃', color: 'running', colorSoft: 'running-soft', route: '/workout/running' },
   natation: { defaultEmoji: '🏊', color: 'swimming', colorSoft: 'swimming-soft', route: '/workout/swimming' },
+  marche: { defaultEmoji: '🚶', color: 'walking', colorSoft: 'walking-soft', route: '/workout/walking' },
   custom: { defaultEmoji: '🎯', color: 'custom-workout', colorSoft: 'custom-workout-soft', route: '/workout/custom' },
 };
 
 export const SPORT_EMOJIS = [
-  '🚴', '🏃', '🏊', '🏋️', '🧘', '🤸', '🎯',
+  '🚴', '🏃', '🏊', '🏋️', '🚶', '🧘', '🤸', '🎯',
   '⚽', '🏀', '🎾', '🏓', '🥊', '🏈', '🏐',
   '⛷️', '🏄', '🧗', '🤾', '🏌️', '🚣', '⛸️',
   '💪', '🔥', '⚡', '🏆', '❤️', '🌟',
