@@ -255,7 +255,7 @@ export default function StatsPage() {
 
   // --- Render ---
   return (
-    <div className="px-5 pb-24 lg:max-w-3xl lg:mx-auto">
+    <div className="px-5 pb-24 lg:max-w-3xl lg:mx-auto overflow-x-hidden">
       {/* Page title */}
       <div className="pt-14 pb-4 lg:pt-8">
         <h1 className="font-serif text-[22px] font-normal">{t.statsTitle}</h1>
@@ -312,20 +312,20 @@ export default function StatsPage() {
         </div>
       ) : (
         <>
-          {/* Section 2: Summary Cards */}
-          <div className="flex overflow-x-auto gap-3 pb-2 mb-6 -mx-5 px-5 scrollbar-none">
+          {/* Section 2: Summary Cards — 2x2 grid on mobile */}
+          <div className="grid grid-cols-2 gap-2.5 mb-6">
             {/* Total sessions */}
-            <div className="min-w-[140px] bg-bg-card rounded-card p-4 border border-border shrink-0">
-              <div className="text-[26px] font-bold tracking-tight leading-none text-text">
+            <div className="bg-bg-card rounded-card p-3.5 border border-border min-w-0">
+              <div className="text-[22px] font-bold tracking-tight leading-none text-text">
                 {stats.totalCount}
               </div>
-              <div className="text-xs text-text-muted mt-1 font-medium">{t.totalSessions}</div>
+              <div className="text-[11px] text-text-muted mt-1 font-medium">{t.totalSessions}</div>
               {emojiBreakdown.length > 0 && (
-                <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                   {emojiBreakdown.map((item) => (
                     <div key={item.type} className="flex items-center gap-0.5">
-                      <span className="text-[13px]">{item.emoji}</span>
-                      <span className="text-[13px] font-semibold" style={{ color: item.color }}>
+                      <span className="text-[11px]">{item.emoji}</span>
+                      <span className="text-[11px] font-semibold" style={{ color: item.color }}>
                         {item.count}
                       </span>
                     </div>
@@ -335,29 +335,29 @@ export default function StatsPage() {
             </div>
 
             {/* Distance */}
-            <div className="min-w-[140px] bg-bg-card rounded-card p-4 border border-border shrink-0">
-              <div className="text-[26px] font-bold tracking-tight leading-none text-accent">
+            <div className="bg-bg-card rounded-card p-3.5 border border-border min-w-0">
+              <div className="text-[22px] font-bold tracking-tight leading-none text-accent">
                 {stats.totalDistanceKm.toLocaleString(numberLocale)}
-                <span className="text-sm font-normal opacity-60"> km</span>
+                <span className="text-xs font-normal opacity-60"> km</span>
               </div>
-              <div className="text-xs text-text-muted mt-1 font-medium">{t.distanceCovered}</div>
+              <div className="text-[11px] text-text-muted mt-1 font-medium">{t.distanceCovered}</div>
             </div>
 
             {/* Elevation */}
-            <div className="min-w-[140px] bg-bg-card rounded-card p-4 border border-border shrink-0">
-              <div className="text-[26px] font-bold tracking-tight leading-none text-accent">
+            <div className="bg-bg-card rounded-card p-3.5 border border-border min-w-0">
+              <div className="text-[22px] font-bold tracking-tight leading-none text-accent">
                 {stats.totalElevationM.toLocaleString(numberLocale)}
-                <span className="text-sm font-normal opacity-60"> m</span>
+                <span className="text-xs font-normal opacity-60"> m</span>
               </div>
-              <div className="text-xs text-text-muted mt-1 font-medium">{t.totalElevation}</div>
+              <div className="text-[11px] text-text-muted mt-1 font-medium">{t.totalElevation}</div>
             </div>
 
             {/* Active days */}
-            <div className="min-w-[140px] bg-bg-card rounded-card p-4 border border-border shrink-0">
-              <div className="text-[26px] font-bold tracking-tight leading-none text-text">
+            <div className="bg-bg-card rounded-card p-3.5 border border-border min-w-0">
+              <div className="text-[22px] font-bold tracking-tight leading-none text-text">
                 {stats.activeDays}
               </div>
-              <div className="text-xs text-text-muted mt-1 font-medium">{t.activeDays}</div>
+              <div className="text-[11px] text-text-muted mt-1 font-medium">{t.activeDays}</div>
             </div>
           </div>
 
@@ -365,9 +365,9 @@ export default function StatsPage() {
           {medalChartData.length > 0 && (
             <div className="mb-6">
               <h2 className="text-sm font-semibold text-text-secondary mb-3">{t.medalProgression}</h2>
-              <div className="bg-bg-card rounded-card p-4 border border-border">
-                <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={medalChartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+              <div className="bg-bg-card rounded-card p-3 border border-border overflow-hidden min-w-0">
+                <ResponsiveContainer width="100%" height={180}>
+                  <AreaChart data={medalChartData} margin={{ top: 5, right: 0, bottom: 0, left: -25 }}>
                     <defs>
                       <linearGradient id="medalGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.3} />
@@ -417,20 +417,20 @@ export default function StatsPage() {
           {/* Section 4: Type Distribution */}
           <div className="mb-6">
             <h2 className="text-sm font-semibold text-text-secondary mb-3">{t.typeDistribution}</h2>
-            <div className="bg-bg-card rounded-card p-4 border border-border">
+            <div className="bg-bg-card rounded-card p-3 border border-border overflow-hidden min-w-0">
               {pieData.length === 0 ? (
                 <div className="text-text-muted text-sm text-center py-8">{t.noData}</div>
               ) : (
                 <>
                   <div className="relative">
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ResponsiveContainer width="100%" height={180}>
                       <PieChart>
                         <Pie
                           data={pieData}
                           cx="50%"
                           cy="50%"
-                          innerRadius={50}
-                          outerRadius={80}
+                          innerRadius={40}
+                          outerRadius={65}
                           dataKey="value"
                           strokeWidth={0}
                         >
@@ -469,16 +469,16 @@ export default function StatsPage() {
           {/* Section 5: Distance by Sport */}
           <div className="mb-6">
             <h2 className="text-sm font-semibold text-text-secondary mb-3">{t.distanceBySport}</h2>
-            <div className="bg-bg-card rounded-card p-4 border border-border">
+            <div className="bg-bg-card rounded-card p-3 border border-border overflow-hidden min-w-0">
               {barChartData.length === 0 ? (
                 <div className="text-text-muted text-sm text-center py-8">{t.noData}</div>
               ) : (
                 <>
                   {/* Filter chips */}
-                  <div className="flex overflow-x-auto gap-2 pb-3 -mx-1 px-1 scrollbar-none">
+                  <div className="flex overflow-x-auto gap-1.5 pb-3 scrollbar-none">
                     <button
                       onClick={() => setDistanceFilter(null)}
-                      className={`shrink-0 px-3 py-1 rounded-full text-[12px] font-medium transition-all duration-150 cursor-pointer border-none font-inherit ${
+                      className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-150 cursor-pointer border-none font-inherit ${
                         distanceFilter === null
                           ? 'text-white'
                           : 'bg-bg-elevated text-text-secondary'
@@ -491,7 +491,7 @@ export default function StatsPage() {
                       <button
                         key={type}
                         onClick={() => setDistanceFilter(distanceFilter === type ? null : type)}
-                        className={`shrink-0 px-3 py-1 rounded-full text-[12px] font-medium transition-all duration-150 cursor-pointer border-none font-inherit ${
+                        className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-150 cursor-pointer border-none font-inherit ${
                           distanceFilter === type
                             ? 'text-white'
                             : 'bg-bg-elevated text-text-secondary'
@@ -504,8 +504,8 @@ export default function StatsPage() {
                   </div>
 
                   {/* Bar chart */}
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={barChartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={barChartData} margin={{ top: 5, right: 0, bottom: 0, left: -25 }}>
                       <CartesianGrid stroke="#2a2b32" strokeDasharray="3 3" />
                       <XAxis
                         dataKey="period"
@@ -547,8 +547,8 @@ export default function StatsPage() {
           {strengthData.total_sets > 0 && (
             <div className="mb-6">
               <h2 className="text-sm font-semibold text-text-secondary mb-3">{t.strengthVolume}</h2>
-              <div className="bg-bg-card rounded-card p-4 border border-border">
-                <div className="grid grid-cols-3 gap-3">
+              <div className="bg-bg-card rounded-card p-3 border border-border min-w-0">
+                <div className="grid grid-cols-3 gap-2">
                   <div className="text-center">
                     <div className="text-[20px] font-bold text-accent tracking-tight">
                       {strengthData.total_tonnage.toLocaleString(numberLocale)}
