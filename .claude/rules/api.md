@@ -13,7 +13,7 @@ paths:
 - `PUT /api/auth/me` — update nickname/password (requires current_password for password change).
 
 **Protected (require `Authorization: Bearer <token>`):**
-- `GET/POST /api/workouts`, `GET/PUT/DELETE /api/workouts/:id` — month filter: `?month=YYYY-MM`. Scoped by `user_id`.
+- `GET/POST /api/workouts`, `GET/PUT/PATCH/DELETE /api/workouts/:id` — month filter: `?month=YYYY-MM`. Scoped by `user_id`. PATCH updates only `custom_emoji`/`custom_name`.
 - `GET/POST /api/exercises`, `PUT/DELETE /api/exercises/:id` — scoped by `user_id`.
 - `GET /api/exercises/:id/last-performance` — sets/reps/weight from most recent session.
 - `GET /api/exercises/:id/history` — sets from last 3 sessions.
@@ -25,6 +25,7 @@ paths:
 
 All backend communication goes through typed functions. All requests include `Authorization: Bearer <token>` via `getToken()`. On 401, token cleared + redirect to `/login`.
 
-Functions: `fetchWorkouts(month)`, `fetchWorkout(id)`, `createWorkout(data)`, `updateWorkout(id, data)`, `deleteWorkout(id)`, `fetchExercises()`, `createExercise(name, muscleGroup)`, `fetchLastPerformance(id)`, `fetchExerciseHistory(id)`, `fetchMonthlyStats(month)`, `fetchWeeklyProgress()`, `fetchWeeklyMedals(month)`.
+Functions: `fetchWorkouts(month)`, `fetchWorkout(id)`, `createWorkout(data)`, `updateWorkout(id, data)`, `patchWorkoutMeta(id, data)`, `deleteWorkout(id)`, `fetchExercises()`, `createExercise(name, muscleGroup)`, `fetchLastPerformance(id)`, `fetchExerciseHistory(id)`, `fetchMonthlyStats(month)`, `fetchWeeklyProgress()`, `fetchWeeklyMedals(month)`.
 
-`createWorkout`/`updateWorkout` accept: `cycling_details` (velo), `exercise_logs` (musculation), or `workout_details` (course/natation/custom), plus optional `custom_emoji`/`custom_name`.
+`createWorkout`/`updateWorkout` accept: `cycling_details` (velo), `exercise_logs` (musculation), or `workout_details` (course/natation/marche/custom), plus optional `custom_emoji`/`custom_name`.
+`patchWorkoutMeta(id, { custom_emoji, custom_name })` — lightweight update for emoji/name only, used by WorkoutFormHeader on existing workouts.
