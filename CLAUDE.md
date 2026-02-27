@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Sport Tracker — mobile-first workout tracking webapp. 5 workout types: cycling, strength, running, swimming, custom. Bilingual FR/EN. Monorepo: Next.js frontend + Express backend + Supabase PostgreSQL.
+Sport Tracker — mobile-first workout tracking webapp. 6 workout types: cycling, strength, running, swimming, walking, custom. Bilingual FR/EN. Monorepo: Next.js frontend + Express backend + Supabase PostgreSQL.
 
 ## Commands
 
@@ -49,18 +49,21 @@ cd backend && npm run db:studio     # Web UI to explore DB
 - PostgreSQL returns dates as ISO timestamps — `parseDate()` in api.ts converts to `YYYY-MM-DD` local timezone
 - Stats values come back as strings from aggregate queries — parse with `parseInt()`/`parseFloat()`
 - `useSearchParams()` requires `<Suspense>` boundary — workout pages split into inner form + wrapper
-- Workout types: `velo`, `musculation`, `course`, `natation`, `custom` — DB CHECK constraint limits allowed values
+- Workout types: `velo`, `musculation`, `course`, `natation`, `marche`, `custom` — DB CHECK constraint limits allowed values
 - Workout creation sends cycling_details, exercise_logs, or workout_details in same POST, handled in single transaction
+- workout_details used by: `course`, `natation`, `marche`, `custom` — backend checks `['course', 'natation', 'marche', 'custom'].includes(type)`
 - Type config centralized in `WORKOUT_CONFIG` (data.ts) — emoji, color, route per type. Calendar uses lookup helpers, not ternaries.
 - Custom emoji/name per workout: stored in `workouts.custom_emoji`/`custom_name`, null = use type default
+- PATCH `/api/workouts/:id` updates only emoji/name without touching workout details — used for instant persist from EmojiPicker/NameEditor on existing workouts
 - Duration input: smart text field accepting "2h30", "1:45", "90" (minutes) — parseDuration/formatDuration in each form page
 - localStorage draft autosave for all workout types (`{type}-draft-${date}` / `{type}-edit-${workoutId}`)
 - Save animation + redirect with `?saved=1` triggers medal celebration in WeeklyProgress
 - DB values (muscle groups, ride types) stay in French — display translated via `t.muscleGroups[dbValue]`
 - env vars (`JWT_SECRET`, `INVITE_CODE`) read at call time, not module load (dotenv import order)
 - Medal formula: `GREATEST(count - 2, 0)` — 3 sessions/week = 1 medal, 4 = 2, etc.
+- Medal UI: header card = total medals (big icon + number), monthly card = month medals (sum of weeklyMedals) + progress bar + info modal on tap
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. Split into `UPPER_BODY_GROUPS` / `LOWER_BODY_GROUPS`. No "Jambes" or "Autre".
 
 ## Pages
 
-`/login`, `/register`, `/profile`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/custom`. Nav hidden on auth pages.
+`/login`, `/register`, `/profile`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`. Nav hidden on auth pages.
