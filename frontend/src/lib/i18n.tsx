@@ -90,6 +90,20 @@ const translations = {
     // Stats
     totalMedals: 'Médailles totales',
     monthlyMedals: 'Médailles ce mois',
+    statsTitle: 'Statistiques',
+    monthLabel: 'Mois',
+    yearLabel: 'Année',
+    activeDays: 'Jours actifs',
+    medalProgression: 'Progression des médailles',
+    typeDistribution: 'Répartition par sport',
+    distanceBySport: 'Distance par sport',
+    allSports: 'Tous',
+    weekLabel: 'Sem.',
+    strengthVolume: 'Volume musculation',
+    totalTonnage: 'Tonnage total',
+    totalExercises: 'Exercices',
+    totalSets: 'Séries',
+    noData: 'Aucune donnée',
 
     // Save animation
     workoutSaved: 'Séance sauvegardée',
@@ -277,6 +291,20 @@ const translations = {
 
     totalMedals: 'Total medals',
     monthlyMedals: 'Medals this month',
+    statsTitle: 'Statistics',
+    monthLabel: 'Month',
+    yearLabel: 'Year',
+    activeDays: 'Active days',
+    medalProgression: 'Medal progression',
+    typeDistribution: 'Workout distribution',
+    distanceBySport: 'Distance by sport',
+    allSports: 'All',
+    weekLabel: 'Wk.',
+    strengthVolume: 'Strength volume',
+    totalTonnage: 'Total tonnage',
+    totalExercises: 'Exercises',
+    totalSets: 'Sets',
+    noData: 'No data',
 
     workoutSaved: 'Workout saved',
 

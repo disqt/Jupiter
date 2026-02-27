@@ -16,7 +16,7 @@ export default function BottomNav() {
 
   const navItems = [
     { href: '/', label: t.calendar, icon: '📅' },
-    { href: '/stats', label: t.stats, icon: '📊', disabled: true },
+    { href: '/stats', label: t.stats, icon: '📊' },
     { href: '/profile', label: t.profile, icon: '👤' },
   ];
 
