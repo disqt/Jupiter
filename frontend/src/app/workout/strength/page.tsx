@@ -209,17 +209,24 @@ function StrengthWorkoutForm() {
     const updated = [...entries];
     updated[entryIdx] = {
       ...updated[entryIdx],
-      sets: updated[entryIdx].sets.map((s, i) => i === setIdx ? { ...s, [field]: value } : s),
+      sets: updated[entryIdx].sets.map((s, i) => {
+        if (i === setIdx) return { ...s, [field]: value };
+        // Auto-fill empty weight fields below the changed set
+        if (field === 'weight' && i > setIdx && !s.weight) return { ...s, weight: value };
+        return s;
+      }),
     };
     setEntries(updated);
   };
 
   const addSet = (entryIdx: number) => {
     const updated = [...entries];
-    const nextNum = updated[entryIdx].sets.length + 1;
+    const sets = updated[entryIdx].sets;
+    const lastWeight = sets.length > 0 ? sets[sets.length - 1].weight : '';
+    const nextNum = sets.length + 1;
     updated[entryIdx] = {
       ...updated[entryIdx],
-      sets: [...updated[entryIdx].sets, { setNumber: nextNum, reps: '', weight: '' }],
+      sets: [...sets, { setNumber: nextNum, reps: '', weight: lastWeight }],
     };
     setEntries(updated);
   };
@@ -262,12 +269,12 @@ function StrengthWorkoutForm() {
     try {
       const exercise_logs = entries.flatMap((entry) =>
         entry.sets
-          .filter((s) => s.reps && s.weight)
+          .filter((s) => s.reps)
           .map((s) => ({
             exercise_id: entry.exercise.id,
             set_number: s.setNumber,
             reps: parseInt(s.reps),
-            weight: parseFloat(s.weight),
+            weight: parseFloat(s.weight) || 0,
           }))
       );
 
