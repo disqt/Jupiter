@@ -108,9 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUser = useCallback((u: User) => setUser(u), []);
 
+  // Don't render protected content while checking auth
+  const isPublic = PUBLIC_PATHS.includes(pathname);
+  const showChildren = !loading || isPublic;
+
   return (
     <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateUser }}>
-      {children}
+      {showChildren ? children : null}
     </AuthContext.Provider>
   );
 }
