@@ -1,6 +1,7 @@
 import { type WorkoutType } from './data';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -19,7 +20,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (res.status === 401) {
     localStorage.removeItem('token');
-    window.location.href = '/login';
+    window.location.href = `${BASE_PATH}/login`;
     throw new Error('Session expired');
   }
 
