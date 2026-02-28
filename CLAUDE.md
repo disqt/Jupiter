@@ -42,7 +42,45 @@ cd backend && npm run db:studio     # Web UI to explore DB
 
 - Backend: `backend/.env` → `PORT`, `DATABASE_URL`, `JWT_SECRET`, `INVITE_CODE`
 - Frontend: `frontend/.env.local` → `NEXT_PUBLIC_API_URL=http://localhost:3001`
+- Production frontend env: `NEXT_PUBLIC_API_URL=/jupiter`, `NEXT_PUBLIC_BASE_PATH=/jupiter`
 - **Never commit `.env` files**
+
+## Deployment (VPS)
+
+**URL:** https://disqt.com/jupiter/ — **VPS:** `ssh -p 24420 jupiter@disqt.com`
+
+**Architecture:**
+```
+nginx → /jupiter/metrics/  → Grafana :3102
+nginx → /jupiter/api/*     → Express :3101
+nginx → /jupiter/*         → Next.js :3100 (basePath: /jupiter, standalone mode)
+```
+
+**Services (systemd):**
+- `jupiter-frontend` — Next.js standalone on port 3100
+- `jupiter-backend` — Express API on port 3101
+- `jupiter-grafana` — Grafana on port 3102
+
+**Key files on VPS:**
+- App code: `~/app/`
+- Services: `~/services/jupiter-*.service`
+- Nginx: config in `/etc/nginx/sites-enabled/disqt.com` (Jupiter section)
+- Grafana: `~/grafana/` (config, data, provisioning)
+- Backend env: `~/app/backend/.env`
+- Frontend env: `~/app/frontend/.env.local`
+
+**Deploy flow:**
+```bash
+# Local: commit, push, PR, merge
+# VPS:
+cd ~/app && git pull
+cd backend && npm run build && sudo systemctl restart jupiter-backend    # if backend changed
+cd frontend && npm run build && cp -r .next/static .next/standalone/.next/static && sudo systemctl restart jupiter-frontend  # if frontend changed
+```
+
+**Monitoring:** Grafana at https://disqt.com/metrics/ — dashboard "Jupiter Sport Tracker" (PostgreSQL datasource `cfemdlx9lrim8f`)
+
+**Port range:** 3100-3199 reserved for Jupiter. All services prefixed `jupiter-`.
 
 ## Gotchas & Key Patterns
 
@@ -63,6 +101,10 @@ cd backend && npm run db:studio     # Web UI to explore DB
 - Medal formula: `GREATEST(count - 2, 0)` — 3 sessions/week = 1 medal, 4 = 2, etc.
 - Medal UI: header card = total medals (big icon + number), monthly card = month medals (sum of weeklyMedals) + progress bar + info modal on tap
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. Split into `UPPER_BODY_GROUPS` / `LOWER_BODY_GROUPS`. No "Jambes" or "Autre".
+- Default exercises seeded per user on registration (`backend/src/seedExercises.ts`) — 58 exercises across 10 muscle groups
+- Exercises sorted by `muscle_group, id` (oldest/seeded first, user-created last)
+- Strength sets: only reps required, weight defaults to 0 if empty. Weight auto-fills empty sets below + new sets copy previous weight.
+- `window.location.href` redirects use `BASE_PATH` env var (for subpath deployment)
 
 ## Pages
 
