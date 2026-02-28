@@ -7,7 +7,7 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM exercises WHERE user_id = $1 ORDER BY muscle_group, name',
+      'SELECT * FROM exercises WHERE user_id = $1 ORDER BY muscle_group, id',
       [req.userId]
     );
     res.json(result.rows);
