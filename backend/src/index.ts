@@ -6,6 +6,7 @@ import authRoutes from './routes/auth';
 import workoutRoutes from './routes/workouts';
 import exerciseRoutes from './routes/exercises';
 import statsRoutes from './routes/stats';
+import homeRoutes from './routes/home';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/exercises', exerciseRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/home', homeRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });

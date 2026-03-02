@@ -302,3 +302,27 @@ export async function fetchStrengthVolume(params: { month?: string; year?: strin
 export async function fetchYearlyStats(year: string): Promise<MonthlyStats> {
   return request<MonthlyStats>(`/api/stats/monthly?year=${year}`);
 }
+
+// --- Home ---
+
+export interface HomeData {
+  today: { id: number; type: string; custom_emoji: string | null; custom_name: string | null; duration: number | null; distance: number | null; exercise_count: number }[];
+  week: { date: string; type: string }[];
+  medals: { total: number; month: number };
+  insights: {
+    sessions: number;
+    distance_km: number;
+    duration_min: number;
+    volume_kg: number;
+    prev_sessions: number;
+    prev_distance_km: number;
+    prev_duration_min: number;
+    prev_volume_kg: number;
+  };
+  streak: number;
+  best_streak: number;
+}
+
+export async function fetchHomeData(): Promise<HomeData> {
+  return request<HomeData>('/api/home');
+}

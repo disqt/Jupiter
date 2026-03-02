@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Jupiter Tracker — Accueil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --bg-card: #1a1b1f;
+    --bg-elevated: #26272d;
+    --border: #2a2b32;
+    --text: #f0eff4;
+    --text-secondary: #8b8a94;
+    --text-muted: #55545e;
+    --accent: #a78bfa;
+    --gold: #c9a96e;
+    --gold-light: #e2c992;
+    --gold-soft: rgba(201, 169, 110, 0.10);
+    --gold-glow: rgba(201, 169, 110, 0.25);
+    --cycling: #3b9eff;
+    --strength: #ff8a3b;
+    --running: #34d399;
+    --swimming: #06b6d4;
+    --walking: #f59e0b;
+    --custom: #a78bfa;
+    --radius-card: 14px;
+    --radius-sm: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    padding: 0 20px 120px;
+    max-width: 430px;
+    margin: 0 auto;
+    overflow-x: hidden;
+  }
+
+  /* ===== GREETING ===== */
+  .greeting {
+    padding-top: max(2rem, env(safe-area-inset-top));
+    margin-bottom: 28px;
+  }
+
+  .greeting-time {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    margin-bottom: 6px;
+    opacity: 0;
+    animation: slideUp 0.5s ease forwards;
+  }
+
+  .greeting-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 1.15;
+    color: var(--text);
+    opacity: 0;
+    animation: slideUp 0.5s ease 0.08s forwards;
+  }
+
+  .greeting-name span {
+    color: var(--gold-light);
+  }
+
+  /* ===== TODAY CARD ===== */
+  .today-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    animation: slideUp 0.5s ease 0.14s forwards;
+  }
+
+  .today-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light), transparent);
+  }
+
+  .today-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .today-workouts {
+    display: flex;
+    gap: 10px;
+  }
+
+  .today-workout-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    flex: 1;
+  }
+
+  .today-workout-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .today-workout-icon.strength { background: rgba(255, 138, 59, 0.15); }
+  .today-workout-icon.running { background: rgba(52, 211, 153, 0.15); }
+
+  .today-workout-name {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .today-workout-detail {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+  }
+
+  .today-empty {
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 8px 0;
+  }
+
+  .today-empty-cta {
+    color: var(--gold);
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 2px;
+  }
+
+  /* ===== WEEK TRACKER ===== */
+  .week-tracker {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    animation: slideUp 0.5s ease 0.22s forwards;
+  }
+
+  .week-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .week-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+  }
+
+  .week-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .week-count strong {
+    color: var(--gold-light);
+    font-size: 15px;
+  }
+
+  .week-days {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .week-day {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .week-day-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  .week-day-label.today {
+    color: var(--gold);
+  }
+
+  .week-day-bar {
+    width: 100%;
+    height: 64px;
+    background: var(--bg-elevated);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .week-day-fill {
+    width: 100%;
+    border-radius: 8px;
+    transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+  }
+
+  .week-day-fill.empty {
+    height: 0 !important;
+  }
+
+  .week-day-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px 8px 0 0;
+  }
+
+  .week-day-dots {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 0;
+  }
+
+  .week-day-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    opacity: 0;
+    animation: dotPop 0.3s ease forwards;
+  }
+
+  .week-day:nth-child(1) .week-day-fill { animation: barGrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards; height: 0; }
+  .week-day:nth-child(2) .week-day-fill { animation: barGrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s forwards; height: 0; }
+  .week-day:nth-child(3) .week-day-fill { animation: barGrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.7s forwards; height: 0; }
+  .week-day:nth-child(4) .week-day-fill { animation: barGrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s forwards; height: 0; }
+  .week-day:nth-child(5) .week-day-fill { animation: barGrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.9s forwards; height: 0; }
+  .week-day:nth-child(6) .week-day-fill { animation: barGrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1.0s forwards; height: 0; }
+  .week-day:nth-child(7) .week-day-fill { animation: barGrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1.1s forwards; height: 0; }
+
+  /* ===== MEDALS CARD ===== */
+  .medals-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    animation: slideUp 0.5s ease 0.30s forwards;
+  }
+
+  .medals-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 80% 20%, var(--gold-soft) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .medals-inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .medals-icon-wrap {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold-soft), rgba(201, 169, 110, 0.03));
+    border: 1px solid rgba(201, 169, 110, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .medals-icon-wrap::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid rgba(201, 169, 110, 0.08);
+  }
+
+  .medals-icon {
+    font-size: 26px;
+    animation: medalShine 3s ease-in-out infinite;
+  }
+
+  .medals-info {
+    flex: 1;
+  }
+
+  .medals-count {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    font-weight: 400;
+    line-height: 1;
+    color: var(--gold-light);
+    letter-spacing: -0.02em;
+  }
+
+  .medals-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+    font-weight: 500;
+  }
+
+  .medals-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold);
+    background: var(--gold-soft);
+    border: 1px solid rgba(201, 169, 110, 0.15);
+    border-radius: 20px;
+    padding: 5px 12px;
+    white-space: nowrap;
+  }
+
+  /* ===== INSIGHTS GRID ===== */
+  .insights-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    opacity: 0;
+    animation: slideUp 0.5s ease 0.36s forwards;
+  }
+
+  .insights-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+    opacity: 0;
+    animation: slideUp 0.5s ease 0.38s forwards;
+  }
+
+  .insight-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .insight-icon {
+    font-size: 18px;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .insight-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .insight-unit {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-left: 2px;
+  }
+
+  .insight-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  .insight-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 8px;
+  }
+
+  .insight-trend.up {
+    color: var(--running);
+    background: rgba(52, 211, 153, 0.1);
+  }
+
+  .insight-trend.down {
+    color: var(--text-muted);
+    background: rgba(85, 84, 94, 0.15);
+  }
+
+  /* ===== STREAK CARD ===== */
+  .streak-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    opacity: 0;
+    animation: slideUp 0.5s ease 0.44s forwards;
+  }
+
+  .streak-flame {
+    font-size: 28px;
+    line-height: 1;
+    animation: flamePulse 2s ease-in-out infinite;
+  }
+
+  .streak-info {
+    flex: 1;
+  }
+
+  .streak-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .streak-value strong {
+    color: var(--strength);
+  }
+
+  .streak-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 1px;
+  }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes barGrow {
+    from { height: 0; }
+    to { height: var(--target-height); }
+  }
+
+  @keyframes dotPop {
+    from { opacity: 0; transform: scale(0.3); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes medalShine {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.2); }
+  }
+
+  @keyframes flamePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08) translateY(-1px); }
+  }
+
+  /* ===== BOTTOM NAV (preview) ===== */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 6px 0 20px;
+    max-width: 430px;
+    margin: 0 auto;
+    z-index: 30;
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding-top: 4px;
+    text-decoration: none;
+    color: var(--text-muted);
+    transition: all 0.15s ease;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .nav-item.active {
+    color: var(--gold);
+  }
+
+  .nav-icon {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  /* ===== DESKTOP ===== */
+  @media (min-width: 1024px) {
+    body {
+      max-width: 520px;
+      padding-bottom: 40px;
+    }
+
+    .greeting-name { font-size: 38px; }
+    .bottom-nav { display: none; }
+
+    .insights-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Greeting -->
+  <section class="greeting">
+    <div class="greeting-time">Dimanche 2 mars — Bonsoir</div>
+    <div class="greeting-name">Bienvenue, <span>Sylvain</span></div>
+  </section>
+
+  <!-- Today -->
+  <div class="today-card">
+    <div class="today-label">Aujourd'hui</div>
+    <div class="today-workouts">
+      <div class="today-workout-chip">
+        <div class="today-workout-icon strength">💪</div>
+        <div>
+          <div class="today-workout-name">Musculation</div>
+          <div class="today-workout-detail">5 exercices · 45 min</div>
+        </div>
+      </div>
+      <div class="today-workout-chip">
+        <div class="today-workout-icon running">🏃</div>
+        <div>
+          <div class="today-workout-name">Course</div>
+          <div class="today-workout-detail">5.2 km · 28 min</div>
+        </div>
+      </div>
+    </div>
+    <!-- Alternative: no workouts today -->
+    <!-- <div class="today-empty">Aucune séance aujourd'hui.<a href="#" class="today-empty-cta">Commencer →</a></div> -->
+  </div>
+
+  <!-- Weekly tracker -->
+  <div class="week-tracker">
+    <div class="week-header">
+      <span class="week-title">Cette semaine</span>
+      <span class="week-count"><strong>4</strong> / 7 jours</span>
+    </div>
+    <div class="week-days">
+      <!-- Lun: 1 workout (cycling) -->
+      <div class="week-day">
+        <div class="week-day-bar">
+          <div class="week-day-fill" style="--target-height: 35%; background: linear-gradient(to top, rgba(59,158,255,0.4), rgba(59,158,255,0.15));">
+            <div class="week-day-dots">
+              <div class="week-day-dot" style="background: var(--cycling); animation-delay: 0.7s;"></div>
+            </div>
+          </div>
+        </div>
+        <span class="week-day-label">L</span>
+      </div>
+      <!-- Mar: 2 workouts -->
+      <div class="week-day">
+        <div class="week-day-bar">
+          <div class="week-day-fill" style="--target-height: 65%; background: linear-gradient(to top, rgba(255,138,59,0.4), rgba(52,211,153,0.2));">
+            <div class="week-day-dots">
+              <div class="week-day-dot" style="background: var(--strength); animation-delay: 0.8s;"></div>
+              <div class="week-day-dot" style="background: var(--running); animation-delay: 0.9s;"></div>
+            </div>
+          </div>
+        </div>
+        <span class="week-day-label">M</span>
+      </div>
+      <!-- Mer: rest -->
+      <div class="week-day">
+        <div class="week-day-bar">
+          <div class="week-day-fill empty" style="--target-height: 0%;"></div>
+        </div>
+        <span class="week-day-label">M</span>
+      </div>
+      <!-- Jeu: 1 workout -->
+      <div class="week-day">
+        <div class="week-day-bar">
+          <div class="week-day-fill" style="--target-height: 35%; background: linear-gradient(to top, rgba(6,182,212,0.4), rgba(6,182,212,0.15));">
+            <div class="week-day-dots">
+              <div class="week-day-dot" style="background: var(--swimming); animation-delay: 1.0s;"></div>
+            </div>
+          </div>
+        </div>
+        <span class="week-day-label">J</span>
+      </div>
+      <!-- Ven: rest -->
+      <div class="week-day">
+        <div class="week-day-bar">
+          <div class="week-day-fill empty" style="--target-height: 0%;"></div>
+        </div>
+        <span class="week-day-label">V</span>
+      </div>
+      <!-- Sam: 2 workouts -->
+      <div class="week-day">
+        <div class="week-day-bar">
+          <div class="week-day-fill" style="--target-height: 65%; background: linear-gradient(to top, rgba(255,138,59,0.4), rgba(245,158,11,0.2));">
+            <div class="week-day-dots">
+              <div class="week-day-dot" style="background: var(--strength); animation-delay: 1.1s;"></div>
+              <div class="week-day-dot" style="background: var(--walking); animation-delay: 1.2s;"></div>
+            </div>
+          </div>
+        </div>
+        <span class="week-day-label">S</span>
+      </div>
+      <!-- Dim (today): 2 workouts -->
+      <div class="week-day">
+        <div class="week-day-bar">
+          <div class="week-day-fill" style="--target-height: 65%; background: linear-gradient(to top, rgba(201,169,110,0.35), rgba(201,169,110,0.1));">
+            <div class="week-day-dots">
+              <div class="week-day-dot" style="background: var(--strength); animation-delay: 1.3s;"></div>
+              <div class="week-day-dot" style="background: var(--running); animation-delay: 1.4s;"></div>
+            </div>
+          </div>
+        </div>
+        <span class="week-day-label today">D</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Medals -->
+  <div class="medals-card">
+    <div class="medals-inner">
+      <div class="medals-icon-wrap">
+        <span class="medals-icon">🏅</span>
+      </div>
+      <div class="medals-info">
+        <div class="medals-count">12</div>
+        <div class="medals-label">Médailles obtenues</div>
+      </div>
+      <div class="medals-badge">+3 ce mois</div>
+    </div>
+  </div>
+
+  <!-- Key Insights -->
+  <div class="insights-label">Résumé de la semaine</div>
+  <div class="insights-grid">
+    <div class="insight-card">
+      <span class="insight-icon">🏋️</span>
+      <div class="insight-value">6<span class="insight-unit">séances</span></div>
+      <div class="insight-label">Entraînements</div>
+      <div class="insight-trend up">↑ +2 vs sem. préc.</div>
+    </div>
+    <div class="insight-card">
+      <span class="insight-icon">📏</span>
+      <div class="insight-value">18.4<span class="insight-unit">km</span></div>
+      <div class="insight-label">Distance totale</div>
+      <div class="insight-trend up">↑ +5.1 km</div>
+    </div>
+    <div class="insight-card">
+      <span class="insight-icon">⏱️</span>
+      <div class="insight-value">3<span class="insight-unit">h42</span></div>
+      <div class="insight-label">Temps actif</div>
+      <div class="insight-trend down">— stable</div>
+    </div>
+    <div class="insight-card">
+      <span class="insight-icon">🔥</span>
+      <div class="insight-value">8.2<span class="insight-unit">t</span></div>
+      <div class="insight-label">Volume muscu</div>
+      <div class="insight-trend up">↑ +1.3 t</div>
+    </div>
+  </div>
+
+  <!-- Streak -->
+  <div class="streak-card">
+    <span class="streak-flame">🔥</span>
+    <div class="streak-info">
+      <div class="streak-value"><strong>3</strong> jours consécutifs</div>
+      <div class="streak-label">Ta plus longue série : 7 jours</div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav (preview) -->
+  <nav class="bottom-nav">
+    <a href="#" class="nav-item active">
+      <span class="nav-icon">🏠</span>
+      <span>Accueil</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-icon">📅</span>
+      <span>Calendrier</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-icon">📊</span>
+      <span>Stats</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-icon">👤</span>
+      <span>Profil</span>
+    </a>
+  </nav>
+
+</body>
+</html>

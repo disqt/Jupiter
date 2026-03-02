@@ -115,6 +115,14 @@ const config: Config = {
           '0%, 100%': { opacity: '0.5' },
           '50%': { opacity: '1' },
         },
+        barGrow: {
+          from: { height: '0' },
+          to: { height: 'var(--target-height)' },
+        },
+        dotPop: {
+          from: { opacity: '0', transform: 'scale(0.3)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
       },
       animation: {
         fadeIn: 'fadeIn 0.3s ease',
@@ -130,6 +138,8 @@ const config: Config = {
         medalBounce: 'medalBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
         medalFloatUp: 'medalFloatUp 0.8s ease-out forwards',
         progressGlow: 'progressGlow 2s ease-in-out infinite',
+        barGrow: 'barGrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+        dotPop: 'dotPop 0.3s ease forwards',
       },
     },
   },

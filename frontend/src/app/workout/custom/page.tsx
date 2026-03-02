@@ -175,7 +175,7 @@ function CustomWorkoutForm() {
       localStorage.removeItem(storageKey);
       if (workoutId && editing) {
         await updateWorkout(parseInt(workoutId), payload);
-        router.push('/');
+        router.push('/calendar');
       } else {
         await createWorkout(payload);
         setShowSaveAnimation(true);
@@ -201,7 +201,7 @@ function CustomWorkoutForm() {
         defaultName={t.customWorkoutTitle}
         onEmojiChange={setCustomEmoji}
         onNameChange={setCustomName}
-        onBack={() => router.push('/')}
+        onBack={() => router.push('/calendar')}
         dateDisplay={dateDisplay}
         hasDraft={hasDraft}
         onPersistMeta={workoutId ? (e, n) => { patchWorkoutMeta(parseInt(workoutId), { custom_emoji: e || null, custom_name: n || null }); } : undefined}
@@ -275,7 +275,7 @@ function CustomWorkoutForm() {
         <div className="text-text-muted text-[13px] text-center py-8">{t.loadingWorkout}</div>
       )}
 
-      {showSaveAnimation && <SaveAnimation onComplete={() => router.push('/?saved=1')} />}
+      {showSaveAnimation && <SaveAnimation onComplete={() => router.push('/calendar?saved=1')} />}
 
       {(!workoutId || editing) && (
         <button onClick={handleSave} disabled={saving}
@@ -320,7 +320,7 @@ function CustomWorkoutForm() {
                   try {
                     await deleteWorkout(parseInt(workoutId!));
                     localStorage.removeItem(storageKey);
-                    router.push('/');
+                    router.push('/calendar');
                   } catch (err) {
                     console.error('Delete failed:', err);
                     setDeleting(false);

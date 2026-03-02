@@ -95,7 +95,7 @@ cd frontend && npm run build && cp -r .next/static .next/standalone/.next/static
 - PATCH `/api/workouts/:id` updates only emoji/name without touching workout details — used for instant persist from EmojiPicker/NameEditor on existing workouts
 - Duration input: smart text field accepting "2h30", "1:45", "90" (minutes) — parseDuration/formatDuration in each form page
 - localStorage draft autosave for all workout types (`{type}-draft-${date}` / `{type}-edit-${workoutId}`)
-- Save animation + redirect with `?saved=1` triggers medal celebration in WeeklyProgress
+- Save animation + redirect with `/calendar?saved=1` triggers medal celebration in WeeklyProgress. `replaceState` uses `pathname` (not hardcoded `/`) to strip query param without changing route.
 - DB values (muscle groups, ride types) stay in French — display translated via `t.muscleGroups[dbValue]`
 - env vars (`JWT_SECRET`, `INVITE_CODE`) read at call time, not module load (dotenv import order)
 - Medal formula: `GREATEST(count - 2, 0)` — 3 sessions/week = 1 medal, 4 = 2, etc.
@@ -105,10 +105,29 @@ cd frontend && npm run build && cp -r .next/static .next/standalone/.next/static
 - Exercises sorted by `muscle_group, id` (oldest/seeded first, user-created last)
 - Strength sets: only reps required, weight defaults to 0 if empty. Weight auto-fills empty sets below + new sets copy previous weight.
 - `window.location.href` redirects use `BASE_PATH` env var (for subpath deployment)
+- BottomNav active state: exact match for `/` (home), `startsWith` for other routes — prevents home from highlighting on `/calendar`. Home tab uses gold `#c9a96e` when active (matches homepage accent), other tabs use default `text-accent`.
+- Strength exercises: collapsible cards with chevron toggle. Collapsed by default in view mode (shows summary like "4×10 @ 80kg"), expanded in edit mode. Delete button on left with confirmation popup.
+- Homepage modals use `lg:left-[200px]` to offset for desktop sidebar when using `fixed` positioning
+- Homepage i18n keys prefixed `home*` to avoid conflicts with stats page keys (e.g. `homeMedalsLabel`, `homeDistance`, `homeVolume`)
 
 ## Pages
 
-`/login`, `/register`, `/profile`, `/stats`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`. Nav hidden on auth pages.
+`/` (home), `/calendar`, `/login`, `/register`, `/profile`, `/stats`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`. Nav hidden on auth pages.
+
+## Home Page
+
+`HomePage` component (`frontend/src/components/HomePage.tsx`) — dashboard landing page:
+- Greeting with user name + time-of-day (matin/après-midi/soir), gold accent color (`#c9a96e` / `#e2c992`)
+- Today's workouts card with sport chips + "Commencer une séance" button (always visible, opens workout type picker modal)
+- Weekly tracker: 7 animated bars (Mon-Sun) with colored dots per workout type
+- Medals card (clickable → medal info modal): total + monthly count with gold styling
+- Key insights grid (2x2): sessions, distance, active time, strength volume — with trend vs previous week
+- Streak card: consecutive days + best streak
+- Backend endpoint: `GET /api/home` (`backend/src/routes/home.ts`) — returns today, week, medals, insights, streak in one call. Today's `exercise_count` uses `COUNT(DISTINCT exercise_id)` (not total sets).
+
+## Calendar Page
+
+Moved from `/` to `/calendar`. All workout form redirects (`router.push`, `?saved=1`) point to `/calendar`.
 
 ## Stats Page
 
