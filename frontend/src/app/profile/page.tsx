@@ -76,7 +76,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="flex items-center gap-3 pt-14 pb-5 lg:pt-8">
         <button
-          onClick={() => router.push('/')}
+          onClick={() => router.push('/calendar')}
           className="w-9 h-9 rounded-full bg-bg-card border border-border text-text-secondary flex items-center justify-center cursor-pointer text-base transition-all duration-150 active:scale-90 shrink-0"
         >
           &#8249;

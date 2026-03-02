@@ -332,7 +332,7 @@ function StrengthWorkoutForm() {
       localStorage.removeItem(storageKey + '-meta');
       if (workoutId && editing) {
         await updateWorkout(parseInt(workoutId), payload);
-        router.push('/');
+        router.push('/calendar');
       } else {
         await createWorkout(payload);
         setShowSaveAnimation(true);
@@ -358,7 +358,7 @@ function StrengthWorkoutForm() {
         defaultName={t.strengthWorkout}
         onEmojiChange={setCustomEmoji}
         onNameChange={setCustomName}
-        onBack={() => router.push('/')}
+        onBack={() => router.push('/calendar')}
         dateDisplay={dateDisplay}
         hasDraft={hasDraft}
         onPersistMeta={workoutId ? (e, n) => { patchWorkoutMeta(parseInt(workoutId), { custom_emoji: e || null, custom_name: n || null }); } : undefined}
@@ -566,7 +566,7 @@ function StrengthWorkoutForm() {
                     await deleteWorkout(parseInt(workoutId!));
                     localStorage.removeItem(storageKey);
                     localStorage.removeItem(storageKey + '-meta');
-                    router.push('/');
+                    router.push('/calendar');
                   } catch (err) {
                     console.error('Delete failed:', err);
                     setDeleting(false);
@@ -772,7 +772,7 @@ function StrengthWorkoutForm() {
       })()}
 
       {/* Save animation */}
-      {showSaveAnimation && <SaveAnimation onComplete={() => router.push('/?saved=1')} />}
+      {showSaveAnimation && <SaveAnimation onComplete={() => router.push('/calendar?saved=1')} />}
 
       {/* New exercise modal */}
       {showNewExercise && (

@@ -1,7 +1,7 @@
 'use client';
 
-import Calendar from '@/components/Calendar';
+import HomePage from '@/components/HomePage';
 
 export default function Home() {
-  return <Calendar />;
+  return <HomePage />;
 }

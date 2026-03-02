@@ -11,6 +11,7 @@ const translations = {
     appSubtitle: 'Tracker',
 
     // Nav
+    home: 'Accueil',
     calendar: 'Calendrier',
     stats: 'Stats',
 
@@ -188,6 +189,30 @@ const translations = {
       'Vélotaf': 'Vélotaf',
     } as Record<string, string>,
 
+    // Homepage
+    goodMorning: 'Bonjour',
+    goodAfternoon: 'Bon après-midi',
+    goodEvening: 'Bonsoir',
+    welcome: 'Bienvenue,',
+    todayLabel: "Aujourd'hui",
+    noWorkoutToday: "Aucune séance aujourd'hui",
+    startWorkout: 'Commencer une séance',
+    thisWeek: 'Cette semaine',
+    daysCount: (n: number, total: number) => `${n} / ${total} jours` as string,
+    homeMedalsLabel: 'Médailles obtenues',
+    monthMedals: (n: number) => `+${n} ce mois` as string,
+    weekSummary: 'Résumé de la semaine',
+    sessionsLabel: 'Entraînements',
+    homeDistance: 'Distance',
+    activeTime: 'Temps actif',
+    homeVolume: 'Volume muscu',
+    sessionsUnit: 'séances',
+    vsLastWeek: 'vs sem. préc.',
+    stable: 'stable',
+    consecutiveDays: 'jours consécutifs',
+    bestStreak: (n: number) => `Record : ${n} jours` as string,
+    daysInitials: ['L', 'M', 'M', 'J', 'V', 'S', 'D'] as string[],
+
     // Auth
     login: 'Connexion',
     register: 'Créer un compte',
@@ -220,6 +245,7 @@ const translations = {
     appTitle: 'Jupiter',
     appSubtitle: 'Tracker',
 
+    home: 'Home',
     calendar: 'Calendar',
     stats: 'Stats',
 
@@ -385,6 +411,30 @@ const translations = {
       'VTT': 'MTB',
       'Vélotaf': 'Commute',
     } as Record<string, string>,
+
+    // Homepage
+    goodMorning: 'Good morning',
+    goodAfternoon: 'Good afternoon',
+    goodEvening: 'Good evening',
+    welcome: 'Welcome,',
+    todayLabel: 'Today',
+    noWorkoutToday: 'No workout today',
+    startWorkout: 'Start a workout',
+    thisWeek: 'This week',
+    daysCount: (n: number, total: number) => `${n} / ${total} days` as string,
+    homeMedalsLabel: 'Medals earned',
+    monthMedals: (n: number) => `+${n} this month` as string,
+    weekSummary: 'Week summary',
+    sessionsLabel: 'Workouts',
+    homeDistance: 'Distance',
+    activeTime: 'Active time',
+    homeVolume: 'Strength vol.',
+    sessionsUnit: 'sessions',
+    vsLastWeek: 'vs last week',
+    stable: 'stable',
+    consecutiveDays: 'consecutive days',
+    bestStreak: (n: number) => `Best: ${n} days` as string,
+    daysInitials: ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as string[],
 
     // Auth
     login: 'Log in',

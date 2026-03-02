@@ -24,7 +24,7 @@ export default function WeeklyProgress() {
     if (searchParams.get('saved') === '1' && count >= 3) {
       setShowCelebration(true);
       const timer = setTimeout(() => setShowCelebration(false), 1200);
-      window.history.replaceState({}, '', '/');
+      window.history.replaceState({}, '', pathname);
       return () => clearTimeout(timer);
     }
   }, [searchParams, count]);
