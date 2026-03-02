@@ -368,7 +368,7 @@ function StrengthWorkoutForm() {
       {loadingWorkout ? (
         <div className="text-text-muted text-[13px] text-center py-8">{t.loadingWorkout}</div>
       ) : (
-      <div className="lg:grid lg:grid-cols-2 lg:gap-4">
+      <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
         {entries.map((entry, entryIdx) => {
           const isCollapsed = collapsed.has(entryIdx);
           return (
