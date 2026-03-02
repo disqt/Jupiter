@@ -56,6 +56,7 @@ function StrengthWorkoutForm() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [pendingRemoveExercise, setPendingRemoveExercise] = useState<number | null>(null);
   const [customEmoji, setCustomEmoji] = useState(() => {
     if (workoutId || typeof window === 'undefined' || !date) return '';
     try {
@@ -74,6 +75,7 @@ function StrengthWorkoutForm() {
   });
   const [historyExercise, setHistoryExercise] = useState<{ id: number; name: string } | null>(null);
   const [historyData, setHistoryData] = useState<HistorySet[]>([]);
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Load exercises from API
@@ -171,6 +173,46 @@ function StrengthWorkoutForm() {
     document.addEventListener('click', clearPendingDelete);
     return () => document.removeEventListener('click', clearPendingDelete);
   }, [pendingDelete, clearPendingDelete]);
+
+  // Collapse all exercises in view mode after loading
+  useEffect(() => {
+    if (!loadingWorkout && workoutId && !editing && entries.length > 0) {
+      setCollapsed(new Set(entries.map((_, i) => i)));
+    }
+  }, [loadingWorkout]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Open all when switching to edit mode
+  useEffect(() => {
+    if (editing) setCollapsed(new Set());
+  }, [editing]);
+
+  const toggleCollapse = (idx: number) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const getExerciseSummary = (entry: ExerciseEntry) => {
+    const filledSets = entry.sets.filter(s => s.reps);
+    const count = filledSets.length || entry.sets.length;
+
+    if (filledSets.length === 0) return `${count} ${t.sets}`;
+
+    const allSameReps = filledSets.every(s => s.reps === filledSets[0].reps);
+    const allSameWeight = filledSets.every(s => (s.weight || '0') === (filledSets[0].weight || '0'));
+
+    if (allSameReps && allSameWeight) {
+      const weight = parseFloat(filledSets[0].weight) || 0;
+      return weight > 0
+        ? `${filledSets.length}×${filledSets[0].reps} @ ${weight}kg`
+        : `${filledSets.length}×${filledSets[0].reps}`;
+    }
+
+    return `${filledSets.length} ${t.sets}`;
+  };
 
   const addExercise = async (exercise: { id: number; name: string; muscleGroup: string }) => {
     // Fetch last performance for this exercise
@@ -327,25 +369,36 @@ function StrengthWorkoutForm() {
         <div className="text-text-muted text-[13px] text-center py-8">{t.loadingWorkout}</div>
       ) : (
       <div className="lg:grid lg:grid-cols-2 lg:gap-4">
-        {entries.map((entry, entryIdx) => (
+        {entries.map((entry, entryIdx) => {
+          const isCollapsed = collapsed.has(entryIdx);
+          return (
           <div key={entryIdx} className="bg-bg-card border border-border rounded-card p-4 mb-3 lg:mb-0">
-            {/* Exercise header */}
-            <div className="flex items-start justify-between mb-3.5">
-              <div>
-                <div className="text-[15px] font-semibold">{entry.exercise.name}</div>
-                <div className="text-[11px] text-strength font-medium mt-0.5">{t.muscleGroups[entry.exercise.muscleGroup] || entry.exercise.muscleGroup}</div>
-              </div>
+            {/* Exercise header — clickable to toggle collapse */}
+            <div className={`flex items-center gap-2.5 ${isCollapsed ? '' : 'mb-3.5'} cursor-pointer`} onClick={() => toggleCollapse(entryIdx)}>
               {(!workoutId || editing) && (
-                <button onClick={() => removeExercise(entryIdx)} aria-label="Retirer"
-                  className="bg-transparent border-none cursor-pointer p-1 opacity-70 flex items-center justify-center">
+                <button onClick={(e) => { e.stopPropagation(); setPendingRemoveExercise(entryIdx); }} aria-label="Retirer"
+                  className="shrink-0 bg-transparent border-none cursor-pointer p-0 opacity-50 flex items-center justify-center active:opacity-80">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <circle cx="10" cy="10" r="9" stroke="#ef4444" strokeWidth="1.5" opacity="0.5" />
-                    <path d="M7 7l6 6M13 7l-6 6" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" />
+                    <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5" opacity="0.3" />
+                    <path d="M7 7l6 6M13 7l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
                 </button>
               )}
+              <div className="flex-1 min-w-0">
+                <div className="text-[15px] font-semibold">{entry.exercise.name}</div>
+                <div className="text-[11px] text-strength font-medium mt-0.5">
+                  {t.muscleGroups[entry.exercise.muscleGroup] || entry.exercise.muscleGroup}
+                  {isCollapsed && <span className="text-text-muted"> · {getExerciseSummary(entry)}</span>}
+                </div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                className={`shrink-0 text-text-muted transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
             </div>
 
+            {/* Collapsible content */}
+            <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'}`}>
             {/* Sets header */}
             <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 mb-2">
               <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.set}</span>
@@ -453,8 +506,10 @@ function StrengthWorkoutForm() {
               className="w-full py-2 mt-1 bg-transparent border-none text-accent text-xs font-medium font-inherit cursor-pointer opacity-70 transition-opacity duration-150 active:opacity-100">
               {t.viewHistory}
             </button>
+            </div>
           </div>
-        ))}
+          );
+        })}
       </div>
       )}
 
@@ -520,6 +575,33 @@ function StrengthWorkoutForm() {
                 }} disabled={deleting}
                   className="flex-1 py-2.5 bg-red-500/15 border border-red-500/30 rounded-sm text-red-400 text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98] disabled:opacity-50">
                   {deleting ? t.deleting : t.delete}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Remove exercise confirmation modal */}
+      {pendingRemoveExercise !== null && (
+        <>
+          <div onClick={() => setPendingRemoveExercise(null)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
+          <div className="fixed inset-0 z-[51] flex items-center justify-center px-8" onClick={() => setPendingRemoveExercise(null)}>
+            <div onClick={(e) => e.stopPropagation()}
+              className="bg-bg-card border border-border rounded-card p-5 w-full max-w-[320px] animate-fadeIn">
+              <h3 className="text-[15px] font-semibold mb-2">{t.removeExerciseConfirm}</h3>
+              <p className="text-[13px] text-text-secondary leading-relaxed mb-4">
+                {t.removeExerciseDesc}
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setPendingRemoveExercise(null)}
+                  className="flex-1 py-2.5 bg-bg-elevated border border-border rounded-sm text-text text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
+                  {t.cancel}
+                </button>
+                <button onClick={() => { removeExercise(pendingRemoveExercise); setPendingRemoveExercise(null); }}
+                  className="flex-1 py-2.5 bg-red-500/15 border border-red-500/30 rounded-sm text-red-400 text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
+                  {t.remove}
                 </button>
               </div>
             </div>

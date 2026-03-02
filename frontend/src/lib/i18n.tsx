@@ -131,6 +131,7 @@ const translations = {
     // Strength form
     strengthWorkout: 'Séance musculation',
     set: 'Série',
+    sets: 'séries',
     previous: 'Précéd.',
     reps: 'Reps',
     weight: 'Poids',
@@ -141,6 +142,9 @@ const translations = {
     addSet: '+ Ajouter une série',
     viewHistory: "Voir l'historique",
     noHistory: 'Aucun historique disponible',
+    removeExerciseConfirm: 'Retirer cet exercice ?',
+    removeExerciseDesc: 'Toutes les séries saisies pour cet exercice seront perdues.',
+    remove: 'Retirer',
     addExercise: '+ Ajouter un exercice',
     saveWorkout: 'Sauvegarder la séance',
 
@@ -329,6 +333,7 @@ const translations = {
 
     strengthWorkout: 'Strength workout',
     set: 'Set',
+    sets: 'sets',
     previous: 'Prev.',
     reps: 'Reps',
     weight: 'Weight',
@@ -339,6 +344,9 @@ const translations = {
     addSet: '+ Add a set',
     viewHistory: 'View history',
     noHistory: 'No history available',
+    removeExerciseConfirm: 'Remove this exercise?',
+    removeExerciseDesc: 'All sets entered for this exercise will be lost.',
+    remove: 'Remove',
     addExercise: '+ Add an exercise',
     saveWorkout: 'Save workout',
 
