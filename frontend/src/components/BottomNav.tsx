@@ -38,7 +38,7 @@ export default function BottomNav() {
       </nav>
 
       {/* Desktop: sidebar */}
-      <nav className="hidden lg:flex flex-col w-[200px] min-h-dvh bg-bg-card border-r border-border p-6 pt-8 shrink-0">
+      <nav className="hidden lg:flex flex-col w-[200px] h-dvh sticky top-0 bg-bg-card border-r border-border p-6 pt-8 shrink-0">
         <h2 className="font-serif text-xl mb-1">
           Jupiter <span className="text-text-muted italic">Tracker</span>
         </h2>
