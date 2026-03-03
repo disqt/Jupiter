@@ -72,7 +72,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="px-5 pb-20 lg:max-w-xl lg:mx-auto">
+    <div className="page-container px-5 pb-20">
       {/* Header */}
       <div className="flex items-center gap-3 pt-14 pb-5 lg:pt-8">
         <button

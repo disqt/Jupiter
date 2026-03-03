@@ -163,7 +163,7 @@ function SwimmingWorkoutForm() {
     : '';
 
   return (
-    <div className="px-5 pb-36 lg:max-w-xl lg:mx-auto lg:pb-20">
+    <div className="page-container px-5 pb-36 lg:pb-20">
       <WorkoutFormHeader
         emoji={customEmoji || WORKOUT_CONFIG.natation.defaultEmoji}
         name={customName || t.swimmingWorkout}

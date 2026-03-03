@@ -255,7 +255,7 @@ export default function StatsPage() {
 
   // --- Render ---
   return (
-    <div className="px-5 pb-24 lg:max-w-3xl lg:mx-auto overflow-x-hidden">
+    <div className="page-container px-5 pb-24 overflow-x-hidden">
       {/* Page title */}
       <div className="pt-14 pb-4 lg:pt-8">
         <h1 className="font-serif text-[22px] font-normal">{t.statsTitle}</h1>

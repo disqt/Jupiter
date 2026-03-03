@@ -109,7 +109,7 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="px-5 pb-36 lg:max-w-xl lg:mx-auto lg:pb-20">
+      <div className="page-container px-5 pb-36 lg:pb-20">
         <div className="pt-8 text-text-muted text-[13px] text-center">{t.loading}</div>
       </div>
     );
@@ -122,7 +122,7 @@ export default function HomePage() {
   const volDiff = ins ? ins.volume_kg - ins.prev_volume_kg : 0;
 
   return (
-    <div className="px-5 pb-36 lg:max-w-xl lg:mx-auto lg:pb-20">
+    <div className="page-container px-5 pb-36 lg:pb-20">
       {/* Greeting */}
       <div className="pt-8 mb-7 animate-fadeIn">
         <div className="text-[11px] font-semibold uppercase tracking-wider text-[#c9a96e] mb-1.5 capitalize">

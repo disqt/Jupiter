@@ -194,7 +194,7 @@ function CustomWorkoutForm() {
     : '';
 
   return (
-    <div className="px-5 pb-36 lg:max-w-xl lg:mx-auto lg:pb-20">
+    <div className="page-container px-5 pb-36 lg:pb-20">
       <WorkoutFormHeader
         emoji={customEmoji || WORKOUT_CONFIG.custom.defaultEmoji}
         name={customName || t.customWorkoutTitle}
