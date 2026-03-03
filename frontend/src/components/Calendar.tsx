@@ -229,7 +229,7 @@ export default function Calendar() {
       </div>
 
       {/* Desktop: two-column | Mobile: single column */}
-      <div className="px-5 pb-5 lg:flex lg:gap-8 lg:px-8 lg:pt-8 lg:max-w-6xl">
+      <div className="page-container-wide px-5 pb-5 lg:flex lg:gap-8 lg:pt-8">
 
         {/* Left column: month nav + calendar */}
         <div className="lg:flex-1 lg:max-w-2xl">

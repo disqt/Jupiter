@@ -30,3 +30,13 @@ input[type="number"] {
 .auth-float-delayed {
   animation: authFloat 5s ease-in-out 1.5s infinite;
 }
+
+/* Desktop page containers */
+@layer utilities {
+  .page-container {
+    @apply lg:max-w-4xl lg:mx-auto lg:px-8;
+  }
+  .page-container-wide {
+    @apply lg:max-w-6xl lg:mx-auto lg:px-8;
+  }
+}
