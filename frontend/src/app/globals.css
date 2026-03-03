@@ -31,7 +31,7 @@ input[type="number"] {
   animation: authFloat 5s ease-in-out 1.5s infinite;
 }
 
-/* Desktop page containers */
+/* Desktop page containers — standard (896px) and wide (1152px) */
 @layer utilities {
   .page-container {
     @apply lg:max-w-4xl lg:mx-auto lg:px-8;

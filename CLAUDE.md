@@ -109,6 +109,7 @@ cd frontend && npm run build && cp -r .next/static .next/standalone/.next/static
 - Strength exercises: collapsible cards with chevron toggle. Collapsed by default in view mode (shows summary like "4×10 @ 80kg"), expanded in edit mode. Delete button on left with confirmation popup.
 - Homepage modals use `lg:left-[200px]` to offset for desktop sidebar when using `fixed` positioning
 - Homepage i18n keys prefixed `home*` to avoid conflicts with stats page keys (e.g. `homeMedalsLabel`, `homeDistance`, `homeVolume`)
+- Desktop layout: `page-container` (896px) / `page-container-wide` (1152px) utility classes in `globals.css` — use on page wrapper divs for consistent width, centering, and padding on `lg:`. Calendar uses `page-container-wide`, all other pages use `page-container`.
 
 ## Pages
 
