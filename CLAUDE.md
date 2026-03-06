@@ -103,11 +103,13 @@ cd frontend && npm run build && cp -r .next/static .next/standalone/.next/static
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. Split into `UPPER_BODY_GROUPS` / `LOWER_BODY_GROUPS`. No "Jambes" or "Autre".
 - Default exercises seeded per user on registration (`backend/src/seedExercises.ts`) — 58 exercises across 10 muscle groups
 - Exercises sorted by `muscle_group, id` (oldest/seeded first, user-created last)
-- Strength sets: only reps required, weight defaults to 0 if empty. Weight auto-fills empty sets below + new sets copy previous weight.
+- Strength sets: only reps required, weight defaults to 0 if empty. Weight auto-fills empty sets below on blur (not on keystroke) + new sets copy previous weight.
 - `window.location.href` redirects use `BASE_PATH` env var (for subpath deployment)
 - BottomNav active state: exact match for `/` (home), `startsWith` for other routes — prevents home from highlighting on `/calendar`. Home tab uses gold `#c9a96e` when active (matches homepage accent), other tabs use default `text-accent`.
 - Strength exercises: collapsible cards with chevron toggle. Collapsed by default in view mode (shows summary like "4×10 @ 80kg"), expanded in edit mode. Delete button on left with confirmation popup.
-- Homepage modals use `lg:left-[200px]` to offset for desktop sidebar when using `fixed` positioning
+- Bottom sheets use `BottomSheet` component (`frontend/src/components/BottomSheet.tsx`) — handles backdrop, notch, animation, and swipe-to-close gesture. Props: `open`, `onClose`, `desktopSidebarOffset` (for sidebar offset), `fullScreenMobile` (exercise picker), `className`. Scrollable children need `data-bottom-sheet-scroll` attribute to prevent swipe from fighting scroll.
+- All bottom-sheet modals follow same pattern: notch at top (swipe down to close) + "Annuler" button at bottom. No ✕ close buttons.
+- Homepage modals use `lg:left-[200px]` to offset for desktop sidebar — pass `desktopSidebarOffset` to `BottomSheet`
 - Homepage i18n keys prefixed `home*` to avoid conflicts with stats page keys (e.g. `homeMedalsLabel`, `homeDistance`, `homeVolume`)
 - Desktop layout: `page-container` (896px) / `page-container-wide` (1152px) utility classes in `globals.css` — use on page wrapper divs for consistent width, centering, and padding on `lg:`. Calendar uses `page-container-wide`, all other pages use `page-container`.
 
