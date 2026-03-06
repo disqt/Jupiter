@@ -1,48 +1,40 @@
 # CLAUDE.md
 
-Sport Tracker — mobile-first workout tracking webapp. 6 workout types: cycling, strength, running, swimming, walking, custom. Bilingual FR/EN. Monorepo: Next.js frontend + Express backend + Supabase PostgreSQL.
+Sport Tracker — mobile-first workout tracking webapp. 6 workout types: cycling, strength, running, swimming, walking, custom. Bilingual FR/EN. Single Next.js app with API Route Handlers + Supabase PostgreSQL.
 
 ## Commands
 
 ```bash
-npm run dev                         # Both frontend (3000) + backend (3001)
-npm run dev:backend                 # Express only
-npm run dev:frontend                # Next.js only
-
-cd backend && npm run build         # TypeScript → dist/
-cd frontend && npm run build        # Next.js production build
-
-cd backend && npx tsc --noEmit      # Backend type check
-cd frontend && npx tsc --noEmit     # Frontend type check
-
-cd backend && npm run db:generate   # Generate migration after schema.ts change
-cd backend && npm run db:migrate    # Apply pending migrations
-cd backend && npm run db:studio     # Web UI to explore DB
+npm run dev                         # Next.js dev server (port 3000)
+npm run build                       # Next.js production build
+cd frontend && npx tsc --noEmit     # Type check
 ```
 
 ## Architecture
 
 ```
-├── backend/     Express.js 5 API (port 3001) — TypeScript, Drizzle ORM + raw SQL via pg
-├── frontend/    Next.js 14 App Router (port 3000) — Tailwind CSS, all client components
+├── frontend/    Next.js 14 App Router — Tailwind CSS, API Route Handlers, all client components
+├── backend/     Legacy Express backend (kept as reference, no longer used)
 └── database/    Legacy PostgreSQL init scripts (Supabase is now the DB)
 ```
 
-**Data flow:** Browser → Next.js (3000) → Express API (3001) → Supabase PostgreSQL. No direct frontend→Supabase.
+**Data flow:** Browser → Next.js API Routes (`/api/...`) → Supabase PostgreSQL. Single process.
 
 **Key files:**
-- Backend routes: `backend/src/routes/`
-- Backend schema: `backend/src/schema.ts` (Drizzle), `backend/src/db.ts` (pg pool)
-- Frontend API client: `frontend/src/lib/api.ts` (typed fetch functions)
+- API routes: `frontend/src/app/api/` (auth, workouts, exercises, stats, home, health)
+- Server libs: `frontend/src/lib/db-server.ts` (pg pool), `frontend/src/lib/schema.ts` (Drizzle), `frontend/src/lib/auth-api.ts` (JWT helper)
+- Frontend API client: `frontend/src/lib/api.ts` (typed fetch functions, same-origin calls)
 - Constants: `frontend/src/lib/data.ts` (WorkoutType, WORKOUT_CONFIG, muscle groups, ride types, SPORT_EMOJIS)
 - i18n: `frontend/src/lib/i18n.tsx` (custom Context, FR default + EN)
 - Auth context: `frontend/src/lib/auth.tsx` (AuthProvider, JWT in localStorage)
+- Rate limiter: `frontend/src/lib/rate-limit.ts` (in-memory, for login/register)
+- Seed exercises: `frontend/src/lib/seed-exercises.ts` (default exercises on registration)
 
 ## Environment
 
-- Backend: `backend/.env` → `PORT`, `DATABASE_URL`, `JWT_SECRET`, `INVITE_CODE`
-- Frontend: `frontend/.env.local` → `NEXT_PUBLIC_API_URL=http://localhost:3001`
-- Production frontend env: `NEXT_PUBLIC_API_URL=/jupiter`, `NEXT_PUBLIC_BASE_PATH=/jupiter`
+- `frontend/.env.local` → `DATABASE_URL`, `JWT_SECRET`, `INVITE_CODE`
+- Production adds: `NEXT_PUBLIC_API_URL=/jupiter`, `NEXT_PUBLIC_BASE_PATH=/jupiter`
+- Production systemd service also sets env vars (standalone mode doesn't read `.env.local`)
 - **Never commit `.env` files**
 
 ## Deployment (VPS)
@@ -52,21 +44,19 @@ cd backend && npm run db:studio     # Web UI to explore DB
 **Architecture:**
 ```
 nginx → /jupiter/metrics/  → Grafana :3102
-nginx → /jupiter/api/*     → Express :3101
+nginx → /jupiter/api/*     → Next.js :3100 (API Route Handlers)
 nginx → /jupiter/*         → Next.js :3100 (basePath: /jupiter, standalone mode)
 ```
 
 **Services (systemd):**
-- `jupiter-frontend` — Next.js standalone on port 3100
-- `jupiter-backend` — Express API on port 3101
+- `jupiter-frontend` — Next.js standalone on port 3100 (serves both UI + API)
 - `jupiter-grafana` — Grafana on port 3102
 
 **Key files on VPS:**
 - App code: `~/app/`
-- Services: `~/services/jupiter-*.service`
+- Services: `~/services/jupiter-frontend.service` (includes DATABASE_URL, JWT_SECRET, INVITE_CODE env vars)
 - Nginx: config in `/etc/nginx/sites-enabled/disqt.com` (Jupiter section)
 - Grafana: `~/grafana/` (config, data, provisioning)
-- Backend env: `~/app/backend/.env`
 - Frontend env: `~/app/frontend/.env.local`
 
 **Deploy flow:**
@@ -74,8 +64,7 @@ nginx → /jupiter/*         → Next.js :3100 (basePath: /jupiter, standalone m
 # Local: commit, push, PR, merge
 # VPS:
 cd ~/app && git pull
-cd backend && npm run build && sudo systemctl restart jupiter-backend    # if backend changed
-cd frontend && npm run build && cp -r .next/static .next/standalone/.next/static && sudo systemctl restart jupiter-frontend  # if frontend changed
+cd frontend && npm install && npm run build && cp -r .next/static .next/standalone/.next/static && sudo systemctl restart jupiter-frontend
 ```
 
 **Monitoring:** Grafana at https://disqt.com/metrics/ — dashboard "Jupiter Sport Tracker" (PostgreSQL datasource `cfemdlx9lrim8f`)
@@ -89,7 +78,7 @@ cd frontend && npm run build && cp -r .next/static .next/standalone/.next/static
 - `useSearchParams()` requires `<Suspense>` boundary — workout pages split into inner form + wrapper
 - Workout types: `velo`, `musculation`, `course`, `natation`, `marche`, `custom` — DB CHECK constraint limits allowed values
 - Workout creation sends cycling_details, exercise_logs, or workout_details in same POST, handled in single transaction
-- workout_details used by: `course`, `natation`, `marche`, `custom` — backend checks `['course', 'natation', 'marche', 'custom'].includes(type)`
+- workout_details used by: `course`, `natation`, `marche`, `custom` — API route checks `['course', 'natation', 'marche', 'custom'].includes(type)`
 - Type config centralized in `WORKOUT_CONFIG` (data.ts) — emoji, color, route per type. Calendar uses lookup helpers, not ternaries.
 - Custom emoji/name per workout: stored in `workouts.custom_emoji`/`custom_name`, null = use type default
 - PATCH `/api/workouts/:id` updates only emoji/name without touching workout details — used for instant persist from EmojiPicker/NameEditor on existing workouts
@@ -97,11 +86,11 @@ cd frontend && npm run build && cp -r .next/static .next/standalone/.next/static
 - localStorage draft autosave for all workout types (`{type}-draft-${date}` / `{type}-edit-${workoutId}`)
 - Save animation + redirect with `/calendar?saved=1` triggers medal celebration in WeeklyProgress. `replaceState` uses `pathname` (not hardcoded `/`) to strip query param without changing route.
 - DB values (muscle groups, ride types) stay in French — display translated via `t.muscleGroups[dbValue]`
-- env vars (`JWT_SECRET`, `INVITE_CODE`) read at call time, not module load (dotenv import order)
+- env vars (`JWT_SECRET`, `INVITE_CODE`) read at call time in API route handlers
 - Medal formula: `GREATEST(count - 2, 0)` — 3 sessions/week = 1 medal, 4 = 2, etc.
 - Medal UI: header card = total medals (big icon + number), monthly card = month medals (sum of weeklyMedals) + progress bar + info modal on tap
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. Split into `UPPER_BODY_GROUPS` / `LOWER_BODY_GROUPS`. No "Jambes" or "Autre".
-- Default exercises seeded per user on registration (`backend/src/seedExercises.ts`) — 58 exercises across 10 muscle groups
+- Default exercises seeded per user on registration (`frontend/src/lib/seed-exercises.ts`) — 58 exercises across 10 muscle groups
 - Exercises sorted by `muscle_group, id` (oldest/seeded first, user-created last)
 - Strength sets: only reps required, weight defaults to 0 if empty. Weight auto-fills empty sets below on blur (not on keystroke) + new sets copy previous weight.
 - `window.location.href` redirects use `BASE_PATH` env var (for subpath deployment)
@@ -126,7 +115,7 @@ cd frontend && npm run build && cp -r .next/static .next/standalone/.next/static
 - Medals card (clickable → medal info modal): total + monthly count with gold styling
 - Key insights grid (2x2): sessions, distance, active time, strength volume — with trend vs previous week
 - Streak card: consecutive days + best streak
-- Backend endpoint: `GET /api/home` (`backend/src/routes/home.ts`) — returns today, week, medals, insights, streak in one call. Today's `exercise_count` uses `COUNT(DISTINCT exercise_id)` (not total sets).
+- API route: `GET /api/home` (`frontend/src/app/api/home/route.ts`) — returns today, week, medals, insights, streak in one call. Today's `exercise_count` uses `COUNT(DISTINCT exercise_id)` (not total sets).
 
 ## Calendar Page
 
