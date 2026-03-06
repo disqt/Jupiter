@@ -1,0 +1,56 @@
+import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import pool from '@/lib/db-server';
+import { seedDefaultExercises } from '@/lib/seed-exercises';
+import { rateLimit } from '@/lib/rate-limit';
+
+const SALT_ROUNDS = 12;
+
+export async function POST(request: NextRequest) {
+  try {
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    if (rateLimit(ip)) {
+      return NextResponse.json({ error: 'Too many attempts, try again later' }, { status: 429 });
+    }
+
+    const { nickname, password, invite_code } = await request.json();
+
+    if (!nickname || !password || !invite_code) {
+      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
+    }
+
+    if (invite_code !== (process.env.INVITE_CODE || '')) {
+      return NextResponse.json({ error: 'Invalid invite code' }, { status: 403 });
+    }
+
+    if (nickname.length < 2 || nickname.length > 50) {
+      return NextResponse.json({ error: 'Nickname must be 2-50 characters' }, { status: 400 });
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
+    }
+
+    const existing = await pool.query('SELECT id FROM users WHERE nickname = $1', [nickname]);
+    if (existing.rows.length > 0) {
+      return NextResponse.json({ error: 'Nickname already taken' }, { status: 409 });
+    }
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const result = await pool.query(
+      'INSERT INTO users (nickname, password_hash) VALUES ($1, $2) RETURNING id, nickname, created_at',
+      [nickname, passwordHash]
+    );
+
+    const user = result.rows[0];
+    await seedDefaultExercises(user.id);
+
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || '', { expiresIn: '30d' });
+
+    return NextResponse.json({ token, user: { id: user.id, nickname: user.nickname } }, { status: 201 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
