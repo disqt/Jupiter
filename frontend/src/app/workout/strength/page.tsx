@@ -6,6 +6,7 @@ import { MUSCLE_GROUPS, UPPER_BODY_GROUPS, LOWER_BODY_GROUPS, WORKOUT_CONFIG } f
 import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, fetchWorkout, createWorkout, updateWorkout, createExercise, deleteWorkout, patchWorkoutMeta, type Exercise, type HistorySet } from '@/lib/api';
 import SaveAnimation from '@/components/SaveAnimation';
 import WorkoutFormHeader from '@/components/WorkoutFormHeader';
+import BottomSheet from '@/components/BottomSheet';
 import { useI18n } from '@/lib/i18n';
 
 interface SetLog {
@@ -253,12 +254,27 @@ function StrengthWorkoutForm() {
       ...updated[entryIdx],
       sets: updated[entryIdx].sets.map((s, i) => {
         if (i === setIdx) return { ...s, [field]: value };
-        // Auto-fill empty weight fields below the changed set
-        if (field === 'weight' && i > setIdx && !s.weight) return { ...s, weight: value };
         return s;
       }),
     };
     setEntries(updated);
+  };
+
+  // Auto-fill empty weight fields below on blur (not on every keystroke)
+  const autoFillWeight = (entryIdx: number, setIdx: number) => {
+    setEntries(prev => {
+      const value = prev[entryIdx].sets[setIdx].weight;
+      if (!value) return prev;
+      const updated = [...prev];
+      updated[entryIdx] = {
+        ...updated[entryIdx],
+        sets: updated[entryIdx].sets.map((s, i) => {
+          if (i > setIdx && !s.weight) return { ...s, weight: value };
+          return s;
+        }),
+      };
+      return updated;
+    });
   };
 
   const addSet = (entryIdx: number) => {
@@ -444,6 +460,7 @@ function StrengthWorkoutForm() {
                     className={`w-full min-w-0 text-center text-sm font-medium text-text bg-bg border border-border rounded-md h-10 leading-10 font-inherit outline-none transition-colors duration-200 focus:border-strength p-0 box-border placeholder:text-text-muted ${workoutId && !editing ? 'opacity-50 cursor-not-allowed' : ''}`} />
                   <input type="number" step="0.5" value={set.weight}
                     onChange={(e) => updateSet(entryIdx, setIdx, 'weight', e.target.value)}
+                    onBlur={() => autoFillWeight(entryIdx, setIdx)}
                     disabled={!!workoutId && !editing}
                     placeholder={lastPerf ? String(lastPerf.weight) : '0'}
                     className={`w-full min-w-0 text-center text-sm font-medium text-text bg-bg border border-border rounded-md h-10 leading-10 font-inherit outline-none transition-colors duration-200 focus:border-strength p-0 box-border placeholder:text-text-muted ${workoutId && !editing ? 'opacity-50 cursor-not-allowed' : ''}`} />
@@ -622,16 +639,8 @@ function StrengthWorkoutForm() {
         }
         const dateLocaleStr = locale === 'fr' ? 'fr-FR' : 'en-US';
         return (
-          <>
-            <div onClick={() => setHistoryExercise(null)}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
-            <div className="fixed bottom-0 left-0 right-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card rounded-t-3xl px-6 pt-7 pb-10 z-[51] animate-sheetUp max-h-[70vh] overflow-y-auto">
-              <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-serif text-xl font-normal m-0">{historyExercise.name}</h3>
-                <button onClick={() => setHistoryExercise(null)}
-                  className="bg-transparent border-none text-text-muted text-lg cursor-pointer py-1 px-2">✕</button>
-              </div>
+          <BottomSheet open={true} onClose={() => setHistoryExercise(null)} className="max-h-[70vh] overflow-y-auto">
+              <h3 className="font-serif text-xl font-normal m-0 mb-4">{historyExercise.name}</h3>
               {grouped.size === 0 ? (
                 <div className="text-text-muted text-sm text-center py-6">{t.noHistory}</div>
               ) : (
@@ -657,8 +666,11 @@ function StrengthWorkoutForm() {
                   );
                 })
               )}
-            </div>
-          </>
+              <button onClick={() => setHistoryExercise(null)}
+                className="block w-full mt-4 py-3 bg-transparent border-none text-text-muted text-sm cursor-pointer font-inherit">
+                {t.cancel}
+              </button>
+          </BottomSheet>
         );
       })()}
 
@@ -678,18 +690,10 @@ function StrengthWorkoutForm() {
           );
         });
         return (
-          <>
-            <div onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
-            <div className="fixed inset-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card z-[51] animate-sheetUp flex flex-col lg:inset-x-0 lg:bottom-0 lg:top-auto lg:rounded-t-3xl lg:max-h-[85dvh]">
+          <BottomSheet open={true} onClose={() => { setShowExercisePicker(false); setExerciseSearch(''); }} fullScreenMobile>
               {/* Sticky header + search + filters */}
-              <div className="shrink-0 px-6 pt-[max(1.75rem,env(safe-area-inset-top))] pb-3 lg:pt-7">
-                <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5 hidden lg:block" />
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-serif text-[22px] font-normal m-0">{t.chooseExercise}</h3>
-                  <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); }}
-                    className="bg-transparent border-none text-text-muted text-lg cursor-pointer py-1 px-2">✕</button>
-                </div>
+              <div className="shrink-0 px-6 pt-[max(1.75rem,env(safe-area-inset-top))] pb-3 lg:pt-4">
+                <h3 className="font-serif text-[22px] font-normal m-0 mb-4">{t.chooseExercise}</h3>
                 <div className="relative">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
@@ -735,7 +739,7 @@ function StrengthWorkoutForm() {
               </div>
 
               {/* Scrollable exercise list */}
-              <div className="flex-1 overflow-y-auto px-6 pb-10 overscroll-contain">
+              <div className="flex-1 overflow-y-auto px-6 pb-10 overscroll-contain" data-bottom-sheet-scroll>
                 {!filterUpper && !filterLower ? (
                   <div className="text-text-muted text-sm text-center py-8">{t.enableFilter}</div>
                 ) : filtered.length === 0 ? (
@@ -765,9 +769,12 @@ function StrengthWorkoutForm() {
                     {t.createExercise}
                   </button>
                 </div>
+                <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); }}
+                  className="block w-full py-3 bg-transparent border-none text-text-muted text-sm cursor-pointer font-inherit">
+                  {t.cancel}
+                </button>
               </div>
-            </div>
-          </>
+          </BottomSheet>
         );
       })()}
 
@@ -775,42 +782,35 @@ function StrengthWorkoutForm() {
       {showSaveAnimation && <SaveAnimation onComplete={() => router.push('/calendar?saved=1')} />}
 
       {/* New exercise modal */}
-      {showNewExercise && (
-        <>
-          <div onClick={() => setShowNewExercise(false)}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
-          <div className="fixed bottom-0 left-0 right-0 max-w-[430px] lg:max-w-lg mx-auto bg-bg-card rounded-t-3xl px-6 pt-7 pb-10 z-[51] animate-sheetUp">
-            <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
-            <h3 className="font-serif text-[22px] font-normal mb-5">{t.newExercise}</h3>
-            <div className="mb-4">
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-                {t.exerciseName}
-              </label>
-              <input type="text" value={newExerciseName} onChange={(e) => setNewExerciseName(e.target.value)}
-                placeholder="Ex: Développé couché"
-                className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted" />
-            </div>
-            <div className="mb-4">
-              <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-                {t.muscleGroup}
-              </label>
-              <select value={newExerciseMuscle} onChange={(e) => setNewExerciseMuscle(e.target.value)}
-                className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent appearance-none">
-                <option value="">{t.choose}</option>
-                {MUSCLE_GROUPS.map((g) => <option key={g} value={g}>{t.muscleGroups[g] || g}</option>)}
-              </select>
-            </div>
-            <button onClick={createAndAddExercise}
-              className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] bg-strength text-white shadow-[0_4px_20px_rgba(255,138,59,0.3)]">
-              {t.createAndAdd}
-            </button>
-            <button onClick={() => setShowNewExercise(false)}
-              className="block w-full mt-4 py-3 bg-transparent border-none text-text-muted text-sm cursor-pointer font-inherit">
-              {t.cancel}
-            </button>
-          </div>
-        </>
-      )}
+      <BottomSheet open={showNewExercise} onClose={() => setShowNewExercise(false)}>
+        <h3 className="font-serif text-[22px] font-normal mb-5">{t.newExercise}</h3>
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+            {t.exerciseName}
+          </label>
+          <input type="text" value={newExerciseName} onChange={(e) => setNewExerciseName(e.target.value)}
+            placeholder="Ex: Développé couché"
+            className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted" />
+        </div>
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+            {t.muscleGroup}
+          </label>
+          <select value={newExerciseMuscle} onChange={(e) => setNewExerciseMuscle(e.target.value)}
+            className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent appearance-none">
+            <option value="">{t.choose}</option>
+            {MUSCLE_GROUPS.map((g) => <option key={g} value={g}>{t.muscleGroups[g] || g}</option>)}
+          </select>
+        </div>
+        <button onClick={createAndAddExercise}
+          className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] bg-strength text-white shadow-[0_4px_20px_rgba(255,138,59,0.3)]">
+          {t.createAndAdd}
+        </button>
+        <button onClick={() => setShowNewExercise(false)}
+          className="block w-full mt-4 py-3 bg-transparent border-none text-text-muted text-sm cursor-pointer font-inherit">
+          {t.cancel}
+        </button>
+      </BottomSheet>
     </div>
   );
 }

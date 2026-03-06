@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { fetchHomeData, type HomeData } from '@/lib/api';
 import { WORKOUT_CONFIG, WORKOUT_TYPES, type WorkoutType } from '@/lib/data';
+import BottomSheet from './BottomSheet';
 
 const SPORT_COLORS: Record<string, string> = {
   velo: 'rgba(59,158,255,0.4)',
@@ -285,43 +286,34 @@ export default function HomePage() {
       )}
 
       {/* Workout type picker modal */}
-      {showSheet && (
-        <>
-          <div onClick={() => setShowSheet(false)}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
-          <div className="fixed bottom-0 left-0 right-0 lg:left-[200px] z-[51]">
-            <div className="max-w-[430px] lg:max-w-xl mx-auto bg-bg-card rounded-t-3xl px-6 pt-7 pb-10 animate-sheetUp">
-              <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
-              <h3 className="font-serif text-[22px] font-normal mb-5">{t.newWorkout}</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {WORKOUT_TYPES.map((type) => {
-                  const config = WORKOUT_CONFIG[type];
-                  const borderSoftMap: Record<string, string> = {
-                    velo: 'border-cycling-soft hover:bg-cycling-soft hover:border-cycling',
-                    musculation: 'border-strength-soft hover:bg-strength-soft hover:border-strength',
-                    course: 'border-running-soft hover:bg-running-soft hover:border-running',
-                    natation: 'border-swimming-soft hover:bg-swimming-soft hover:border-swimming',
-                    marche: 'border-walking-soft hover:bg-walking-soft hover:border-walking',
-                    custom: 'border-custom-workout-soft hover:bg-custom-workout-soft hover:border-custom-workout',
-                  };
-                  return (
-                    <Link key={type} href={`${config.route}?date=${todayDate}`}
-                      onClick={() => setShowSheet(false)}
-                      className={`py-5 px-4 rounded-card border-[1.5px] bg-bg text-center no-underline transition-all duration-200 active:scale-[0.96] block ${borderSoftMap[type] || ''}`}>
-                      <div className="text-[28px] mb-2">{config.defaultEmoji}</div>
-                      <div className="text-sm font-semibold text-text">{t.workoutTypeLabels[type]}</div>
-                    </Link>
-                  );
-                })}
-              </div>
-              <button onClick={() => setShowSheet(false)}
-                className="block w-full mt-4 py-3 bg-transparent border-none text-text-muted text-sm cursor-pointer font-inherit">
-                {t.cancel}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <BottomSheet open={showSheet} onClose={() => setShowSheet(false)} desktopSidebarOffset>
+        <h3 className="font-serif text-[22px] font-normal mb-5">{t.newWorkout}</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {WORKOUT_TYPES.map((type) => {
+            const config = WORKOUT_CONFIG[type];
+            const borderSoftMap: Record<string, string> = {
+              velo: 'border-cycling-soft hover:bg-cycling-soft hover:border-cycling',
+              musculation: 'border-strength-soft hover:bg-strength-soft hover:border-strength',
+              course: 'border-running-soft hover:bg-running-soft hover:border-running',
+              natation: 'border-swimming-soft hover:bg-swimming-soft hover:border-swimming',
+              marche: 'border-walking-soft hover:bg-walking-soft hover:border-walking',
+              custom: 'border-custom-workout-soft hover:bg-custom-workout-soft hover:border-custom-workout',
+            };
+            return (
+              <Link key={type} href={`${config.route}?date=${todayDate}`}
+                onClick={() => setShowSheet(false)}
+                className={`py-5 px-4 rounded-card border-[1.5px] bg-bg text-center no-underline transition-all duration-200 active:scale-[0.96] block ${borderSoftMap[type] || ''}`}>
+                <div className="text-[28px] mb-2">{config.defaultEmoji}</div>
+                <div className="text-sm font-semibold text-text">{t.workoutTypeLabels[type]}</div>
+              </Link>
+            );
+          })}
+        </div>
+        <button onClick={() => setShowSheet(false)}
+          className="block w-full mt-4 py-3 bg-transparent border-none text-text-muted text-sm cursor-pointer font-inherit">
+          {t.cancel}
+        </button>
+      </BottomSheet>
 
       {/* Medal info modal */}
       {showMedalInfo && (

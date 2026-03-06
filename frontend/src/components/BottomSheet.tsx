@@ -96,7 +96,7 @@ export default function BottomSheet({
         />
         <div
           ref={sheetRef}
-          className={`fixed inset-0 z-[51] bg-bg-card animate-sheetUp flex flex-col lg:inset-x-0 lg:bottom-0 lg:top-auto lg:rounded-t-3xl lg:max-h-[85dvh] ${sidebarOffset} ${className}`}
+          className={`fixed inset-0 max-w-[430px] lg:max-w-lg mx-auto z-[51] bg-bg-card animate-sheetUp flex flex-col lg:inset-x-0 lg:bottom-0 lg:top-auto lg:rounded-t-3xl lg:max-h-[85dvh] ${sidebarOffset} ${className}`}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
@@ -122,7 +122,7 @@ export default function BottomSheet({
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          <div className="w-9 h-1 bg-border rounded-full mx-auto cursor-grab" />
+          <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5 cursor-grab" />
           {children}
         </div>
       </div>
