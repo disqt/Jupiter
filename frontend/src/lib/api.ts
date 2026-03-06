@@ -1,6 +1,6 @@
 import { type WorkoutType } from './data';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
 function getToken(): string | null {
