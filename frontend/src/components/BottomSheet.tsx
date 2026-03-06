@@ -32,6 +32,23 @@ export default function BottomSheet({
     }
   }, [open]);
 
+  // Lock body scroll when sheet is open
+  useEffect(() => {
+    if (!open) return;
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, [open]);
+
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     // If the touch target is inside a scrollable area that has scrolled, let native scroll work
     const target = e.target as HTMLElement;
