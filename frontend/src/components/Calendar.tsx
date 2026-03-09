@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, Suspense, useCallback, Fragment } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from 'react';
 import Link from 'next/link';
 import { fetchMonthlyStats, fetchWeeklyProgress, fetchWeeklyMedals, type WeeklyMedal } from '@/lib/api';
 import { useDataSource, type DataWorkout } from '@/lib/useDataSource';
-import WeeklyProgress from '@/components/WeeklyProgress';
 import BottomSheet from './BottomSheet';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
@@ -245,31 +244,13 @@ export default function Calendar() {
 
   return (
     <div>
-      {/* Header — visible on mobile/tablet only */}
-      <div className="sticky top-0 z-10 bg-bg px-5 pt-14 pb-3 rounded-b-2xl lg:hidden">
-        <div className="flex items-center justify-between gap-3">
-          <div className="shrink-0">
-            <h1 className="font-serif text-[28px] font-normal tracking-tight leading-none">
-              <span className="text-accent">Jupiter</span> <span className="text-text-muted italic">Tracker</span>
-            </h1>
-            {user && (
-              <Link href="/profile" className="text-xs text-text-muted no-underline hover:text-accent transition-colors">
-                {user.nickname}
-              </Link>
-            )}
-          </div>
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="w-[130px]">
-              <Suspense fallback={null}>
-                <WeeklyProgress />
-              </Suspense>
-            </div>
-          </div>
-        </div>
+      {/* Page title */}
+      <div className="page-container-wide px-5 pt-14 pb-2 lg:pt-8">
+        <h1 className="font-serif text-[22px] font-normal">{t.calendar}</h1>
       </div>
 
       {/* Desktop: two-column | Mobile: single column */}
-      <div className="page-container-wide px-5 pb-5 lg:flex lg:gap-8 lg:pt-8">
+      <div className="page-container-wide px-5 pb-5 lg:flex lg:gap-8">
 
         {/* Left column: month nav + calendar */}
         <div className="lg:flex-1 lg:max-w-2xl">
