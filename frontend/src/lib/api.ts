@@ -146,7 +146,11 @@ export async function fetchWorkouts(month: string): Promise<Workout[]> {
 }
 
 export async function fetchWorkout(id: number) {
-  return request<ApiWorkout & { cycling_details?: Record<string, unknown>; exercise_logs?: Record<string, unknown>[] }>(`/api/workouts/${id}`);
+  return request<ApiWorkout & {
+    cycling_details?: Record<string, unknown>;
+    exercise_logs?: Record<string, unknown>[];
+    exercise_notes?: { exercise_id: number; note: string; pinned: boolean }[];
+  }>(`/api/workouts/${id}`);
 }
 
 export async function createWorkout(data: {
@@ -155,6 +159,7 @@ export async function createWorkout(data: {
   notes?: string;
   cycling_details?: { duration?: number; distance?: number; elevation?: number; ride_type?: string };
   exercise_logs?: { exercise_id: number; set_number: number; reps: number; weight: number }[];
+  exercise_notes?: { exercise_id: number; note: string; pinned: boolean }[];
   workout_details?: { duration?: number; distance?: number; elevation?: number; laps?: number };
   custom_emoji?: string;
   custom_name?: string;
@@ -171,6 +176,7 @@ export async function updateWorkout(id: number, data: {
   notes?: string;
   cycling_details?: { duration?: number; distance?: number; elevation?: number; ride_type?: string };
   exercise_logs?: { exercise_id: number; set_number: number; reps: number; weight: number }[];
+  exercise_notes?: { exercise_id: number; note: string; pinned: boolean }[];
   workout_details?: { duration?: number; distance?: number; elevation?: number; laps?: number };
   custom_emoji?: string;
   custom_name?: string;
@@ -218,8 +224,13 @@ export interface LastPerformanceSet {
   date: string;
 }
 
-export async function fetchLastPerformance(exerciseId: number): Promise<LastPerformanceSet[]> {
-  return request<LastPerformanceSet[]>(`/api/exercises/${exerciseId}/last-performance`);
+export interface LastPerformanceResponse {
+  sets: LastPerformanceSet[];
+  pinned_note: string | null;
+}
+
+export async function fetchLastPerformance(exerciseId: number): Promise<LastPerformanceResponse> {
+  return request<LastPerformanceResponse>(`/api/exercises/${exerciseId}/last-performance`);
 }
 
 export interface HistorySet {
@@ -227,6 +238,8 @@ export interface HistorySet {
   reps: number;
   weight: string;
   date: string;
+  exercise_note: string | null;
+  note_pinned: boolean | null;
 }
 
 export async function fetchExerciseHistory(exerciseId: number): Promise<HistorySet[]> {

@@ -49,6 +49,12 @@ export const exerciseLogSchema = z.object({
   weight: z.number().nonnegative().default(0),
 });
 
+export const exerciseNoteSchema = z.object({
+  exercise_id: z.number().int().positive(),
+  note: z.string().max(500),
+  pinned: z.boolean().default(false),
+});
+
 export const workoutDetailsSchema = z.object({
   duration: z.number().int().nonnegative().optional().nullable(),
   distance: z.number().nonnegative().optional().nullable(),
@@ -67,6 +73,7 @@ export const createWorkoutSchema = z.object({
   custom_name: z.string().max(100).optional(),
   cycling_details: cyclingDetailsSchema.optional(),
   exercise_logs: z.array(exerciseLogSchema).optional(),
+  exercise_notes: z.array(exerciseNoteSchema).optional(),
   workout_details: workoutDetailsSchema.optional(),
 });
 
@@ -78,6 +85,7 @@ export const updateWorkoutSchema = z.object({
   custom_name: z.string().max(100).optional(),
   cycling_details: cyclingDetailsSchema.optional(),
   exercise_logs: z.array(exerciseLogSchema).optional(),
+  exercise_notes: z.array(exerciseNoteSchema).optional(),
   workout_details: workoutDetailsSchema.optional(),
 });
 

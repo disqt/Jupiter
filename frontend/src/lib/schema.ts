@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, date, text, integer, decimal, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, date, text, integer, decimal, timestamp, boolean, unique } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -51,3 +51,13 @@ export const exerciseLogs = pgTable('exercise_logs', {
   reps: integer('reps').notNull(),
   weight: decimal('weight', { precision: 6, scale: 2 }).notNull(),
 });
+
+export const exerciseWorkoutNotes = pgTable('exercise_workout_notes', {
+  id: serial('id').primaryKey(),
+  workoutId: integer('workout_id').notNull().references(() => workouts.id, { onDelete: 'cascade' }),
+  exerciseId: integer('exercise_id').notNull().references(() => exercises.id, { onDelete: 'cascade' }),
+  note: text('note').notNull().default(''),
+  pinned: boolean('pinned').notNull().default(false),
+}, (table) => ({
+  uniqueWorkoutExercise: unique().on(table.workoutId, table.exerciseId),
+}));
