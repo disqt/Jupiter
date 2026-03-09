@@ -3,12 +3,83 @@
 import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { MUSCLE_GROUPS, UPPER_BODY_GROUPS, LOWER_BODY_GROUPS, WORKOUT_CONFIG } from '@/lib/data';
-import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, fetchWorkout, createWorkout, updateWorkout, createExercise, deleteWorkout, patchWorkoutMeta, type Exercise, type HistorySet } from '@/lib/api';
+import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, createExercise, type Exercise, type HistorySet } from '@/lib/api';
 import SaveAnimation from '@/components/SaveAnimation';
 import WorkoutFormHeader from '@/components/WorkoutFormHeader';
 import BottomSheet from '@/components/BottomSheet';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import { useI18n } from '@/lib/i18n';
+import { useDataSource } from '@/lib/useDataSource';
+import { useAuth } from '@/lib/auth';
+import { getGuestWorkouts } from '@/lib/guest-storage';
+import { DEFAULT_EXERCISES } from '@/lib/default-exercises';
+
+const GUEST_EXERCISES_KEY = 'guest-exercises';
+
+interface GuestExercise {
+  id: number;
+  name: string;
+  muscle_group: string;
+}
+
+function getGuestExercises(): GuestExercise[] {
+  if (typeof window === 'undefined') return [];
+  const raw = localStorage.getItem(GUEST_EXERCISES_KEY);
+  if (raw) {
+    try { return JSON.parse(raw); } catch { /* fall through */ }
+  }
+  // Seed from defaults
+  const exercises = DEFAULT_EXERCISES.map((e, i) => ({
+    id: i + 1,
+    name: e.name,
+    muscle_group: e.muscle_group,
+  }));
+  localStorage.setItem(GUEST_EXERCISES_KEY, JSON.stringify(exercises));
+  return exercises;
+}
+
+function saveGuestExercise(name: string, muscleGroup: string): GuestExercise {
+  const exercises = getGuestExercises();
+  const maxId = exercises.reduce((max, e) => Math.max(max, e.id), 0);
+  const newExercise = { id: maxId + 1, name, muscle_group: muscleGroup };
+  exercises.push(newExercise);
+  localStorage.setItem(GUEST_EXERCISES_KEY, JSON.stringify(exercises));
+  return newExercise;
+}
+
+function getGuestLastPerformance(exerciseId: number): { sets: { set_number: number; reps: number; weight: string }[]; pinned_note: string | null } {
+  const workouts = getGuestWorkouts();
+  // Find most recent workout with this exercise
+  const sorted = workouts
+    .filter(w => w.exercise_logs?.some(l => l.exercise_id === exerciseId))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  if (sorted.length === 0) return { sets: [], pinned_note: null };
+  const sets = sorted[0].exercise_logs!
+    .filter(l => l.exercise_id === exerciseId)
+    .map(l => ({ set_number: l.set_number, reps: l.reps, weight: String(l.weight) }));
+  const pinnedNote = sorted[0].exercise_notes?.find(n => n.exercise_id === exerciseId && n.pinned)?.note || null;
+  return { sets, pinned_note: pinnedNote };
+}
+
+function getGuestExerciseHistory(exerciseId: number): HistorySet[] {
+  const workouts = getGuestWorkouts();
+  return workouts
+    .filter(w => w.exercise_logs?.some(l => l.exercise_id === exerciseId))
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .flatMap(w => {
+      const note = w.exercise_notes?.find(n => n.exercise_id === exerciseId);
+      return w.exercise_logs!
+        .filter(l => l.exercise_id === exerciseId)
+        .map(l => ({
+          set_number: l.set_number,
+          reps: l.reps,
+          weight: String(l.weight),
+          date: w.date,
+          exercise_note: note?.note || null,
+          note_pinned: note?.pinned || null,
+        }));
+    });
+}
 
 interface SetLog {
   setNumber: number;
@@ -29,6 +100,8 @@ function StrengthWorkoutForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { t, locale } = useI18n();
+  const { isGuest } = useAuth();
+  const dataSource = useDataSource();
   const date = searchParams.get('date') || '';
   const workoutId = searchParams.get('id');
 
@@ -83,12 +156,17 @@ function StrengthWorkoutForm() {
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Load exercises from API
+  // Load exercises from API or localStorage (guest)
   useEffect(() => {
-    fetchExercises().then((data) => {
+    if (isGuest) {
+      const data = getGuestExercises();
       setExercises(data.map((e) => ({ id: e.id, name: e.name, muscleGroup: e.muscle_group })));
-    }).catch(console.error);
-  }, []);
+    } else {
+      fetchExercises().then((data) => {
+        setExercises(data.map((e) => ({ id: e.id, name: e.name, muscleGroup: e.muscle_group })));
+      }).catch(console.error);
+    }
+  }, [isGuest]);
 
   // Load existing workout from API (or edit draft from localStorage)
   useEffect(() => {
@@ -113,7 +191,9 @@ function StrengthWorkoutForm() {
       }
     } catch { /* ignore */ }
     setLoadingWorkout(true);
-    fetchWorkout(parseInt(workoutId)).then((data) => {
+    const wId = isGuest ? workoutId : parseInt(workoutId);
+    dataSource.fetchWorkout(wId).then((data) => {
+      if (!data) { setLoadingWorkout(false); return; }
       if (data.exercise_logs && Array.isArray(data.exercise_logs)) {
         // Build notes lookup from exercise_notes
         const notesMap = new Map<number, { note: string; pinned: boolean }>();
@@ -234,7 +314,9 @@ function StrengthWorkoutForm() {
     let lastPerf: { setNumber: number; reps: number; weight: number }[] = [];
     let pinnedNote = '';
     try {
-      const resp = await fetchLastPerformance(exercise.id);
+      const resp = isGuest
+        ? getGuestLastPerformance(exercise.id)
+        : await fetchLastPerformance(exercise.id);
       lastPerf = resp.sets.map((p) => ({
         setNumber: p.set_number,
         reps: p.reps,
@@ -257,7 +339,9 @@ function StrengthWorkoutForm() {
   const createAndAddExercise = async () => {
     if (!newExerciseName || !newExerciseMuscle) return;
     try {
-      const newEx = await createExercise(newExerciseName, newExerciseMuscle);
+      const newEx = isGuest
+        ? saveGuestExercise(newExerciseName, newExerciseMuscle)
+        : await createExercise(newExerciseName, newExerciseMuscle);
       const mapped = { id: newEx.id, name: newEx.name, muscleGroup: newEx.muscle_group };
       setExercises([...exercises, mapped]);
       setNewExerciseName(''); setNewExerciseMuscle(''); setShowNewExercise(false);
@@ -374,6 +458,8 @@ function StrengthWorkoutForm() {
           .filter((s) => s.reps)
           .map((s) => ({
             exercise_id: entry.exercise.id,
+            exercise_name: entry.exercise.name,
+            muscle_group: entry.exercise.muscleGroup,
             set_number: s.setNumber,
             reps: parseInt(s.reps),
             weight: parseFloat(s.weight) || 0,
@@ -400,10 +486,11 @@ function StrengthWorkoutForm() {
       localStorage.removeItem(storageKey);
       localStorage.removeItem(storageKey + '-meta');
       if (workoutId && editing) {
-        await updateWorkout(parseInt(workoutId), payload);
+        const wId = isGuest ? workoutId : parseInt(workoutId);
+        await dataSource.updateWorkout(wId, payload);
         router.push('/calendar');
       } else {
-        await createWorkout(payload);
+        await dataSource.saveWorkout(payload);
         setShowSaveAnimation(true);
       }
     } catch (err) {
@@ -431,7 +518,7 @@ function StrengthWorkoutForm() {
         onBack={() => router.push('/calendar')}
         dateDisplay={dateDisplay}
         hasDraft={hasDraft}
-        onPersistMeta={workoutId ? (e, n) => { patchWorkoutMeta(parseInt(workoutId), { custom_emoji: e || null, custom_name: n || null }); } : undefined}
+        onPersistMeta={workoutId ? (e, n) => { dataSource.patchWorkoutMeta(isGuest ? workoutId : parseInt(workoutId), { custom_emoji: e || null, custom_name: n || null }); } : undefined}
       />
 
       {/* Exercise cards — 2 columns on desktop */}
@@ -582,7 +669,9 @@ function StrengthWorkoutForm() {
             <button onClick={async () => {
               setHistoryExercise({ id: entry.exercise.id, name: entry.exercise.name });
               try {
-                const data = await fetchExerciseHistory(entry.exercise.id);
+                const data = isGuest
+                  ? getGuestExerciseHistory(entry.exercise.id)
+                  : await fetchExerciseHistory(entry.exercise.id);
                 setHistoryData(data);
               } catch { setHistoryData([]); }
             }}
@@ -649,7 +738,7 @@ function StrengthWorkoutForm() {
         onConfirm={async () => {
           setDeleting(true);
           try {
-            await deleteWorkout(parseInt(workoutId!));
+            await dataSource.deleteWorkout(isGuest ? workoutId! : parseInt(workoutId!));
             localStorage.removeItem(storageKey);
             localStorage.removeItem(storageKey + '-meta');
             router.push('/calendar');

@@ -27,9 +27,13 @@ cd frontend && npx tsc --noEmit     # Type check
 - Frontend API client: `frontend/src/lib/api.ts` (typed fetch functions, same-origin calls)
 - Constants: `frontend/src/lib/data.ts` (WorkoutType, WORKOUT_CONFIG, muscle groups, ride types, SPORT_EMOJIS)
 - i18n: `frontend/src/lib/i18n.tsx` (custom Context, FR default + EN)
-- Auth context: `frontend/src/lib/auth.tsx` (AuthProvider, JWT in localStorage)
+- Auth context: `frontend/src/lib/auth.tsx` (AuthProvider, JWT in localStorage, `isGuest` flag for guest mode)
+- Guest storage: `frontend/src/lib/guest-storage.ts` (guest workout CRUD + medal computation in localStorage, key `guest-workouts`)
+- Data source: `frontend/src/lib/useDataSource.ts` (abstraction hook — routes to API or localStorage based on `isGuest`)
+- Blurred overlay: `frontend/src/components/BlurredOverlay.tsx` (blur + CTA for guest-restricted sections)
 - Rate limiter: `frontend/src/lib/rate-limit.ts` (in-memory, for login/register)
-- Seed exercises: `frontend/src/lib/seed-exercises.ts` (default exercises on registration)
+- Default exercises data: `frontend/src/lib/default-exercises.ts` (58 exercises, pure data, no server deps — safe for client import)
+- Seed exercises: `frontend/src/lib/seed-exercises.ts` (server-side seeding on registration, re-exports DEFAULT_EXERCISES from default-exercises.ts)
 - Middleware: `frontend/src/middleware.ts` (route protection — blocks API calls without Bearer token, except auth + health)
 - Error boundary: `frontend/src/components/ErrorBoundary.tsx` (wraps app inside I18nProvider, bilingual fallback UI)
 - Workout form shared: `frontend/src/lib/useWorkoutForm.ts` (hook), `frontend/src/components/WorkoutFormShell.tsx` (UI shell), `frontend/src/lib/duration.ts` (parsing), `frontend/src/components/DeleteConfirmModal.tsx` (modal), `frontend/src/lib/drafts.ts` (scan localStorage drafts)
@@ -37,7 +41,7 @@ cd frontend && npx tsc --noEmit     # Type check
 
 ## Environment
 
-- `frontend/.env.local` → `DATABASE_URL`, `JWT_SECRET`, `INVITE_CODE`
+- `frontend/.env.local` → `DATABASE_URL`, `JWT_SECRET`
 - Production adds: `NEXT_PUBLIC_API_URL=/jupiter`, `NEXT_PUBLIC_BASE_PATH=/jupiter`
 - Production systemd service also sets env vars (standalone mode doesn't read `.env.local`)
 - **Never commit `.env` files**
@@ -59,7 +63,7 @@ nginx → /jupiter/*         → Next.js :3100 (basePath: /jupiter, standalone m
 
 **Key files on VPS:**
 - App code: `~/app/`
-- Services: `~/services/jupiter-frontend.service` (includes DATABASE_URL, JWT_SECRET, INVITE_CODE env vars)
+- Services: `~/services/jupiter-frontend.service` (includes DATABASE_URL, JWT_SECRET env vars)
 - Nginx: config in `/etc/nginx/sites-enabled/disqt.com` (Jupiter section)
 - Grafana: `~/grafana/` (config, data, provisioning)
 - Frontend env: `~/app/frontend/.env.local`
@@ -94,7 +98,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Draft visibility: unsaved drafts appear on Calendar grid + day panel + HomePage "Today" section with dashed border + 50% opacity. `getDraftWorkouts()` in `frontend/src/lib/drafts.ts` scans localStorage. Clicking a draft card navigates to the form which auto-loads it. "Supprimer le brouillon" button clears localStorage and redirects to calendar.
 - Save animation + redirect with `/calendar?saved=1` triggers medal celebration in WeeklyProgress. `replaceState` uses `pathname` (not hardcoded `/`) to strip query param without changing route.
 - DB values (muscle groups, ride types) stay in French — display translated via `t.muscleGroups[dbValue]`
-- env vars (`JWT_SECRET`, `INVITE_CODE`) read at call time in API route handlers — `getJwtSecret()` throws if undefined (never fallback to empty string)
+- env vars (`JWT_SECRET`) read at call time in API route handlers — `getJwtSecret()` throws if undefined (never fallback to empty string)
 - All POST/PUT API routes validate input with Zod schemas (`frontend/src/lib/validations.ts`) — returns 400 with field errors on invalid input
 - Middleware (`frontend/src/middleware.ts`) blocks unauthenticated API calls at the edge (except `/api/auth/*` and `/api/health`)
 - Security headers in `next.config.mjs`: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy
@@ -108,7 +112,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Medal formula: `GREATEST(count - 2, 0)` — 3 sessions/week = 1 medal, 4 = 2, etc.
 - Medal UI: header card = total medals (big icon + number), monthly card = month medals (sum of weeklyMedals) + progress bar + info modal on tap
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. Split into `UPPER_BODY_GROUPS` / `LOWER_BODY_GROUPS`. No "Jambes" or "Autre".
-- Default exercises seeded per user on registration (`frontend/src/lib/seed-exercises.ts`) — 58 exercises across 10 muscle groups
+- Default exercises seeded per user on registration (`frontend/src/lib/seed-exercises.ts`) — 58 exercises across 10 muscle groups. Data lives in `default-exercises.ts` (client-safe), seeding function in `seed-exercises.ts` (server-only).
 - Exercises sorted by `muscle_group, id` (oldest/seeded first, user-created last)
 - Strength sets: only reps required, weight defaults to 0 if empty. Weight auto-fills empty sets below on blur (not on keystroke) + new sets copy previous weight.
 - `window.location.href` redirects use `BASE_PATH` env var (for subpath deployment)
@@ -119,10 +123,17 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Homepage modals use `lg:left-[200px]` to offset for desktop sidebar — pass `desktopSidebarOffset` to `BottomSheet`
 - Homepage i18n keys prefixed `home*` to avoid conflicts with stats page keys (e.g. `homeMedalsLabel`, `homeDistance`, `homeVolume`)
 - Desktop layout: `page-container` (896px) / `page-container-wide` (1152px) utility classes in `globals.css` — use on page wrapper divs for consistent width, centering, and padding on `lg:`. Calendar uses `page-container-wide`, all other pages use `page-container`.
+- Guest mode: app usable without account, workouts stored in localStorage (`guest-workouts` key). `useDataSource()` hook routes all data ops to API (authenticated) or localStorage (guest). `isGuest` from AuthContext determines mode.
+- Guest exercises: stored in `guest-exercises` localStorage key, seeded from `seed-exercises.ts` on first strength form access.
+- Account creation: bottom sheet on profile page (email + nickname + password, no invite code). Migrates guest workouts + custom exercises to DB on registration/login.
+- BlurredOverlay: wraps content with blur + CTA button. Used on HomePage (insights, streak) and StatsPage (charts) for guest users.
+- Guest medals: computed client-side in `guest-storage.ts` using same formula `max(count - 2, 0)` per ISO week. Functions: `getGuestWeeklyProgress()`, `getGuestWeeklyMedalsForMonth()`, `getGuestMedals()`. WeeklyProgress, Calendar, HomePage all use these in guest mode.
+- API 401 guard: `api.ts` `request()` does `window.location.href = '/'` on 401. ANY component calling API functions MUST check `isGuest` first to avoid infinite reload loops. WeeklyProgress, Calendar, HomePage, StatsPage all guard with `if (isGuest)` branch.
+- Default exercises split: `default-exercises.ts` (pure data) vs `seed-exercises.ts` (imports db-server). Client components must import from `default-exercises.ts` — importing `seed-exercises.ts` client-side fails because `pg` module can't be bundled.
 
 ## Pages
 
-`/` (home), `/calendar`, `/login`, `/register`, `/profile`, `/stats`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`. Nav hidden on auth pages.
+`/` (home), `/calendar`, `/profile`, `/stats`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`. No login/register pages — account creation via bottom sheet on profile page. Nav always visible.
 
 ## Home Page
 
@@ -134,6 +145,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Key insights grid (2x2): sessions, distance, active time, strength volume — with trend vs previous week
 - Streak card: consecutive days + best streak
 - API route: `GET /api/home` (`frontend/src/app/api/home/route.ts`) — returns today, week, medals, insights, streak in one call. Today's `exercise_count` uses `COUNT(DISTINCT exercise_id)` (not total sets).
+- Guest mode: today's workouts + weekly tracker + medals computed from localStorage. Insights + streak wrapped in `<BlurredOverlay>` with placeholder data. Greeting shows no name. Medal card is fully functional (total, monthly badge, info modal).
 
 ## Calendar Page
 
@@ -162,3 +174,4 @@ Moved from `/` to `/calendar`. All workout form redirects (`router.push`, `?save
 - Distance by sport: stacked BarChart with sport filter chips
 - Strength volume: conditional card (tonnage, exercises, sets) — only if musculation data exists
 - Recharts dependency in frontend/package.json
+- Guest mode: total sessions + active days shown, all charts wrapped in `<BlurredOverlay>` with CTA

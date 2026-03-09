@@ -26,7 +26,10 @@ import {
   type StrengthVolume,
 } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
+import { useAuth } from '@/lib/auth';
 import { WORKOUT_TYPES, WORKOUT_CONFIG, type WorkoutType } from '@/lib/data';
+import { getGuestWorkouts } from '@/lib/guest-storage';
+import BlurredOverlay from '@/components/BlurredOverlay';
 
 // --- Constants ---
 
@@ -71,6 +74,7 @@ interface DistanceBarData {
 
 export default function StatsPage() {
   const { t, locale } = useI18n();
+  const { isGuest } = useAuth();
   const numberLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
 
   const today = new Date();
@@ -96,15 +100,30 @@ export default function StatsPage() {
   const monthStr = `${monthYear}-${String(monthIdx + 1).padStart(2, '0')}`;
   const yearStr = String(currentYear);
 
+  // --- Guest stats ---
+  const guestStats = useMemo(() => {
+    if (!isGuest) return { totalSessions: 0, activeDays: 0 };
+    const allGuest = getGuestWorkouts();
+    return {
+      totalSessions: allGuest.length,
+      activeDays: new Set(allGuest.map(w => w.date)).size,
+    };
+  }, [isGuest]);
+
   // --- Medals history (once on mount) ---
   useEffect(() => {
+    if (isGuest) return;
     fetchMedalsHistory()
       .then(setMedalsHistory)
       .catch(() => {});
-  }, []);
+  }, [isGuest]);
 
   // --- Period data ---
   const loadPeriodData = useCallback(async () => {
+    if (isGuest) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const params = mode === 'month'
@@ -133,7 +152,7 @@ export default function StatsPage() {
     } finally {
       setLoading(false);
     }
-  }, [mode, monthStr, yearStr]);
+  }, [isGuest, mode, monthStr, yearStr]);
 
   useEffect(() => {
     loadPeriodData();
@@ -305,8 +324,79 @@ export default function StatsPage() {
         </div>
       </div>
 
-      {/* Loading state */}
-      {loading ? (
+      {/* Guest mode */}
+      {isGuest ? (
+        <>
+          {/* Guest summary cards */}
+          <div className="grid grid-cols-2 gap-2.5 mb-6">
+            <div className="bg-bg-card rounded-card p-3.5 border border-border min-w-0">
+              <div className="text-[22px] font-bold tracking-tight leading-none text-text">
+                {guestStats.totalSessions}
+              </div>
+              <div className="text-[11px] text-text-muted mt-1 font-medium">{t.totalSessions}</div>
+            </div>
+            <div className="bg-bg-card rounded-card p-3.5 border border-border min-w-0">
+              <div className="text-[22px] font-bold tracking-tight leading-none text-text">
+                {guestStats.activeDays}
+              </div>
+              <div className="text-[11px] text-text-muted mt-1 font-medium">{t.activeDays}</div>
+            </div>
+          </div>
+
+          {/* Blurred chart sections */}
+          <BlurredOverlay message={t.createAccountToSeeStats}>
+            <div className="space-y-6">
+              {/* Placeholder medal progression */}
+              <div>
+                <h2 className="text-sm font-semibold text-text-secondary mb-3">{t.medalProgression}</h2>
+                <div className="bg-bg-card rounded-card p-3 border border-border overflow-hidden min-w-0">
+                  <div className="h-[180px]" />
+                </div>
+              </div>
+
+              {/* Placeholder type distribution */}
+              <div>
+                <h2 className="text-sm font-semibold text-text-secondary mb-3">{t.typeDistribution}</h2>
+                <div className="bg-bg-card rounded-card p-3 border border-border overflow-hidden min-w-0">
+                  <div className="h-[180px]" />
+                </div>
+              </div>
+
+              {/* Placeholder distance by sport */}
+              <div>
+                <h2 className="text-sm font-semibold text-text-secondary mb-3">{t.distanceBySport}</h2>
+                <div className="bg-bg-card rounded-card p-3 border border-border overflow-hidden min-w-0">
+                  <div className="h-[180px]" />
+                </div>
+              </div>
+
+              {/* Placeholder strength volume */}
+              <div>
+                <h2 className="text-sm font-semibold text-text-secondary mb-3">{t.strengthVolume}</h2>
+                <div className="bg-bg-card rounded-card p-3 border border-border min-w-0">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="text-center">
+                      <div className="text-[20px] font-bold text-accent tracking-tight">0</div>
+                      <div className="text-[11px] text-text-muted mt-0.5 font-medium">{t.totalTonnage}</div>
+                      <div className="text-[11px] text-text-muted">kg</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[20px] font-bold text-text tracking-tight">0</div>
+                      <div className="text-[11px] text-text-muted mt-0.5 font-medium">{t.totalExercises}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[20px] font-bold text-text tracking-tight">0</div>
+                      <div className="text-[11px] text-text-muted mt-0.5 font-medium">{t.totalSets}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </BlurredOverlay>
+        </>
+      ) : (
+      /* Loading state */
+      loading ? (
         <div className="flex items-center justify-center py-20 text-text-muted text-sm">
           {t.loading}
         </div>
@@ -573,7 +663,7 @@ export default function StatsPage() {
             </div>
           )}
         </>
-      )}
+      ))}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { WORKOUT_CONFIG, type WorkoutType } from '@/lib/data';
-import { createWorkout, updateWorkout, fetchWorkout, deleteWorkout, patchWorkoutMeta } from '@/lib/api';
+import { useDataSource } from '@/lib/useDataSource';
 import { useI18n } from '@/lib/i18n';
 
 export interface ValidationError<F> {
@@ -66,6 +66,7 @@ export function useWorkoutForm<F extends Record<string, string>>(
   const searchParams = useSearchParams();
   const router = useRouter();
   const { t, locale } = useI18n();
+  const dataSource = useDataSource();
 
   const date = searchParams.get('date') || '';
   const workoutId = searchParams.get('id');
@@ -114,16 +115,17 @@ export function useWorkoutForm<F extends Record<string, string>>(
       }
     } catch { /* ignore */ }
     setLoadingWorkout(true);
-    fetchWorkout(parseInt(workoutId))
+    const parsedId = workoutId.startsWith('guest-') ? workoutId : parseInt(workoutId);
+    dataSource.fetchWorkout(parsedId)
       .then((data) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!data) return;
         const details = options.type === 'velo'
-          ? ((data as any).cycling_details as Record<string, unknown> || {})
-          : ((data as any).workout_details as Record<string, unknown> || {});
+          ? (data.cycling_details as Record<string, unknown> || {})
+          : (data.workout_details as Record<string, unknown> || {});
         const loaded = options.loadFromApi(details);
         setFieldsState(prev => ({ ...prev, ...loaded }));
-        if ((data as any).custom_emoji) setCustomEmoji((data as any).custom_emoji);
-        if ((data as any).custom_name) setCustomName((data as any).custom_name);
+        if (data.custom_emoji) setCustomEmoji(data.custom_emoji);
+        if (data.custom_name) setCustomName(data.custom_name);
       })
       .catch(console.error)
       .finally(() => setLoadingWorkout(false));
@@ -181,10 +183,11 @@ export function useWorkoutForm<F extends Record<string, string>>(
       };
       localStorage.removeItem(storageKey);
       if (workoutId && editing) {
-        await updateWorkout(parseInt(workoutId), payload);
+        const parsedId = workoutId.startsWith('guest-') ? workoutId : parseInt(workoutId);
+        await dataSource.updateWorkout(parsedId, payload);
         router.push('/calendar');
       } else {
-        await createWorkout(payload);
+        await dataSource.saveWorkout(payload);
         setShowSaveAnimation(true);
       }
     } catch (err) {
@@ -197,7 +200,8 @@ export function useWorkoutForm<F extends Record<string, string>>(
   const confirmDelete = async () => {
     setDeleting(true);
     try {
-      await deleteWorkout(parseInt(workoutId!));
+      const parsedId = workoutId!.startsWith('guest-') ? workoutId! : parseInt(workoutId!);
+      await dataSource.deleteWorkout(parsedId);
       localStorage.removeItem(storageKey);
       router.push('/calendar');
     } catch (err) {
@@ -244,7 +248,8 @@ export function useWorkoutForm<F extends Record<string, string>>(
     hasDraft,
     onPersistMeta: workoutId
       ? (e: string, n: string) => {
-          patchWorkoutMeta(parseInt(workoutId), {
+          const parsedId = workoutId.startsWith('guest-') ? workoutId : parseInt(workoutId);
+          dataSource.patchWorkoutMeta(parsedId, {
             custom_emoji: e || null,
             custom_name: n || null,
           });

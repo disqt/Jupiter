@@ -2,24 +2,27 @@
 
 import { useState, useEffect, useRef, useMemo, Suspense, useCallback, Fragment } from 'react';
 import Link from 'next/link';
-import { fetchWorkouts, fetchMonthlyStats, fetchWeeklyProgress, fetchWeeklyMedals, type Workout, type WeeklyMedal } from '@/lib/api';
+import { fetchMonthlyStats, fetchWeeklyProgress, fetchWeeklyMedals, type WeeklyMedal } from '@/lib/api';
+import { useDataSource, type DataWorkout } from '@/lib/useDataSource';
 import WeeklyProgress from '@/components/WeeklyProgress';
 import BottomSheet from './BottomSheet';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { WORKOUT_CONFIG, WORKOUT_TYPES, type WorkoutType } from '@/lib/data';
 import { getDraftWorkouts, getDraftRoute, type DraftWorkout } from '@/lib/drafts';
+import { getGuestWeeklyMedalsForMonth, getGuestWeeklyProgress } from '@/lib/guest-storage';
 
 export default function Calendar() {
   const { t, locale, setLocale } = useI18n();
   const { user } = useAuth();
+  const { fetchWorkouts: dseFetchWorkouts, isGuest } = useDataSource();
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showSheet, setShowSheet] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [workouts, setWorkouts] = useState<DataWorkout[]>([]);
   const [stats, setStats] = useState({ totalCount: 0, countsByType: {} as Record<string, number>, totalDistanceKm: 0, totalElevationM: 0 });
   const [totalMedals, setTotalMedals] = useState(0);
   const [weekCount, setWeekCount] = useState(0);
@@ -35,36 +38,59 @@ export default function Calendar() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [w, s, wm] = await Promise.all([
-        fetchWorkouts(monthStr),
-        fetchMonthlyStats(monthStr),
-        fetchWeeklyMedals(monthStr),
-      ]);
-      setWorkouts(w);
-      setWeeklyMedals(wm);
-      setStats({
-        totalCount: parseInt(s.total_count) || 0,
-        countsByType: Object.fromEntries(
-          Object.entries(s.counts_by_type || {}).map(([k, v]) => [k, parseInt(v as string) || 0])
-        ),
-        totalDistanceKm: parseFloat(s.total_distance_km) || 0,
-        totalElevationM: parseInt(s.total_elevation_m) || 0,
-      });
+      if (isGuest) {
+        const w = await dseFetchWorkouts(monthStr);
+        setWorkouts(w);
+        // Compute stats locally from guest workouts
+        const countsByType: Record<string, number> = {};
+        for (const wk of w) {
+          countsByType[wk.type] = (countsByType[wk.type] || 0) + 1;
+        }
+        setStats({
+          totalCount: w.length,
+          countsByType,
+          totalDistanceKm: 0,
+          totalElevationM: 0,
+        });
+        setWeeklyMedals(getGuestWeeklyMedalsForMonth(monthStr));
+      } else {
+        const [w, s, wm] = await Promise.all([
+          dseFetchWorkouts(monthStr),
+          fetchMonthlyStats(monthStr),
+          fetchWeeklyMedals(monthStr),
+        ]);
+        setWorkouts(w);
+        setWeeklyMedals(wm);
+        setStats({
+          totalCount: parseInt(s.total_count) || 0,
+          countsByType: Object.fromEntries(
+            Object.entries(s.counts_by_type || {}).map(([k, v]) => [k, parseInt(v as string) || 0])
+          ),
+          totalDistanceKm: parseFloat(s.total_distance_km) || 0,
+          totalElevationM: parseInt(s.total_elevation_m) || 0,
+        });
+      }
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
       setLoading(false);
     }
-  }, [monthStr]);
+  }, [monthStr, isGuest, dseFetchWorkouts]);
 
   useEffect(() => {
+    if (isGuest) {
+      const guestData = getGuestWeeklyProgress();
+      setTotalMedals(guestData.total_medals);
+      setWeekCount(guestData.week_count);
+      return;
+    }
     fetchWeeklyProgress()
       .then((wp) => {
         setTotalMedals(parseInt(wp.total_medals) || 0);
         setWeekCount(parseInt(wp.week_count) || 0);
       })
       .catch(() => {});
-  }, []);
+  }, [isGuest]);
 
   useEffect(() => {
     loadData();
@@ -86,7 +112,7 @@ export default function Calendar() {
   const prevMonth = () => { setCurrentDate(new Date(year, month - 1, 1)); setSelectedDate(null); };
   const nextMonth = () => { setCurrentDate(new Date(year, month + 1, 1)); setSelectedDate(null); };
 
-  const getWorkoutsForDay = (day: number): Workout[] => {
+  const getWorkoutsForDay = (day: number): DataWorkout[] => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return workouts.filter((w) => w.date === dateStr);
   };
@@ -329,7 +355,7 @@ export default function Calendar() {
                           <div className="flex flex-col gap-px w-full px-0.5">
                             {dayWorkouts.map((w) => (
                               <span key={w.id} className={`text-[8px] font-semibold leading-tight py-0.5 px-[3px] rounded-[3px] text-center line-clamp-1 ${getTypeTagClass(w.type, isSelected)}`}>
-                                <span className="lg:hidden">{w.customEmoji || WORKOUT_CONFIG[w.type as WorkoutType]?.defaultEmoji || '🎯'}</span>
+                                <span className="lg:hidden">{w.custom_emoji || WORKOUT_CONFIG[w.type as WorkoutType]?.defaultEmoji || '🎯'}</span>
                                 <span className="hidden lg:inline">{t.workoutTypeTags[w.type] || w.type}</span>
                               </span>
                             ))}
@@ -393,10 +419,10 @@ export default function Calendar() {
                         className="flex items-center gap-2.5 px-3 py-2.5 bg-bg-elevated rounded-sm mb-1.5 cursor-pointer transition-all duration-150 active:scale-[0.98] no-underline text-inherit"
                       >
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[15px] shrink-0 ${getTypeBgClass(w.type)}`}>
-                          {w.customEmoji || config?.defaultEmoji || '🎯'}
+                          {w.custom_emoji || config?.defaultEmoji || '🎯'}
                         </div>
                         <div className="flex-1">
-                          <div className="text-sm font-medium">{w.customName || t.workoutTypeLabels[w.type] || w.type}</div>
+                          <div className="text-sm font-medium">{w.custom_name || t.workoutTypeLabels[w.type] || w.type}</div>
                           <div className="text-xs text-text-muted">{w.detail}</div>
                         </div>
                         <span className="text-text-muted text-sm">›</span>

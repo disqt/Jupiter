@@ -7,6 +7,8 @@ import { useI18n } from '@/lib/i18n';
 import { fetchHomeData, type HomeData } from '@/lib/api';
 import { WORKOUT_CONFIG, WORKOUT_TYPES, type WorkoutType } from '@/lib/data';
 import { getDraftWorkouts, getDraftRoute, type DraftWorkout } from '@/lib/drafts';
+import { getGuestWorkouts, getGuestMedals, type GuestWorkout } from '@/lib/guest-storage';
+import BlurredOverlay from '@/components/BlurredOverlay';
 import BottomSheet from './BottomSheet';
 
 const SPORT_COLORS: Record<string, string> = {
@@ -69,8 +71,57 @@ function getWeekDates(): string[] {
   return dates;
 }
 
+function buildGuestTodayWorkout(w: GuestWorkout) {
+  let duration: number | null = null;
+  let distance: number | null = null;
+  let exercise_count = 0;
+
+  if (w.cycling_details) {
+    duration = w.cycling_details.duration;
+    distance = w.cycling_details.distance;
+  } else if (w.workout_details) {
+    duration = w.workout_details.duration;
+    distance = w.workout_details.distance;
+  } else if (w.exercise_logs && w.exercise_logs.length > 0) {
+    const uniqueExercises = new Set(w.exercise_logs.map(l => l.exercise_id));
+    exercise_count = uniqueExercises.size;
+  }
+
+  return {
+    id: w.id as unknown as number,
+    type: w.type,
+    custom_emoji: w.custom_emoji,
+    custom_name: w.custom_name,
+    duration,
+    distance,
+    exercise_count,
+  };
+}
+
+function buildGuestHomeData(guestWorkouts: GuestWorkout[], todayDate: string, weekDates: string[]): HomeData {
+  const todayWorkouts = guestWorkouts
+    .filter(w => w.date === todayDate)
+    .map(buildGuestTodayWorkout);
+
+  const weekWorkouts = guestWorkouts
+    .filter(w => weekDates.includes(w.date))
+    .map(w => ({ date: w.date, type: w.type }));
+
+  return {
+    today: todayWorkouts,
+    week: weekWorkouts,
+    medals: getGuestMedals(),
+    insights: {
+      sessions: 0, distance_km: 0, duration_min: 0, volume_kg: 0,
+      prev_sessions: 0, prev_distance_km: 0, prev_duration_min: 0, prev_volume_kg: 0,
+    },
+    streak: 0,
+    best_streak: 0,
+  };
+}
+
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { t, locale } = useI18n();
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,23 +129,30 @@ export default function HomePage() {
   const [showMedalInfo, setShowMedalInfo] = useState(false);
   const [todayDrafts, setTodayDrafts] = useState<DraftWorkout[]>([]);
 
+  const weekDates = getWeekDates();
+  const todayDate = (() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+  })();
+
   useEffect(() => {
-    fetchHomeData()
-      .then(setData)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+    if (isGuest) {
+      const guestWorkouts = getGuestWorkouts();
+      setData(buildGuestHomeData(guestWorkouts, todayDate, weekDates));
+      setLoading(false);
+    } else {
+      fetchHomeData()
+        .then(setData)
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGuest]);
 
   const todayStr = (() => {
     const now = new Date();
     const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
     return now.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' });
-  })();
-
-  const weekDates = getWeekDates();
-  const todayDate = (() => {
-    const n = new Date();
-    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
   })();
 
   // Scan drafts for today (exclude types already saved)
@@ -140,7 +198,7 @@ export default function HomePage() {
           {todayStr} — {getGreeting(t)}
         </div>
         <h1 className="font-serif text-[32px] lg:text-[38px] font-normal leading-tight">
-          {t.welcome} <span className="text-[#e2c992]">{user?.nickname}</span>
+          {t.welcome}{!isGuest && user?.nickname ? <> <span className="text-[#e2c992]">{user.nickname}</span></> : null}
         </h1>
       </div>
 
@@ -249,7 +307,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Medals */}
+      {/* Medals (visible for both guest and authenticated) */}
       <div onClick={() => setShowMedalInfo(true)} className="bg-bg-card border border-border rounded-card p-5 mb-4 relative overflow-hidden animate-fadeIn cursor-pointer transition-all duration-150 active:scale-[0.98]" style={{ animationDelay: '0.18s' }}>
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 80% 20%, rgba(201,169,110,0.10) 0%, transparent 60%)' }} />
         <div className="relative flex items-center gap-4">
@@ -271,31 +329,50 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Key insights */}
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2.5 animate-fadeIn" style={{ animationDelay: '0.24s' }}>
-        {t.weekSummary}
-      </div>
-      <div className="grid grid-cols-2 gap-2.5 mb-4 animate-fadeIn" style={{ animationDelay: '0.26s' }}>
-        {/* Sessions */}
-        <InsightCard icon="🏋️" value={String(ins?.sessions ?? 0)} unit={t.sessionsUnit} label={t.sessionsLabel} diff={sesDiff} diffLabel={t.vsLastWeek} stableLabel={t.stable} />
-        {/* Distance */}
-        <InsightCard icon="📏" value={(ins?.distance_km ?? 0).toFixed(1)} unit="km" label={t.homeDistance}
-          diff={distDiff} diffLabel={`${Math.abs(distDiff).toFixed(1)} km`} stableLabel={t.stable} isDistance />
-        {/* Duration */}
-        <InsightCard icon="⏱️" value={formatDuration(ins?.duration_min ?? 0)} unit="" label={t.activeTime}
-          diff={durDiff} diffLabel={`${Math.abs(durDiff)} min`} stableLabel={t.stable} isDuration />
-        {/* Volume */}
-        {(() => {
-          const vol = formatVolume(ins?.volume_kg ?? 0);
-          return (
-            <InsightCard icon="🔥" value={vol.value} unit={vol.unit} label={t.homeVolume}
-              diff={volDiff} diffLabel={`${formatVolume(Math.abs(volDiff)).value} ${formatVolume(Math.abs(volDiff)).unit}`} stableLabel={t.stable} />
-          );
-        })()}
-      </div>
+      {/* Insights + Streak */}
+      {isGuest ? (
+        <BlurredOverlay>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2.5">{t.weekSummary}</div>
+          <div className="grid grid-cols-2 gap-2.5 mb-4">
+            <InsightCard icon="🏋️" value="0" unit={t.sessionsUnit} label={t.sessionsLabel} diff={0} diffLabel={t.vsLastWeek} stableLabel={t.stable} />
+            <InsightCard icon="📏" value="0.0" unit="km" label={t.homeDistance} diff={0} diffLabel="0 km" stableLabel={t.stable} isDistance />
+            <InsightCard icon="⏱️" value="0 min" unit="" label={t.activeTime} diff={0} diffLabel="0 min" stableLabel={t.stable} isDuration />
+            <InsightCard icon="🔥" value="0" unit="kg" label={t.homeVolume} diff={0} diffLabel="0 kg" stableLabel={t.stable} />
+          </div>
+          <div className="bg-bg-card border border-border rounded-card p-[18px_20px] flex items-center gap-3.5">
+            <span className="text-[28px] leading-none">🔥</span>
+            <div className="flex-1">
+              <div className="font-serif text-[22px] font-normal">
+                <strong className="text-strength">0</strong> {t.consecutiveDays}
+              </div>
+            </div>
+          </div>
+        </BlurredOverlay>
+      ) : (
+        <>
+          {/* Key insights */}
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2.5 animate-fadeIn" style={{ animationDelay: '0.24s' }}>
+            {t.weekSummary}
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 mb-4 animate-fadeIn" style={{ animationDelay: '0.26s' }}>
+            <InsightCard icon="🏋️" value={String(ins?.sessions ?? 0)} unit={t.sessionsUnit} label={t.sessionsLabel} diff={sesDiff} diffLabel={t.vsLastWeek} stableLabel={t.stable} />
+            <InsightCard icon="📏" value={(ins?.distance_km ?? 0).toFixed(1)} unit="km" label={t.homeDistance}
+              diff={distDiff} diffLabel={`${Math.abs(distDiff).toFixed(1)} km`} stableLabel={t.stable} isDistance />
+            <InsightCard icon="⏱️" value={formatDuration(ins?.duration_min ?? 0)} unit="" label={t.activeTime}
+              diff={durDiff} diffLabel={`${Math.abs(durDiff)} min`} stableLabel={t.stable} isDuration />
+            {(() => {
+              const vol = formatVolume(ins?.volume_kg ?? 0);
+              return (
+                <InsightCard icon="🔥" value={vol.value} unit={vol.unit} label={t.homeVolume}
+                  diff={volDiff} diffLabel={`${formatVolume(Math.abs(volDiff)).value} ${formatVolume(Math.abs(volDiff)).unit}`} stableLabel={t.stable} />
+              );
+            })()}
+          </div>
+        </>
+      )}
 
-      {/* Streak */}
-      {(data?.streak ?? 0) > 0 && (
+      {/* Streak (authenticated only) */}
+      {!isGuest && (data?.streak ?? 0) > 0 ? (
         <div className="bg-bg-card border border-border rounded-card p-[18px_20px] flex items-center gap-3.5 animate-fadeIn" style={{ animationDelay: '0.32s' }}>
           <span className="text-[28px] leading-none">🔥</span>
           <div className="flex-1">
@@ -309,7 +386,7 @@ export default function HomePage() {
             )}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Workout type picker modal */}
       <BottomSheet open={showSheet} onClose={() => setShowSheet(false)} desktopSidebarOffset>

@@ -215,6 +215,22 @@ const translations = {
     bestStreak: (n: number) => `Record : ${n} jours` as string,
     daysInitials: ['L', 'M', 'M', 'J', 'V', 'S', 'D'] as string[],
 
+    // Guest mode
+    guestMode: 'Mode invité',
+    guestModeDescription: 'Vos séances sont sauvegardées sur cet appareil. Créez un compte pour les synchroniser et ne jamais les perdre.',
+    createAccount: 'Créer un compte',
+    createMyAccount: 'Créer mon compte',
+    email: 'Email',
+    emailPlaceholder: 'votre@email.com',
+    alreadyHaveAccount: 'Déjà un compte ?',
+    loginToAccount: 'Se connecter',
+    createAccountToSeeStats: 'Créez un compte pour voir toutes vos statistiques',
+    createAccountToSeeMore: 'Créez un compte pour tout voir',
+    emailAlreadyTaken: 'Cet email est déjà utilisé',
+    migrating: 'Migration de vos données...',
+    migrationComplete: 'Données migrées avec succès !',
+    loginTitle: 'Se connecter',
+
     // Auth
     login: 'Connexion',
     register: 'Créer un compte',
@@ -453,6 +469,22 @@ const translations = {
     consecutiveDays: 'consecutive days',
     bestStreak: (n: number) => `Best: ${n} days` as string,
     daysInitials: ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as string[],
+
+    // Guest mode
+    guestMode: 'Guest Mode',
+    guestModeDescription: 'Your workouts are saved on this device. Create an account to sync them and never lose your data.',
+    createAccount: 'Create an account',
+    createMyAccount: 'Create my account',
+    email: 'Email',
+    emailPlaceholder: 'your@email.com',
+    alreadyHaveAccount: 'Already have an account?',
+    loginToAccount: 'Log in',
+    createAccountToSeeStats: 'Create an account to see all your statistics',
+    createAccountToSeeMore: 'Create an account to see everything',
+    emailAlreadyTaken: 'This email is already taken',
+    migrating: 'Migrating your data...',
+    migrationComplete: 'Data migrated successfully!',
+    loginTitle: 'Log in',
 
     // Auth
     login: 'Log in',

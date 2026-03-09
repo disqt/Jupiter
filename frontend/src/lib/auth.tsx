@@ -1,43 +1,43 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 interface User {
   id: number;
   nickname: string;
+  email?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
+  isGuest: boolean;
   login: (nickname: string, password: string) => Promise<void>;
-  register: (nickname: string, password: string, inviteCode: string) => Promise<void>;
+  register: (nickname: string, password: string, email: string) => Promise<void>;
   logout: () => void;
-  updateUser: (user: User) => void;
+  updateUser: (user: { id: number; nickname: string }) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,
   loading: true,
+  isGuest: true,
   login: async () => {},
   register: async () => {},
   logout: () => {},
   updateUser: () => {},
 });
 
-const PUBLIC_PATHS = ['/login', '/register'];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     const saved = localStorage.getItem('token');
@@ -63,15 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (loading) return;
-    if (!user && !PUBLIC_PATHS.includes(pathname)) {
-      router.replace('/login');
-    }
-    if (user && PUBLIC_PATHS.includes(pathname)) {
-      router.replace('/');
-    }
-  }, [user, loading, pathname, router]);
+  const isGuest = !loading && !user;
 
   const login = useCallback(async (nickname: string, password: string) => {
     const res = await fetch(`${API_URL}/api/auth/login`, {
@@ -86,11 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
   }, []);
 
-  const register = useCallback(async (nickname: string, password: string, inviteCode: string) => {
+  const register = useCallback(async (nickname: string, password: string, email: string) => {
     const res = await fetch(`${API_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname, password, invite_code: inviteCode }),
+      body: JSON.stringify({ nickname, password, email }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
@@ -103,18 +95,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    router.replace('/login');
+    router.replace('/');
   }, [router]);
 
-  const updateUser = useCallback((u: User) => setUser(u), []);
-
-  // Don't render protected content until auth is confirmed
-  const isPublic = PUBLIC_PATHS.includes(pathname);
-  const showChildren = isPublic || (!loading && !!user);
+  const updateUser = useCallback((u: { id: number; nickname: string }) => setUser(u), []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateUser }}>
-      {showChildren ? children : null}
+    <AuthContext.Provider value={{ user, token, loading, isGuest, login, register, logout, updateUser }}>
+      {loading ? null : children}
     </AuthContext.Provider>
   );
 }
