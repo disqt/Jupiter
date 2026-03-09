@@ -370,7 +370,7 @@ export default function StatsPage() {
             <span className="text-[24px]">⭐</span>
             <div>
               <div className="text-[17px] font-bold text-[#e2c992] leading-tight">
-                {levelData.level === 0 ? t.levelBeginner : `${t.levelTitle} ${levelData.level}`}
+                {t.levelLabel(levelData.level)}
               </div>
               <div className="text-[11px] text-text-muted font-medium mt-0.5">
                 {t.levelProgress(totalMedals, levelData.nextThreshold)}
@@ -747,7 +747,7 @@ export default function StatsPage() {
               </div>
               <div className="text-center py-3">
                 <div className="text-[36px] font-serif font-normal text-[#e2c992] leading-none">
-                  {levelData.level === 0 ? t.levelBeginner : `${t.levelTitle} ${levelData.level}`}
+                  {t.levelLabel(levelData.level)}
                 </div>
                 <div className="text-[11px] text-text-muted mt-2">
                   {t.levelProgress(totalMedals, levelData.nextThreshold)}

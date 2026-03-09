@@ -259,6 +259,47 @@ function LoginSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   );
 }
 
+/* ─── Section wrapper ─── */
+function Section({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-3 px-1">
+        <span className="text-sm opacity-60">{icon}</span>
+        <h3 className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.08em]">{title}</h3>
+      </div>
+      <div className="bg-bg-card border border-border rounded-card overflow-hidden">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Row inside a section card ─── */
+function SettingRow({ label, children, last }: { label: string; children: React.ReactNode; last?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between px-4 py-3.5 ${last ? '' : 'border-b border-border'}`}>
+      <span className="text-[14px] text-text">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+/* ─── Avatar ─── */
+function Avatar({ name, size = 'lg' }: { name: string; size?: 'lg' | 'sm' }) {
+  const initials = name
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || '?';
+  const s = size === 'lg' ? 'w-[72px] h-[72px] text-[22px]' : 'w-10 h-10 text-sm';
+  return (
+    <div className={`${s} rounded-full bg-gradient-to-br from-accent/30 to-accent/10 border border-accent/20 flex items-center justify-center font-semibold text-accent shrink-0`}>
+      {initials}
+    </div>
+  );
+}
+
 function GuestProfileView() {
   const { t, locale, setLocale } = useI18n();
   const router = useRouter();
@@ -268,31 +309,31 @@ function GuestProfileView() {
   return (
     <div className="page-container px-5 pb-36 lg:pb-20">
       {/* Header */}
-      <div className="flex items-center gap-3 pt-14 pb-5 lg:pt-8">
-        <button
-          onClick={() => router.push('/calendar')}
-          className="w-9 h-9 rounded-full bg-bg-card border border-border text-text-secondary flex items-center justify-center cursor-pointer text-base transition-all duration-150 active:scale-90 shrink-0"
-        >
-          &#8249;
-        </button>
-        <span className="font-serif text-[22px] font-normal">{t.profile}</span>
+      <div className="pt-14 pb-4 lg:pt-8">
+        <h1 className="font-serif text-[22px] font-normal">{t.profile}</h1>
       </div>
 
-      {/* Guest mode card */}
-      <div className="bg-bg-elevated border border-border rounded-card p-5">
-        <h2 className="text-[17px] font-semibold text-text mb-2">{t.guestMode}</h2>
-        <p className="text-[14px] text-text-muted leading-relaxed mb-5">
-          {t.guestModeDescription}
+      {/* Guest avatar + CTA hero */}
+      <div className="flex flex-col items-center text-center mb-8">
+        <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-text-muted/20 to-text-muted/5 border border-border flex items-center justify-center text-[28px] mb-4">
+          👤
+        </div>
+        <h2 className="text-[18px] font-semibold text-text mb-1.5">{t.guestMode}</h2>
+        <p className="text-[13px] text-text-muted leading-relaxed max-w-[280px]">
+          {t.guestBanner}
         </p>
+      </div>
 
+      {/* Account actions */}
+      <div className="mb-8">
         <button
           onClick={() => setShowRegister(true)}
-          className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer transition-all duration-200 active:scale-[0.98] bg-accent text-white tracking-wide"
+          className="w-full py-3.5 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer transition-all duration-200 active:scale-[0.98] bg-accent text-white tracking-wide"
         >
           {t.createAccount}
         </button>
 
-        <p className="text-[13px] text-text-muted text-center mt-4">
+        <p className="text-[13px] text-text-muted text-center mt-3">
           {t.alreadyHaveAccount}{' '}
           <button
             onClick={() => setShowLogin(true)}
@@ -304,22 +345,18 @@ function GuestProfileView() {
       </div>
 
       {/* Settings */}
-      <div className="mt-8">
-        <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">{t.settings}</h3>
-        <div className="bg-bg-elevated border border-border rounded-card p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[14px] font-medium text-text">{t.language}</span>
-            <select
-              value={locale}
-              onChange={(e) => setLocale(e.target.value as 'fr' | 'en')}
-              className="bg-bg border border-border rounded-sm px-3 py-1.5 text-[13px] text-text font-medium cursor-pointer outline-none appearance-none font-inherit"
-            >
-              <option value="fr">{t.french}</option>
-              <option value="en">{t.english}</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <Section icon="⚙️" title={t.settings}>
+        <SettingRow label={t.language} last>
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as 'fr' | 'en')}
+            className="bg-bg-elevated border border-border rounded-sm px-3 py-1.5 text-[13px] text-text font-medium cursor-pointer outline-none appearance-none font-inherit"
+          >
+            <option value="fr">{t.french}</option>
+            <option value="en">{t.english}</option>
+          </select>
+        </SettingRow>
+      </Section>
 
       <RegisterSheet open={showRegister} onClose={() => setShowRegister(false)} />
       <LoginSheet open={showLogin} onClose={() => setShowLogin(false)} />
@@ -328,7 +365,6 @@ function GuestProfileView() {
 }
 
 function AuthenticatedProfileView() {
-  const router = useRouter();
   const { user, logout, updateUser } = useAuth();
   const { t, locale, setLocale } = useI18n();
 
@@ -394,92 +430,106 @@ function AuthenticatedProfileView() {
   return (
     <div className="page-container px-5 pb-36 lg:pb-20">
       {/* Header */}
-      <div className="flex items-center gap-3 pt-14 pb-5 lg:pt-8">
-        <button
-          onClick={() => router.push('/calendar')}
-          className="w-9 h-9 rounded-full bg-bg-card border border-border text-text-secondary flex items-center justify-center cursor-pointer text-base transition-all duration-150 active:scale-90 shrink-0"
-        >
-          &#8249;
-        </button>
-        <span className="font-serif text-[22px] font-normal">{t.profile}</span>
+      <div className="pt-14 pb-4 lg:pt-8">
+        <h1 className="font-serif text-[22px] font-normal">{t.profile}</h1>
       </div>
 
-      {/* Nickname section */}
-      <div className="mb-4">
-        <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-          {t.nickname}
-        </label>
-        <TextInput
-          value={nickname}
-          onChange={(e) => { setNickname(e.target.value); if (errorMsg) setErrorMsg(''); }}
-          error={!!errorMsg}
-        />
+      {/* User header card */}
+      <div className="flex items-center gap-4 bg-bg-card border border-border rounded-card p-5 mb-8">
+        <Avatar name={user?.nickname || '?'} />
+        <div className="min-w-0">
+          <h2 className="text-[18px] font-semibold text-text truncate">{user?.nickname}</h2>
+          <p className="text-[13px] text-text-muted mt-0.5">{t.editProfile}</p>
+        </div>
       </div>
 
-      {/* Change password section */}
-      <div className="mb-4">
-        <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-          {t.currentPassword}
-        </label>
-        <TextInput
-          type="password"
-          value={currentPassword}
-          onChange={(e) => { setCurrentPassword(e.target.value); if (errorMsg) setErrorMsg(''); }}
-          error={!!errorMsg}
-        />
-      </div>
+      {/* Profile section */}
+      <Section icon="👤" title={t.editProfile}>
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              {t.nickname}
+            </label>
+            <TextInput
+              value={nickname}
+              onChange={(e) => { setNickname(e.target.value); if (errorMsg) setErrorMsg(''); }}
+              error={!!errorMsg && !currentPassword}
+            />
+          </div>
+        </div>
+      </Section>
 
-      <div className="mb-4">
-        <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-          {t.newPassword}
-        </label>
-        <TextInput
-          type="password"
-          value={newPassword}
-          onChange={(e) => { setNewPassword(e.target.value); if (errorMsg) setErrorMsg(''); }}
-          error={!!errorMsg}
-        />
-      </div>
+      {/* Security section */}
+      <Section icon="🔒" title={t.security}>
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              {t.currentPassword}
+            </label>
+            <TextInput
+              type="password"
+              value={currentPassword}
+              onChange={(e) => { setCurrentPassword(e.target.value); if (errorMsg) setErrorMsg(''); }}
+              error={!!errorMsg && !!currentPassword}
+            />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              {t.newPassword}
+            </label>
+            <TextInput
+              type="password"
+              value={newPassword}
+              onChange={(e) => { setNewPassword(e.target.value); if (errorMsg) setErrorMsg(''); }}
+              error={!!errorMsg && !!currentPassword}
+            />
+          </div>
+        </div>
+      </Section>
 
       {/* Success / Error messages */}
       {successMsg && (
-        <p className="text-green-400 text-[13px] text-center mb-4">{successMsg}</p>
+        <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-card px-4 py-3 mb-4">
+          <span className="text-sm">&#10003;</span>
+          <p className="text-green-400 text-[13px]">{successMsg}</p>
+        </div>
       )}
       {errorMsg && (
-        <p className="text-red-400 text-[13px] text-center mb-4">{errorMsg}</p>
+        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-card px-4 py-3 mb-4">
+          <p className="text-red-400 text-[13px]">{errorMsg}</p>
+        </div>
       )}
 
       {/* Save button */}
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-2 transition-all duration-200 active:scale-[0.98] bg-gradient-to-br from-accent to-[#7c5ce0] text-white shadow-[0_4px_20px_rgba(139,92,246,0.3)] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
+        className="w-full py-3.5 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer transition-all duration-200 active:scale-[0.98] bg-gradient-to-br from-accent to-[#7c5ce0] text-white shadow-[0_4px_20px_rgba(139,92,246,0.2)] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide mb-8"
       >
         {saving ? t.saving : t.saveChanges}
       </button>
 
-      {/* Settings */}
-      <div className="mt-8">
-        <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">{t.settings}</h3>
-        <div className="bg-bg-elevated border border-border rounded-card p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[14px] font-medium text-text">{t.language}</span>
-            <select
-              value={locale}
-              onChange={(e) => setLocale(e.target.value as 'fr' | 'en')}
-              className="bg-bg border border-border rounded-sm px-3 py-1.5 text-[13px] text-text font-medium cursor-pointer outline-none appearance-none font-inherit"
-            >
-              <option value="fr">{t.french}</option>
-              <option value="en">{t.english}</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      {/* Divider */}
+      <div className="h-px bg-border mb-8" />
 
-      {/* Logout button */}
+      {/* App Settings */}
+      <Section icon="⚙️" title={t.appSettings}>
+        <SettingRow label={t.language} last>
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as 'fr' | 'en')}
+            className="bg-bg-elevated border border-border rounded-sm px-3 py-1.5 text-[13px] text-text font-medium cursor-pointer outline-none appearance-none font-inherit"
+          >
+            <option value="fr">{t.french}</option>
+            <option value="en">{t.english}</option>
+          </select>
+        </SettingRow>
+      </Section>
+
+      {/* Logout */}
       <button
         onClick={logout}
-        className="w-full py-4 bg-transparent border border-border rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] text-red-400 tracking-wide"
+        className="w-full py-3.5 bg-transparent border border-red-500/20 rounded-card font-inherit text-[14px] font-medium cursor-pointer transition-all duration-200 active:scale-[0.98] text-red-400 hover:bg-red-500/5 tracking-wide"
       >
         {t.logout}
       </button>

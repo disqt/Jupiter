@@ -111,7 +111,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - WorkoutFormShell save button uses static `colorClasses` map (NOT dynamic `bg-${color}`) — Tailwind cannot detect dynamic class names.
 - Medal formula: `GREATEST(count - 2, 0)` — 3 sessions/week = 1 medal, 4 = 2, etc.
 - Medal UI: header card = total medals (big icon + number), monthly card = month medals (sum of weeklyMedals) + progress bar + info modal on tap
-- Athlete level: `computeLevel(totalMedals)` in `data.ts` — level 0 = beginner, level N threshold = `N*(9+N)/2` (5, 11, 18, 26...). Displayed on HomePage header + StatsPage top card with progress bar + period medals. Clickable info modal on both.
+- Athlete level: `computeLevel(totalMedals)` in `data.ts` — level 0 = beginner, level N threshold = `N*(9+N)/2` (5, 11, 18, 26...). Displayed on HomePage header + StatsPage top card with progress bar + period medals. Clickable info modal on both. Label: "Débutant"/"Niveau X" (FR), "Beginner"/"Level X" (EN) — no "sportif"/"athlete" in the level value display.
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. Split into `UPPER_BODY_GROUPS` / `LOWER_BODY_GROUPS`. No "Jambes" or "Autre".
 - Default exercises seeded per user on registration (`frontend/src/lib/seed-exercises.ts`) — 58 exercises across 10 muscle groups. Data lives in `default-exercises.ts` (client-safe), seeding function in `seed-exercises.ts` (server-only).
 - Exercises sorted by `muscle_group, id` (oldest/seeded first, user-created last)
@@ -124,6 +124,8 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Homepage modals use `lg:left-[200px]` to offset for desktop sidebar — pass `desktopSidebarOffset` to `BottomSheet`
 - Homepage i18n keys prefixed `home*` to avoid conflicts with stats page keys (e.g. `homeMedalsLabel`, `homeDistance`, `homeVolume`)
 - Desktop layout: `page-container` (896px) / `page-container-wide` (1152px) utility classes in `globals.css` — use on page wrapper divs for consistent width, centering, and padding on `lg:`. Calendar uses `page-container-wide`, all other pages use `page-container`.
+- Page titles: Calendar, Stats, Profile all use `h1.font-serif.text-[22px].font-normal` inside `div.pt-14.pb-4.lg:pt-8`. HomePage has its own larger greeting pattern. Keep consistent when adding pages.
+- Profile page layout: sectioned cards with `Section` (icon + title) and `SettingRow` components. Sections: user avatar header card, profile (nickname), security (password change), app settings (language dropdown), logout button. Guest view: centered avatar + CTA + settings.
 - Guest mode: app usable without account, workouts stored in localStorage (`guest-workouts` key). `useDataSource()` hook routes all data ops to API (authenticated) or localStorage (guest). `isGuest` from AuthContext determines mode.
 - Guest exercises: stored in `guest-exercises` localStorage key, seeded from `seed-exercises.ts` on first strength form access.
 - Account creation: bottom sheet on profile page (email + nickname + password, no invite code). Migrates guest workouts + custom exercises to DB on registration/login.

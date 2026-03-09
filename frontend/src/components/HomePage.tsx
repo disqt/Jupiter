@@ -210,7 +210,7 @@ export default function HomePage() {
               className="shrink-0 bg-bg-card border border-border rounded-card px-3.5 py-2 text-right cursor-pointer transition-all duration-150 active:scale-[0.96]">
               <div className="text-[10px] font-semibold uppercase tracking-wide text-text-muted whitespace-nowrap">{t.levelTitle}</div>
               <div className="text-[15px] font-bold text-[#e2c992] leading-tight mt-0.5 whitespace-nowrap">
-                {lvl.level === 0 ? t.levelBeginner : `${t.levelTitle} ${lvl.level}`}
+                {t.levelLabel(lvl.level)}
               </div>
             </button>
           );
@@ -502,7 +502,7 @@ export default function HomePage() {
                 </div>
                 <div className="text-center py-3">
                   <div className="text-[36px] font-serif font-normal text-[#e2c992] leading-none">
-                    {lvl.level === 0 ? t.levelBeginner : `${t.levelTitle} ${lvl.level}`}
+                    {t.levelLabel(lvl.level)}
                   </div>
                   <div className="text-[11px] text-text-muted mt-2">
                     {t.levelProgress(data?.medals.total ?? 0, lvl.nextThreshold)}

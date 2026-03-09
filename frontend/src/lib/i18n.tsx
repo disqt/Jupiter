@@ -90,8 +90,8 @@ const translations = {
     understood: 'Compris',
 
     // Level
-    levelBeginner: 'Sportif débutant',
-    levelLabel: (level: number) => level === 0 ? 'Sportif débutant' : `Sportif niveau ${level}`,
+    levelBeginner: 'Débutant',
+    levelLabel: (level: number) => level === 0 ? 'Débutant' : `Niveau ${level}`,
     levelTitle: 'Niveau sportif',
     levelDescription: 'Gagnez des médailles pour monter de niveau. Plus vous vous entraînez, plus votre niveau de sportif augmente !',
     levelProgress: (current: number, next: number) => `${current} / ${next} médailles`,
@@ -255,7 +255,11 @@ const translations = {
 
     // Profile
     profile: 'Profil',
+    editProfile: 'Mon profil',
+    security: 'Sécurité',
+    changePassword: 'Changer le mot de passe',
     settings: 'Paramètres',
+    appSettings: "Paramètres de l'application",
     language: 'Langue',
     french: 'Français',
     english: 'English',
@@ -263,6 +267,9 @@ const translations = {
     newPassword: 'Nouveau mot de passe',
     saveChanges: 'Enregistrer',
     profileUpdated: 'Profil mis à jour',
+    dangerZone: 'Zone de danger',
+    logoutConfirm: 'Êtes-vous sûr de vouloir vous déconnecter ?',
+    guestBanner: 'Créez un compte pour sauvegarder vos données et accéder à toutes les fonctionnalités.',
 
     // Auth errors
     errorInvalidCredentials: 'Pseudo ou mot de passe incorrect',
@@ -366,8 +373,8 @@ const translations = {
     currentMedals: (count: number) => `You currently have ${count} medal${count > 1 ? 's' : ''}.`,
     understood: 'Got it',
 
-    levelBeginner: 'Beginner athlete',
-    levelLabel: (level: number) => level === 0 ? 'Beginner athlete' : `Athlete level ${level}`,
+    levelBeginner: 'Beginner',
+    levelLabel: (level: number) => level === 0 ? 'Beginner' : `Level ${level}`,
     levelTitle: 'Athlete level',
     levelDescription: 'Earn medals to level up. The more you train, the higher your athlete level!',
     levelProgress: (current: number, next: number) => `${current} / ${next} medals`,
@@ -523,7 +530,11 @@ const translations = {
 
     // Profile
     profile: 'Profile',
+    editProfile: 'My profile',
+    security: 'Security',
+    changePassword: 'Change password',
     settings: 'Settings',
+    appSettings: 'App settings',
     language: 'Language',
     french: 'Français',
     english: 'English',
@@ -531,6 +542,9 @@ const translations = {
     newPassword: 'New password',
     saveChanges: 'Save changes',
     profileUpdated: 'Profile updated',
+    dangerZone: 'Danger zone',
+    logoutConfirm: 'Are you sure you want to log out?',
+    guestBanner: 'Create an account to save your data and access all features.',
 
     // Auth errors
     errorInvalidCredentials: 'Invalid nickname or password',
