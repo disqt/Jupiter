@@ -8,7 +8,8 @@ import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import type { UseWorkoutFormReturn } from '@/lib/useWorkoutForm';
 
 interface WorkoutFormShellProps {
-  form: UseWorkoutFormReturn<Record<string, string>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: UseWorkoutFormReturn<any>;
   color: string;
   shadowColor: string;
   deleteMessage?: string;
