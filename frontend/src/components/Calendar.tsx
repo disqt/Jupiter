@@ -10,6 +10,7 @@ import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { WORKOUT_CONFIG, WORKOUT_TYPES, type WorkoutType } from '@/lib/data';
 import { getDraftWorkouts, getDraftRoute, type DraftWorkout } from '@/lib/drafts';
+import { getGuestWeeklyMedalsForMonth, getGuestWeeklyProgress } from '@/lib/guest-storage';
 
 export default function Calendar() {
   const { t, locale, setLocale } = useI18n();
@@ -51,7 +52,7 @@ export default function Calendar() {
           totalDistanceKm: 0,
           totalElevationM: 0,
         });
-        setWeeklyMedals([]);
+        setWeeklyMedals(getGuestWeeklyMedalsForMonth(monthStr));
       } else {
         const [w, s, wm] = await Promise.all([
           dseFetchWorkouts(monthStr),
@@ -77,7 +78,12 @@ export default function Calendar() {
   }, [monthStr, isGuest, dseFetchWorkouts]);
 
   useEffect(() => {
-    if (isGuest) return;
+    if (isGuest) {
+      const guestData = getGuestWeeklyProgress();
+      setTotalMedals(guestData.total_medals);
+      setWeekCount(guestData.week_count);
+      return;
+    }
     fetchWeeklyProgress()
       .then((wp) => {
         setTotalMedals(parseInt(wp.total_medals) || 0);

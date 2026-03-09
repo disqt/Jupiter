@@ -7,7 +7,7 @@ import { useI18n } from '@/lib/i18n';
 import { fetchHomeData, type HomeData } from '@/lib/api';
 import { WORKOUT_CONFIG, WORKOUT_TYPES, type WorkoutType } from '@/lib/data';
 import { getDraftWorkouts, getDraftRoute, type DraftWorkout } from '@/lib/drafts';
-import { getGuestWorkouts, type GuestWorkout } from '@/lib/guest-storage';
+import { getGuestWorkouts, getGuestMedals, type GuestWorkout } from '@/lib/guest-storage';
 import BlurredOverlay from '@/components/BlurredOverlay';
 import BottomSheet from './BottomSheet';
 
@@ -110,7 +110,7 @@ function buildGuestHomeData(guestWorkouts: GuestWorkout[], todayDate: string, we
   return {
     today: todayWorkouts,
     week: weekWorkouts,
-    medals: { total: 0, month: 0 },
+    medals: getGuestMedals(),
     insights: {
       sessions: 0, distance_km: 0, duration_min: 0, volume_kg: 0,
       prev_sessions: 0, prev_distance_km: 0, prev_duration_min: 0, prev_volume_kg: 0,
@@ -307,24 +307,31 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Medals + Insights + Streak */}
+      {/* Medals (visible for both guest and authenticated) */}
+      <div onClick={() => setShowMedalInfo(true)} className="bg-bg-card border border-border rounded-card p-5 mb-4 relative overflow-hidden animate-fadeIn cursor-pointer transition-all duration-150 active:scale-[0.98]" style={{ animationDelay: '0.18s' }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 80% 20%, rgba(201,169,110,0.10) 0%, transparent 60%)' }} />
+        <div className="relative flex items-center gap-4">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 border border-[rgba(201,169,110,0.2)]"
+            style={{ background: 'linear-gradient(135deg, rgba(201,169,110,0.10), rgba(201,169,110,0.03))' }}>
+            <span className="text-[26px]">🏅</span>
+          </div>
+          <div className="flex-1">
+            <div className="font-serif text-4xl font-normal leading-none text-[#e2c992] tracking-tight">
+              {data?.medals.total ?? 0}
+            </div>
+            <div className="text-xs text-text-secondary mt-0.5 font-medium">{t.homeMedalsLabel}</div>
+          </div>
+          {data && data.medals.month > 0 && (
+            <div className="text-[11px] font-semibold text-[#c9a96e] bg-[rgba(201,169,110,0.10)] border border-[rgba(201,169,110,0.15)] rounded-full py-1.5 px-3 whitespace-nowrap">
+              {t.monthMedals(data.medals.month)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Insights + Streak */}
       {isGuest ? (
         <BlurredOverlay>
-          {/* Medals placeholder */}
-          <div className="bg-bg-card border border-border rounded-card p-5 mb-4 relative overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 80% 20%, rgba(201,169,110,0.10) 0%, transparent 60%)' }} />
-            <div className="relative flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 border border-[rgba(201,169,110,0.2)]"
-                style={{ background: 'linear-gradient(135deg, rgba(201,169,110,0.10), rgba(201,169,110,0.03))' }}>
-                <span className="text-[26px]">🏅</span>
-              </div>
-              <div className="flex-1">
-                <div className="font-serif text-4xl font-normal leading-none text-[#e2c992] tracking-tight">0</div>
-                <div className="text-xs text-text-secondary mt-0.5 font-medium">{t.homeMedalsLabel}</div>
-              </div>
-            </div>
-          </div>
-          {/* Insights placeholder */}
           <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2.5">{t.weekSummary}</div>
           <div className="grid grid-cols-2 gap-2.5 mb-4">
             <InsightCard icon="🏋️" value="0" unit={t.sessionsUnit} label={t.sessionsLabel} diff={0} diffLabel={t.vsLastWeek} stableLabel={t.stable} />
@@ -332,7 +339,6 @@ export default function HomePage() {
             <InsightCard icon="⏱️" value="0 min" unit="" label={t.activeTime} diff={0} diffLabel="0 min" stableLabel={t.stable} isDuration />
             <InsightCard icon="🔥" value="0" unit="kg" label={t.homeVolume} diff={0} diffLabel="0 kg" stableLabel={t.stable} />
           </div>
-          {/* Streak placeholder */}
           <div className="bg-bg-card border border-border rounded-card p-[18px_20px] flex items-center gap-3.5">
             <span className="text-[28px] leading-none">🔥</span>
             <div className="flex-1">
@@ -344,28 +350,6 @@ export default function HomePage() {
         </BlurredOverlay>
       ) : (
         <>
-          {/* Medals */}
-          <div onClick={() => setShowMedalInfo(true)} className="bg-bg-card border border-border rounded-card p-5 mb-4 relative overflow-hidden animate-fadeIn cursor-pointer transition-all duration-150 active:scale-[0.98]" style={{ animationDelay: '0.18s' }}>
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 80% 20%, rgba(201,169,110,0.10) 0%, transparent 60%)' }} />
-            <div className="relative flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 border border-[rgba(201,169,110,0.2)]"
-                style={{ background: 'linear-gradient(135deg, rgba(201,169,110,0.10), rgba(201,169,110,0.03))' }}>
-                <span className="text-[26px]">🏅</span>
-              </div>
-              <div className="flex-1">
-                <div className="font-serif text-4xl font-normal leading-none text-[#e2c992] tracking-tight">
-                  {data?.medals.total ?? 0}
-                </div>
-                <div className="text-xs text-text-secondary mt-0.5 font-medium">{t.homeMedalsLabel}</div>
-              </div>
-              {data && data.medals.month > 0 && (
-                <div className="text-[11px] font-semibold text-[#c9a96e] bg-[rgba(201,169,110,0.10)] border border-[rgba(201,169,110,0.15)] rounded-full py-1.5 px-3 whitespace-nowrap">
-                  {t.monthMedals(data.medals.month)}
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Key insights */}
           <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted mb-2.5 animate-fadeIn" style={{ animationDelay: '0.24s' }}>
             {t.weekSummary}

@@ -103,3 +103,79 @@ export function clearGuestWorkouts(): void {
 export function getGuestWorkoutCount(): number {
   return readAll().length;
 }
+
+// ── Medal computation helpers ──
+
+/** Get the ISO week Monday (YYYY-MM-DD) for a given date string */
+function getWeekMonday(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  const dow = (d.getDay() + 6) % 7; // 0=Mon, 6=Sun
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - dow);
+  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+}
+
+/** Group workouts by ISO week and compute medals per week */
+function computeWeeklyMedals(workouts: GuestWorkout[]): { monday: string; count: number; medals: number }[] {
+  const byWeek: Record<string, number> = {};
+  for (const w of workouts) {
+    const monday = getWeekMonday(w.date);
+    byWeek[monday] = (byWeek[monday] || 0) + 1;
+  }
+  return Object.entries(byWeek).map(([monday, count]) => ({
+    monday,
+    count,
+    medals: Math.max(count - 2, 0),
+  }));
+}
+
+/** Get current week count + total medals (for WeeklyProgress & Calendar) */
+export function getGuestWeeklyProgress(): { week_count: number; total_medals: number } {
+  const all = readAll();
+  const weeks = computeWeeklyMedals(all);
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const currentMonday = getWeekMonday(todayStr);
+  const currentWeek = weeks.find(w => w.monday === currentMonday);
+  const totalMedals = weeks.reduce((sum, w) => sum + w.medals, 0);
+  return { week_count: currentWeek?.count || 0, total_medals: totalMedals };
+}
+
+/** Get medals per week for a given month (for Calendar grid) */
+export function getGuestWeeklyMedalsForMonth(month: string): { week_start: string; workout_count: number; medals: number }[] {
+  const all = readAll();
+  const weeks = computeWeeklyMedals(all);
+  const [yearStr, monthStr] = month.split('-');
+  const y = parseInt(yearStr);
+  const m = parseInt(monthStr);
+  const lastDay = new Date(y, m, 0);
+  const firstMonday = getWeekMonday(`${y}-${String(m).padStart(2, '0')}-01`);
+  const lastDayStr = `${y}-${String(m).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+  const lastMonday = getWeekMonday(lastDayStr);
+
+  return weeks
+    .filter(w => w.monday >= firstMonday && w.monday <= lastMonday)
+    .map(w => ({ week_start: w.monday, workout_count: w.count, medals: w.medals }))
+    .sort((a, b) => a.week_start.localeCompare(b.week_start));
+}
+
+/** Get total + month medals (for HomePage) */
+export function getGuestMedals(): { total: number; month: number } {
+  const all = readAll();
+  const weeks = computeWeeklyMedals(all);
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const firstMonday = getWeekMonday(`${currentMonth}-01`);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const lastMonday = getWeekMonday(`${currentMonth}-${String(lastDay.getDate()).padStart(2, '0')}`);
+
+  let total = 0;
+  let monthMedals = 0;
+  for (const w of weeks) {
+    total += w.medals;
+    if (w.monday >= firstMonday && w.monday <= lastMonday) {
+      monthMedals += w.medals;
+    }
+  }
+  return { total, month: monthMedals };
+}

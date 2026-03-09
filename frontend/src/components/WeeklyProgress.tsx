@@ -5,6 +5,7 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { fetchWeeklyProgress } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
+import { getGuestWeeklyProgress } from '@/lib/guest-storage';
 
 export default function WeeklyProgress() {
   const searchParams = useSearchParams();
@@ -16,7 +17,12 @@ export default function WeeklyProgress() {
   const [totalMedals, setTotalMedals] = useState(0);
 
   useEffect(() => {
-    if (isGuest) return;
+    if (isGuest) {
+      const guestData = getGuestWeeklyProgress();
+      setCount(guestData.week_count);
+      setTotalMedals(guestData.total_medals);
+      return;
+    }
     fetchWeeklyProgress().then((data) => {
       setCount(parseInt(data.week_count) || 0);
       setTotalMedals(parseInt(data.total_medals) || 0);

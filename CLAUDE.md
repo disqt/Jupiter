@@ -28,7 +28,7 @@ cd frontend && npx tsc --noEmit     # Type check
 - Constants: `frontend/src/lib/data.ts` (WorkoutType, WORKOUT_CONFIG, muscle groups, ride types, SPORT_EMOJIS)
 - i18n: `frontend/src/lib/i18n.tsx` (custom Context, FR default + EN)
 - Auth context: `frontend/src/lib/auth.tsx` (AuthProvider, JWT in localStorage, `isGuest` flag for guest mode)
-- Guest storage: `frontend/src/lib/guest-storage.ts` (guest workout CRUD in localStorage, key `guest-workouts`)
+- Guest storage: `frontend/src/lib/guest-storage.ts` (guest workout CRUD + medal computation in localStorage, key `guest-workouts`)
 - Data source: `frontend/src/lib/useDataSource.ts` (abstraction hook — routes to API or localStorage based on `isGuest`)
 - Blurred overlay: `frontend/src/components/BlurredOverlay.tsx` (blur + CTA for guest-restricted sections)
 - Rate limiter: `frontend/src/lib/rate-limit.ts` (in-memory, for login/register)
@@ -126,8 +126,9 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Guest mode: app usable without account, workouts stored in localStorage (`guest-workouts` key). `useDataSource()` hook routes all data ops to API (authenticated) or localStorage (guest). `isGuest` from AuthContext determines mode.
 - Guest exercises: stored in `guest-exercises` localStorage key, seeded from `seed-exercises.ts` on first strength form access.
 - Account creation: bottom sheet on profile page (email + nickname + password, no invite code). Migrates guest workouts + custom exercises to DB on registration/login.
-- BlurredOverlay: wraps content with blur + CTA button. Used on HomePage (medals, insights, streak) and StatsPage (charts) for guest users.
-- API 401 guard: `api.ts` `request()` does `window.location.href = '/'` on 401. ANY component calling API functions MUST check `isGuest` first to avoid infinite reload loops. WeeklyProgress, Calendar, HomePage, StatsPage all guard with `if (isGuest) return`.
+- BlurredOverlay: wraps content with blur + CTA button. Used on HomePage (insights, streak) and StatsPage (charts) for guest users.
+- Guest medals: computed client-side in `guest-storage.ts` using same formula `max(count - 2, 0)` per ISO week. Functions: `getGuestWeeklyProgress()`, `getGuestWeeklyMedalsForMonth()`, `getGuestMedals()`. WeeklyProgress, Calendar, HomePage all use these in guest mode.
+- API 401 guard: `api.ts` `request()` does `window.location.href = '/'` on 401. ANY component calling API functions MUST check `isGuest` first to avoid infinite reload loops. WeeklyProgress, Calendar, HomePage, StatsPage all guard with `if (isGuest)` branch.
 - Default exercises split: `default-exercises.ts` (pure data) vs `seed-exercises.ts` (imports db-server). Client components must import from `default-exercises.ts` — importing `seed-exercises.ts` client-side fails because `pg` module can't be bundled.
 
 ## Pages
@@ -144,7 +145,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Key insights grid (2x2): sessions, distance, active time, strength volume — with trend vs previous week
 - Streak card: consecutive days + best streak
 - API route: `GET /api/home` (`frontend/src/app/api/home/route.ts`) — returns today, week, medals, insights, streak in one call. Today's `exercise_count` uses `COUNT(DISTINCT exercise_id)` (not total sets).
-- Guest mode: today's workouts + weekly tracker computed from localStorage. Medals, insights, streak wrapped in `<BlurredOverlay>` with placeholder data. Greeting shows no name.
+- Guest mode: today's workouts + weekly tracker + medals computed from localStorage. Insights + streak wrapped in `<BlurredOverlay>` with placeholder data. Greeting shows no name. Medal card is fully functional (total, monthly badge, info modal).
 
 ## Calendar Page
 
