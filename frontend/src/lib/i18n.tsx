@@ -89,6 +89,16 @@ const translations = {
     currentMedals: (count: number) => `Tu as actuellement ${count} médaille${count > 1 ? 's' : ''}.`,
     understood: 'Compris',
 
+    // Level
+    levelBeginner: 'Sportif débutant',
+    levelLabel: (level: number) => level === 0 ? 'Sportif débutant' : `Sportif niveau ${level}`,
+    levelTitle: 'Niveau sportif',
+    levelDescription: 'Gagnez des médailles pour monter de niveau. Plus vous vous entraînez, plus votre niveau de sportif augmente !',
+    levelProgress: (current: number, next: number) => `${current} / ${next} médailles`,
+    nextLevel: 'Prochain niveau',
+    medalsThisMonth: 'Médailles ce mois',
+    medalsThisYear: 'Médailles cette année',
+
     // Stats
     totalMedals: 'Médailles totales',
     monthlyMedals: 'Médailles ce mois',
@@ -351,6 +361,15 @@ const translations = {
     medalsExtra: '+1 per extra session',
     currentMedals: (count: number) => `You currently have ${count} medal${count > 1 ? 's' : ''}.`,
     understood: 'Got it',
+
+    levelBeginner: 'Beginner athlete',
+    levelLabel: (level: number) => level === 0 ? 'Beginner athlete' : `Athlete level ${level}`,
+    levelTitle: 'Athlete level',
+    levelDescription: 'Earn medals to level up. The more you train, the higher your athlete level!',
+    levelProgress: (current: number, next: number) => `${current} / ${next} medals`,
+    nextLevel: 'Next level',
+    medalsThisMonth: 'Medals this month',
+    medalsThisYear: 'Medals this year',
 
     totalMedals: 'Total medals',
     monthlyMedals: 'Medals this month',

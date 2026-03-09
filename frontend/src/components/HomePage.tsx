@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { fetchHomeData, type HomeData } from '@/lib/api';
-import { WORKOUT_CONFIG, WORKOUT_TYPES, type WorkoutType } from '@/lib/data';
+import { WORKOUT_CONFIG, WORKOUT_TYPES, type WorkoutType, computeLevel } from '@/lib/data';
 import { getDraftWorkouts, getDraftRoute, type DraftWorkout } from '@/lib/drafts';
 import { getGuestWorkouts, getGuestMedals, type GuestWorkout } from '@/lib/guest-storage';
 import BlurredOverlay from '@/components/BlurredOverlay';
@@ -127,6 +127,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [showMedalInfo, setShowMedalInfo] = useState(false);
+  const [showLevelInfo, setShowLevelInfo] = useState(false);
   const [todayDrafts, setTodayDrafts] = useState<DraftWorkout[]>([]);
 
   const weekDates = getWeekDates();
@@ -192,14 +193,28 @@ export default function HomePage() {
 
   return (
     <div className="page-container px-5 pb-36 lg:pb-20">
-      {/* Greeting */}
-      <div className="pt-8 mb-7 animate-fadeIn">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-[#c9a96e] mb-1.5 capitalize">
-          {todayStr} — {getGreeting(t)}
+      {/* Greeting + Level */}
+      <div className="pt-8 mb-7 animate-fadeIn flex items-end justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[#c9a96e] mb-1.5 capitalize">
+            {todayStr} — {getGreeting(t)}
+          </div>
+          <h1 className="font-serif text-[32px] lg:text-[38px] font-normal leading-tight">
+            {t.welcome}{!isGuest && user?.nickname ? <> <span className="text-[#e2c992]">{user.nickname}</span></> : null}
+          </h1>
         </div>
-        <h1 className="font-serif text-[32px] lg:text-[38px] font-normal leading-tight">
-          {t.welcome}{!isGuest && user?.nickname ? <> <span className="text-[#e2c992]">{user.nickname}</span></> : null}
-        </h1>
+        {data && (() => {
+          const lvl = computeLevel(data.medals.total);
+          return (
+            <button onClick={() => setShowLevelInfo(true)}
+              className="shrink-0 bg-bg-card border border-border rounded-card px-3.5 py-2 text-right cursor-pointer transition-all duration-150 active:scale-[0.96]">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-text-muted whitespace-nowrap">{t.levelTitle}</div>
+              <div className="text-[15px] font-bold text-[#e2c992] leading-tight mt-0.5 whitespace-nowrap">
+                {lvl.level === 0 ? t.levelBeginner : `${t.levelTitle} ${lvl.level}`}
+              </div>
+            </button>
+          );
+        })()}
       </div>
 
       {/* Today's workouts */}
@@ -470,6 +485,45 @@ export default function HomePage() {
           </div>
         </>
       )}
+
+      {/* Level info modal */}
+      {showLevelInfo && (() => {
+        const lvl = computeLevel(data?.medals.total ?? 0);
+        return (
+          <>
+            <div onClick={() => setShowLevelInfo(false)}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
+            <div className="fixed inset-0 lg:left-[200px] z-[51] flex items-center justify-center px-8" onClick={() => setShowLevelInfo(false)}>
+              <div onClick={(e) => e.stopPropagation()}
+                className="bg-bg-card border border-border rounded-card p-5 w-full max-w-[320px] animate-fadeIn">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[20px]">⭐</span>
+                  <h3 className="text-[15px] font-semibold">{t.levelTitle}</h3>
+                </div>
+                <div className="text-center py-3">
+                  <div className="text-[36px] font-serif font-normal text-[#e2c992] leading-none">
+                    {lvl.level === 0 ? t.levelBeginner : `${t.levelTitle} ${lvl.level}`}
+                  </div>
+                  <div className="text-[11px] text-text-muted mt-2">
+                    {t.levelProgress(data?.medals.total ?? 0, lvl.nextThreshold)}
+                  </div>
+                  <div className="h-1.5 bg-border rounded-full overflow-hidden mt-2 mx-8">
+                    <div className="h-full rounded-full bg-gradient-to-r from-[#c9a96e] to-[#e2c992] transition-all duration-500"
+                      style={{ width: `${((data?.medals.total ?? 0) / lvl.nextThreshold) * 100}%` }} />
+                  </div>
+                </div>
+                <p className="text-[13px] text-text-secondary leading-relaxed mt-3">
+                  {t.levelDescription}
+                </p>
+                <button onClick={() => setShowLevelInfo(false)}
+                  className="w-full mt-4 py-2.5 bg-bg-elevated border border-border rounded-sm text-text text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
+                  {t.understood}
+                </button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }
