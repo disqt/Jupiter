@@ -4,21 +4,24 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { fetchWeeklyProgress } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
+import { useAuth } from '@/lib/auth';
 
 export default function WeeklyProgress() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { t } = useI18n();
+  const { isGuest } = useAuth();
   const [showCelebration, setShowCelebration] = useState(false);
   const [count, setCount] = useState(0);
   const [totalMedals, setTotalMedals] = useState(0);
 
   useEffect(() => {
+    if (isGuest) return;
     fetchWeeklyProgress().then((data) => {
       setCount(parseInt(data.week_count) || 0);
       setTotalMedals(parseInt(data.total_medals) || 0);
     }).catch(console.error);
-  }, [pathname]);
+  }, [pathname, isGuest]);
 
   useEffect(() => {
     if (searchParams.get('saved') === '1' && count >= 3) {
