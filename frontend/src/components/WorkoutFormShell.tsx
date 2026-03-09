@@ -68,6 +68,12 @@ export default function WorkoutFormShell({ form, color, shadowColor, deleteMessa
           {t.deleteWorkout}
         </button>
       )}
+      {!form.workoutId && form.hasDraft && (
+        <button onClick={form.deleteDraft}
+          className="w-full py-3.5 bg-transparent border border-border rounded-card text-red-400 text-[14px] font-medium font-inherit cursor-pointer mt-3 transition-all duration-200 active:scale-[0.98] active:bg-red-500/10">
+          {t.deleteDraft}
+        </button>
+      )}
 
       <DeleteConfirmModal
         open={form.showDeleteConfirm}

@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { fetchHomeData, type HomeData } from '@/lib/api';
 import { WORKOUT_CONFIG, WORKOUT_TYPES, type WorkoutType } from '@/lib/data';
+import { getDraftWorkouts, getDraftRoute, type DraftWorkout } from '@/lib/drafts';
 import BottomSheet from './BottomSheet';
 
 const SPORT_COLORS: Record<string, string> = {
@@ -75,6 +76,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [showSheet, setShowSheet] = useState(false);
   const [showMedalInfo, setShowMedalInfo] = useState(false);
+  const [todayDrafts, setTodayDrafts] = useState<DraftWorkout[]>([]);
 
   useEffect(() => {
     fetchHomeData()
@@ -94,6 +96,14 @@ export default function HomePage() {
     const n = new Date();
     return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
   })();
+
+  // Scan drafts for today (exclude types already saved)
+  useEffect(() => {
+    if (!data) return;
+    const savedTypes = new Set(data.today.map(w => w.type));
+    const allDrafts = getDraftWorkouts(new Set([todayDate]));
+    setTodayDrafts(allDrafts.filter(d => !savedTypes.has(d.type)));
+  }, [data, todayDate]);
 
   // Group week workouts by date
   const weekByDay: Record<string, string[]> = {};
@@ -165,6 +175,22 @@ export default function HomePage() {
             })}
           </div>
         ) : null}
+        {todayDrafts.length > 0 && (
+          <div className={`flex gap-2.5 ${data && data.today.length > 0 ? 'mt-2' : ''}`}>
+            {todayDrafts.map((d) => (
+              <Link key={`draft-${d.type}`} href={getDraftRoute(d)}
+                className="flex items-center gap-2 bg-bg-elevated border border-dashed border-border rounded-[10px] p-[10px_14px] flex-1 min-w-0 no-underline text-inherit transition-all duration-150 active:scale-[0.98] opacity-50">
+                <div className={`w-[34px] h-[34px] rounded-[9px] flex items-center justify-center text-base shrink-0 ${ICON_BG[d.type] || 'bg-bg'}`}>
+                  {d.emoji || '🎯'}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[13px] font-semibold truncate">{d.name || t.workoutTypeLabels[d.type] || d.type}</div>
+                  <div className="text-[11px] text-text-secondary mt-px truncate italic">{t.draft}</div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
         <button onClick={() => setShowSheet(true)}
           className={`w-full flex items-center justify-center gap-2 py-3 bg-[rgba(201,169,110,0.08)] border border-[rgba(201,169,110,0.15)] rounded-[10px] text-[#c9a96e] text-[13px] font-semibold font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98] ${data && data.today.length > 0 ? 'mt-2.5' : ''}`}>
           <span className="text-base">+</span>

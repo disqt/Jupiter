@@ -8,6 +8,7 @@ import BottomSheet from './BottomSheet';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { WORKOUT_CONFIG, WORKOUT_TYPES, type WorkoutType } from '@/lib/data';
+import { getDraftWorkouts, getDraftRoute, type DraftWorkout } from '@/lib/drafts';
 
 export default function Calendar() {
   const { t, locale, setLocale } = useI18n();
@@ -25,6 +26,7 @@ export default function Calendar() {
   const [loading, setLoading] = useState(true);
   const [weeklyMedals, setWeeklyMedals] = useState<WeeklyMedal[]>([]);
   const [showMedalInfo, setShowMedalInfo] = useState(false);
+  const [drafts, setDrafts] = useState<DraftWorkout[]>([]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -68,6 +70,16 @@ export default function Calendar() {
     loadData();
   }, [loadData]);
 
+  // Scan localStorage for draft workouts in this month
+  useEffect(() => {
+    const daysInM = new Date(year, month + 1, 0).getDate();
+    const dates = new Set<string>();
+    for (let d = 1; d <= daysInM; d++) {
+      dates.add(`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    }
+    setDrafts(getDraftWorkouts(dates));
+  }, [year, month, workouts]);
+
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7;
 
@@ -77,6 +89,12 @@ export default function Calendar() {
   const getWorkoutsForDay = (day: number): Workout[] => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return workouts.filter((w) => w.date === dateStr);
+  };
+
+  const getDraftsForDay = (day: number): DraftWorkout[] => {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const savedTypes = new Set(workouts.filter(w => w.date === dateStr).map(w => w.type));
+    return drafts.filter(d => d.date === dateStr && !savedTypes.has(d.type));
   };
 
   const isToday = (day: number) =>
@@ -103,6 +121,7 @@ export default function Calendar() {
 
   const selectedDay = selectedDate ? parseInt(selectedDate.split('-')[2]) : null;
   const selectedDayWorkouts = selectedDay ? getWorkoutsForDay(selectedDay) : [];
+  const selectedDayDrafts = selectedDay ? getDraftsForDay(selectedDay) : [];
   const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null;
   const selectedWeekday = selectedDateObj ? t.weekdays[selectedDateObj.getDay()] : '';
   const isTodaySelected = selectedDay !== null && isToday(selectedDay);
@@ -280,6 +299,7 @@ export default function Calendar() {
                     }
 
                     const dayWorkouts = getWorkoutsForDay(day);
+                    const dayDrafts = getDraftsForDay(day);
                     const typeSet = new Set(dayWorkouts.map(w => w.type));
                     const dateStr = formatDateStr(day);
                     const isTodayCell = isToday(day);
@@ -305,12 +325,18 @@ export default function Calendar() {
                           <span className="text-[13px] leading-none">{day}</span>
                           {isTodayCell && <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />}
                         </div>
-                        {dayWorkouts.length > 0 && (
+                        {(dayWorkouts.length > 0 || dayDrafts.length > 0) && (
                           <div className="flex flex-col gap-px w-full px-0.5">
                             {dayWorkouts.map((w) => (
                               <span key={w.id} className={`text-[8px] font-semibold leading-tight py-0.5 px-[3px] rounded-[3px] text-center line-clamp-1 ${getTypeTagClass(w.type, isSelected)}`}>
                                 <span className="lg:hidden">{w.customEmoji || WORKOUT_CONFIG[w.type as WorkoutType]?.defaultEmoji || '🎯'}</span>
                                 <span className="hidden lg:inline">{t.workoutTypeTags[w.type] || w.type}</span>
+                              </span>
+                            ))}
+                            {dayDrafts.map((d) => (
+                              <span key={`draft-${d.type}`} className={`text-[8px] font-semibold leading-tight py-0.5 px-[3px] rounded-[3px] text-center line-clamp-1 opacity-50 border border-dashed ${getTypeTagClass(d.type, isSelected)}`}>
+                                <span className="lg:hidden">{d.emoji || '🎯'}</span>
+                                <span className="hidden lg:inline">{t.workoutTypeTags[d.type] || d.type}</span>
                               </span>
                             ))}
                           </div>
@@ -353,29 +379,47 @@ export default function Calendar() {
 
               {loading ? (
                 <div className="text-text-muted text-[13px] text-center py-3">{t.loading}</div>
-              ) : selectedDayWorkouts.length > 0 ? (
-                selectedDayWorkouts.map((w) => {
-                  const config = WORKOUT_CONFIG[w.type as WorkoutType];
-                  const href = config
-                    ? `${config.route}?date=${selectedDate}&id=${w.id}`
-                    : `/workout/custom?date=${selectedDate}&id=${w.id}`;
-                  return (
+              ) : selectedDayWorkouts.length > 0 || selectedDayDrafts.length > 0 ? (
+                <>
+                  {selectedDayWorkouts.map((w) => {
+                    const config = WORKOUT_CONFIG[w.type as WorkoutType];
+                    const href = config
+                      ? `${config.route}?date=${selectedDate}&id=${w.id}`
+                      : `/workout/custom?date=${selectedDate}&id=${w.id}`;
+                    return (
+                      <Link
+                        key={w.id}
+                        href={href}
+                        className="flex items-center gap-2.5 px-3 py-2.5 bg-bg-elevated rounded-sm mb-1.5 cursor-pointer transition-all duration-150 active:scale-[0.98] no-underline text-inherit"
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[15px] shrink-0 ${getTypeBgClass(w.type)}`}>
+                          {w.customEmoji || config?.defaultEmoji || '🎯'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">{w.customName || t.workoutTypeLabels[w.type] || w.type}</div>
+                          <div className="text-xs text-text-muted">{w.detail}</div>
+                        </div>
+                        <span className="text-text-muted text-sm">›</span>
+                      </Link>
+                    );
+                  })}
+                  {selectedDayDrafts.map((d) => (
                     <Link
-                      key={w.id}
-                      href={href}
-                      className="flex items-center gap-2.5 px-3 py-2.5 bg-bg-elevated rounded-sm mb-1.5 cursor-pointer transition-all duration-150 active:scale-[0.98] no-underline text-inherit"
+                      key={`draft-${d.type}`}
+                      href={getDraftRoute(d)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 bg-bg-elevated rounded-sm mb-1.5 cursor-pointer transition-all duration-150 active:scale-[0.98] no-underline text-inherit opacity-50 border border-dashed border-border"
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[15px] shrink-0 ${getTypeBgClass(w.type)}`}>
-                        {w.customEmoji || config?.defaultEmoji || '🎯'}
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[15px] shrink-0 ${getTypeBgClass(d.type)}`}>
+                        {d.emoji || '🎯'}
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm font-medium">{w.customName || t.workoutTypeLabels[w.type] || w.type}</div>
-                        <div className="text-xs text-text-muted">{w.detail}</div>
+                        <div className="text-sm font-medium">{d.name || t.workoutTypeLabels[d.type] || d.type}</div>
+                        <div className="text-xs text-text-muted italic">{t.draft}</div>
                       </div>
                       <span className="text-text-muted text-sm">›</span>
                     </Link>
-                  );
-                })
+                  ))}
+                </>
               ) : (
                 <div className="text-text-muted text-[13px] text-center py-3">{t.noWorkout}</div>
               )}
