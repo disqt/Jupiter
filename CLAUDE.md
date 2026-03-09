@@ -32,6 +32,7 @@ cd frontend && npx tsc --noEmit     # Type check
 - Seed exercises: `frontend/src/lib/seed-exercises.ts` (default exercises on registration)
 - Middleware: `frontend/src/middleware.ts` (route protection — blocks API calls without Bearer token, except auth + health)
 - Error boundary: `frontend/src/components/ErrorBoundary.tsx` (wraps app inside I18nProvider, bilingual fallback UI)
+- Workout form shared: `frontend/src/lib/useWorkoutForm.ts` (hook), `frontend/src/components/WorkoutFormShell.tsx` (UI shell), `frontend/src/lib/duration.ts` (parsing), `frontend/src/components/DeleteConfirmModal.tsx` (modal)
 
 ## Environment
 
@@ -85,8 +86,10 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Type config centralized in `WORKOUT_CONFIG` (data.ts) — emoji, color, route per type. Calendar uses lookup helpers, not ternaries.
 - Custom emoji/name per workout: stored in `workouts.custom_emoji`/`custom_name`, null = use type default
 - PATCH `/api/workouts/:id` updates only emoji/name without touching workout details — used for instant persist from EmojiPicker/NameEditor on existing workouts
-- Duration input: smart text field accepting "2h30", "1:45", "90" (minutes) — parseDuration/formatDuration in each form page
-- localStorage draft autosave for all workout types (`{type}-draft-${date}` / `{type}-edit-${workoutId}`)
+- Duration input: smart text field accepting "2h30", "1:45", "90" (minutes) — shared `parseDuration`/`formatDuration` in `frontend/src/lib/duration.ts`
+- Workout forms (5 simple types) use shared `useWorkoutForm()` hook (`frontend/src/lib/useWorkoutForm.ts`) + `WorkoutFormShell` component (`frontend/src/components/WorkoutFormShell.tsx`). Each form page is ~70 lines (hook config + field JSX). Adding a new type = ~30 lines.
+- Strength form is separate (complex exercise logs UI) but uses shared `DeleteConfirmModal` (`frontend/src/components/DeleteConfirmModal.tsx`)
+- localStorage draft autosave for all workout types (`{type}-draft-${date}` / `{type}-edit-${workoutId}`) — handled by useWorkoutForm hook
 - Save animation + redirect with `/calendar?saved=1` triggers medal celebration in WeeklyProgress. `replaceState` uses `pathname` (not hardcoded `/`) to strip query param without changing route.
 - DB values (muscle groups, ride types) stay in French — display translated via `t.muscleGroups[dbValue]`
 - env vars (`JWT_SECRET`, `INVITE_CODE`) read at call time in API route handlers — `getJwtSecret()` throws if undefined (never fallback to empty string)
