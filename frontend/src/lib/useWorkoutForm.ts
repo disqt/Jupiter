@@ -16,7 +16,7 @@ interface UseWorkoutFormOptions<F extends Record<string, string>> {
   hasData?: (fields: F) => boolean;
 }
 
-interface UseWorkoutFormReturn<F extends Record<string, string>> {
+export interface UseWorkoutFormReturn<F extends Record<string, string>> {
   fields: F;
   setField: (name: keyof F, value: string) => void;
   setFields: (updates: Partial<F>) => void;
