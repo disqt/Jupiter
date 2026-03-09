@@ -1,6 +1,6 @@
 import pool from './db-server';
 
-const DEFAULT_EXERCISES: { name: string; muscle_group: string }[] = [
+export const DEFAULT_EXERCISES: { name: string; muscle_group: string }[] = [
   { name: 'Développé couché', muscle_group: 'Pectoraux' },
   { name: 'Développé incliné', muscle_group: 'Pectoraux' },
   { name: 'Développé décliné', muscle_group: 'Pectoraux' },
