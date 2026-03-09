@@ -32,6 +32,8 @@ cd frontend && npx tsc --noEmit     # Type check
 - Seed exercises: `frontend/src/lib/seed-exercises.ts` (default exercises on registration)
 - Middleware: `frontend/src/middleware.ts` (route protection — blocks API calls without Bearer token, except auth + health)
 - Error boundary: `frontend/src/components/ErrorBoundary.tsx` (wraps app inside I18nProvider, bilingual fallback UI)
+- Workout form shared: `frontend/src/lib/useWorkoutForm.ts` (hook), `frontend/src/components/WorkoutFormShell.tsx` (UI shell), `frontend/src/lib/duration.ts` (parsing), `frontend/src/components/DeleteConfirmModal.tsx` (modal)
+- Shared input: `frontend/src/components/TextInput.tsx` (error state support, used across all forms and auth pages)
 
 ## Environment
 
@@ -85,8 +87,10 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Type config centralized in `WORKOUT_CONFIG` (data.ts) — emoji, color, route per type. Calendar uses lookup helpers, not ternaries.
 - Custom emoji/name per workout: stored in `workouts.custom_emoji`/`custom_name`, null = use type default
 - PATCH `/api/workouts/:id` updates only emoji/name without touching workout details — used for instant persist from EmojiPicker/NameEditor on existing workouts
-- Duration input: smart text field accepting "2h30", "1:45", "90" (minutes) — parseDuration/formatDuration in each form page
-- localStorage draft autosave for all workout types (`{type}-draft-${date}` / `{type}-edit-${workoutId}`)
+- Duration input: smart text field accepting "2h30", "1:45", "90" (minutes) — shared `parseDuration`/`formatDuration` in `frontend/src/lib/duration.ts`
+- Workout forms (5 simple types) use shared `useWorkoutForm()` hook (`frontend/src/lib/useWorkoutForm.ts`) + `WorkoutFormShell` component (`frontend/src/components/WorkoutFormShell.tsx`). Each form page is ~70 lines (hook config + field JSX). Adding a new type = ~30 lines.
+- Strength form is separate (complex exercise logs UI) but uses shared `DeleteConfirmModal` (`frontend/src/components/DeleteConfirmModal.tsx`)
+- localStorage draft autosave for all workout types (`{type}-draft-${date}` / `{type}-edit-${workoutId}`) — handled by useWorkoutForm hook
 - Save animation + redirect with `/calendar?saved=1` triggers medal celebration in WeeklyProgress. `replaceState` uses `pathname` (not hardcoded `/`) to strip query param without changing route.
 - DB values (muscle groups, ride types) stay in French — display translated via `t.muscleGroups[dbValue]`
 - env vars (`JWT_SECRET`, `INVITE_CODE`) read at call time in API route handlers — `getJwtSecret()` throws if undefined (never fallback to empty string)
@@ -96,6 +100,10 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - ErrorBoundary wraps app inside I18nProvider (order: I18nProvider → ErrorBoundary → AuthProvider → App) so error UI is bilingual
 - DB indexes: `workouts(user_id, date)`, `workouts(user_id, type)`, `cycling_details(workout_id)`, `workout_details(workout_id)`, `exercise_logs(workout_id)`, `exercise_logs(exercise_id)`, `exercises(user_id, muscle_group)` — migration in `database/migrations/001_add_indexes.sql`
 - Numeric inputs use `type="text"` + `inputMode="decimal"/"numeric"` (NOT `type="number"`) — prevents silent value coercion. onChange filters non-numeric chars via regex (`/^[0-9]*\.?[0-9]*$/` for decimals, `/^[0-9]*$/` for integers). Validation also at save time + Zod on server.
+- TextInput component (`frontend/src/components/TextInput.tsx`): shared input with `error` prop (red border + red text). Used in all workout forms, login, register, profile. Pass `className="bg-bg"` to override background on auth pages.
+- Field-level validation errors: `useWorkoutForm.validate()` returns `{ message, fields[] }`. Hook tracks `fieldErrors: Set<keyof F>`, clears on field input. TextInput gets `error={form.fieldErrors.has('fieldName')}`.
+- Exercise notes: `exercise_workout_notes` table (workout_id, exercise_id, note, pinned). Pinned notes auto-appear on future workouts with same exercise. Notes visible in view mode + exercise history modal.
+- WorkoutFormShell save button uses static `colorClasses` map (NOT dynamic `bg-${color}`) — Tailwind cannot detect dynamic class names.
 - Medal formula: `GREATEST(count - 2, 0)` — 3 sessions/week = 1 medal, 4 = 2, etc.
 - Medal UI: header card = total medals (big icon + number), monthly card = month medals (sum of weeklyMedals) + progress bar + info modal on tap
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. Split into `UPPER_BODY_GROUPS` / `LOWER_BODY_GROUPS`. No "Jambes" or "Autre".
@@ -129,6 +137,19 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 ## Calendar Page
 
 Moved from `/` to `/calendar`. All workout form redirects (`router.push`, `?saved=1`) point to `/calendar`.
+
+## Adding a New Workout Type (checklist)
+
+1. **DB**: Add value to `workouts.type` CHECK constraint in Supabase (`ALTER TABLE workouts DROP CONSTRAINT ..., ADD CONSTRAINT ... CHECK (type IN ('velo','musculation','course','natation','marche','custom','NEW_TYPE'))`)
+2. **`data.ts`**: Add to `WorkoutType` union + `WORKOUT_TYPES` array + `WORKOUT_CONFIG` (emoji, color, colorSoft, route)
+3. **Tailwind**: Add `bg-NEWCOLOR` / `text-NEWCOLOR` classes in `tailwind.config.ts` `theme.extend.colors` if new color. Also add to `colorClasses` map in `WorkoutFormShell.tsx`
+4. **`i18n.tsx`**: Add translation keys for workout name (FR + EN), add to `workoutTypeLabels` and `workoutTypeTags` in both locales
+5. **`useWorkoutForm.ts`**: Add workout name mapping in `workoutNames` record (~line 202)
+6. **Page**: Create `frontend/src/app/workout/NEWTYPE/page.tsx` — ~30-70 lines using `useWorkoutForm()` + `<WorkoutFormShell>`. Copy from `running/page.tsx` (simplest) and adapt: type, storagePrefix, defaultFields, buildPayload, validate, loadFromApi, color, shadowColor
+7. **API**: If using `workout_details`, add type to the allowed list in `frontend/src/app/api/workouts/route.ts` (`['course', 'natation', 'marche', 'custom'].includes(type)`)
+8. **Zod**: Add type to `createWorkoutSchema`/`updateWorkoutSchema` in `frontend/src/lib/validations.ts`
+9. **Calendar**: Type will auto-appear via `WORKOUT_CONFIG` lookup — no changes needed
+10. **Home/Stats**: `api.ts` `toWorkout()` needs a case for the new type's detail string. Stats pages auto-include via type distribution.
 
 ## Stats Page
 

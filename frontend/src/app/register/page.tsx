@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import AuthIllustration from '@/components/AuthIllustration';
+import TextInput from '@/components/TextInput';
 
 export default function RegisterPage() {
   const { t, locale } = useI18n();
@@ -76,13 +77,13 @@ export default function RegisterPage() {
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
                 {t.nickname}
               </label>
-              <input
-                type="text"
+              <TextInput
                 value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
+                onChange={(e) => { setNickname(e.target.value); if (error) setError(''); }}
                 autoComplete="username"
                 required
-                className="w-full py-3.5 px-4 bg-bg border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted"
+                error={!!error}
+                className="bg-bg"
               />
             </div>
 
@@ -91,13 +92,14 @@ export default function RegisterPage() {
                 {t.password}
               </label>
               <div className="relative">
-                <input
+                <TextInput
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
                   autoComplete="new-password"
                   required
-                  className="w-full py-3.5 px-4 pr-11 bg-bg border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted"
+                  error={!!error}
+                  className="bg-bg pr-11"
                 />
                 <button
                   type="button"
@@ -125,13 +127,13 @@ export default function RegisterPage() {
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
                 {t.inviteCode}
               </label>
-              <input
-                type="text"
+              <TextInput
                 value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
+                onChange={(e) => { setInviteCode(e.target.value); if (error) setError(''); }}
                 autoComplete="off"
                 required
-                className="w-full py-3.5 px-4 bg-bg border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted"
+                error={!!error}
+                className="bg-bg"
               />
             </div>
 

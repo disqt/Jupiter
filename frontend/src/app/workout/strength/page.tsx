@@ -7,6 +7,7 @@ import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, fetchWorkou
 import SaveAnimation from '@/components/SaveAnimation';
 import WorkoutFormHeader from '@/components/WorkoutFormHeader';
 import BottomSheet from '@/components/BottomSheet';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import { useI18n } from '@/lib/i18n';
 
 interface SetLog {
@@ -111,6 +112,13 @@ function StrengthWorkoutForm() {
     setLoadingWorkout(true);
     fetchWorkout(parseInt(workoutId)).then((data) => {
       if (data.exercise_logs && Array.isArray(data.exercise_logs)) {
+        // Build notes lookup from exercise_notes
+        const notesMap = new Map<number, { note: string; pinned: boolean }>();
+        if (data.exercise_notes) {
+          for (const en of data.exercise_notes) {
+            notesMap.set(en.exercise_id, { note: en.note, pinned: en.pinned });
+          }
+        }
         // Group logs by exercise
         const grouped = new Map<number, { name: string; muscleGroup: string; sets: { setNumber: number; reps: number; weight: string }[] }>();
         for (const log of data.exercise_logs) {
@@ -128,13 +136,14 @@ function StrengthWorkoutForm() {
         }
         const loadedEntries: ExerciseEntry[] = [];
         grouped.forEach((val, exId) => {
+          const noteData = notesMap.get(exId);
           loadedEntries.push({
             exercise: { id: exId, name: val.name, muscleGroup: val.muscleGroup },
             sets: val.sets.map((s) => ({ setNumber: s.setNumber, reps: String(s.reps), weight: s.weight })),
             lastPerformance: [],
-            note: '',
-            notePinned: false,
-            showNote: false,
+            note: noteData?.note || '',
+            notePinned: noteData?.pinned || false,
+            showNote: !!(noteData?.note),
           });
         });
         setEntries(loadedEntries);
@@ -216,22 +225,27 @@ function StrengthWorkoutForm() {
   };
 
   const addExercise = async (exercise: { id: number; name: string; muscleGroup: string }) => {
-    // Fetch last performance for this exercise
+    // Fetch last performance + pinned note for this exercise
     let lastPerf: { setNumber: number; reps: number; weight: number }[] = [];
+    let pinnedNote = '';
     try {
-      const perf = await fetchLastPerformance(exercise.id);
-      lastPerf = perf.map((p) => ({
+      const resp = await fetchLastPerformance(exercise.id);
+      lastPerf = resp.sets.map((p) => ({
         setNumber: p.set_number,
         reps: p.reps,
         weight: parseFloat(p.weight),
       }));
+      if (resp.pinned_note) pinnedNote = resp.pinned_note;
     } catch { /* no previous performance */ }
 
     const initialSets: SetLog[] = lastPerf.length > 0
       ? lastPerf.map((p) => ({ setNumber: p.setNumber, reps: '', weight: '' }))
       : [{ setNumber: 1, reps: '', weight: '' }];
 
-    setEntries([...entries, { exercise, sets: initialSets, lastPerformance: lastPerf, note: '', notePinned: false, showNote: false }]);
+    setEntries([...entries, {
+      exercise, sets: initialSets, lastPerformance: lastPerf,
+      note: pinnedNote, notePinned: !!pinnedNote, showNote: !!pinnedNote,
+    }]);
     setShowExercisePicker(false);
   };
 
@@ -361,12 +375,21 @@ function StrengthWorkoutForm() {
           }))
       );
 
+      const exercise_notes = entries
+        .filter((entry) => entry.note)
+        .map((entry) => ({
+          exercise_id: entry.exercise.id,
+          note: entry.note,
+          pinned: entry.notePinned,
+        }));
+
       const payload = {
         date,
         type: 'musculation' as const,
         custom_emoji: customEmoji || undefined,
         custom_name: customName || undefined,
         exercise_logs,
+        exercise_notes: exercise_notes.length > 0 ? exercise_notes : undefined,
       };
 
       localStorage.removeItem(storageKey);
@@ -494,7 +517,7 @@ function StrengthWorkoutForm() {
               );
             })}
 
-            {/* Note section */}
+            {/* Note section — edit mode */}
             {(!workoutId || editing) && (
               entry.showNote ? (
                 <div className="relative mt-2 mb-1">
@@ -530,6 +553,18 @@ function StrengthWorkoutForm() {
                   {t.note}
                 </button>
               )
+            )}
+
+            {/* Note section — view mode (read-only) */}
+            {workoutId && !editing && entry.note && (
+              <div className="mt-2 mb-1 flex items-center gap-1.5 px-3 py-2 bg-bg border border-border rounded-lg">
+                {entry.notePinned && (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#a78bfa" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                    <path d="M12 17v5M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7" /><path d="M5 11h14l-1.5 6h-11z" />
+                  </svg>
+                )}
+                <span className="text-[13px] text-text-secondary">{entry.note}</span>
+              </div>
             )}
 
             {(!workoutId || editing) && (
@@ -593,43 +628,25 @@ function StrengthWorkoutForm() {
       )}
 
       {/* Delete confirmation modal */}
-      {showDeleteConfirm && (
-        <>
-          <div onClick={() => setShowDeleteConfirm(false)}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
-          <div className="fixed inset-0 z-[51] flex items-center justify-center px-8" onClick={() => setShowDeleteConfirm(false)}>
-            <div onClick={(e) => e.stopPropagation()}
-              className="bg-bg-card border border-border rounded-card p-5 w-full max-w-[320px] animate-fadeIn">
-              <h3 className="text-[15px] font-semibold mb-2">{t.deleteConfirmTitle}</h3>
-              <p className="text-[13px] text-text-secondary leading-relaxed mb-4">
-                {t.deleteConfirmStrength}
-              </p>
-              <div className="flex gap-2">
-                <button onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-2.5 bg-bg-elevated border border-border rounded-sm text-text text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
-                  {t.cancel}
-                </button>
-                <button onClick={async () => {
-                  setDeleting(true);
-                  try {
-                    await deleteWorkout(parseInt(workoutId!));
-                    localStorage.removeItem(storageKey);
-                    localStorage.removeItem(storageKey + '-meta');
-                    router.push('/calendar');
-                  } catch (err) {
-                    console.error('Delete failed:', err);
-                    setDeleting(false);
-                    setShowDeleteConfirm(false);
-                  }
-                }} disabled={deleting}
-                  className="flex-1 py-2.5 bg-red-500/15 border border-red-500/30 rounded-sm text-red-400 text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98] disabled:opacity-50">
-                  {deleting ? t.deleting : t.delete}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      <DeleteConfirmModal
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={async () => {
+          setDeleting(true);
+          try {
+            await deleteWorkout(parseInt(workoutId!));
+            localStorage.removeItem(storageKey);
+            localStorage.removeItem(storageKey + '-meta');
+            router.push('/calendar');
+          } catch (err) {
+            console.error('Delete failed:', err);
+            setDeleting(false);
+            setShowDeleteConfirm(false);
+          }
+        }}
+        deleting={deleting}
+        message={t.deleteConfirmStrength}
+      />
 
       {/* Remove exercise confirmation modal */}
       {pendingRemoveExercise !== null && (
@@ -661,13 +678,13 @@ function StrengthWorkoutForm() {
       {/* History modal */}
       {historyExercise && (() => {
         // Group history sets by date
-        const grouped = new Map<string, { reps: number; weight: string; set_number: number }[]>();
+        const grouped = new Map<string, { reps: number; weight: string; set_number: number; note?: string; pinned?: boolean }[]>();
         for (const row of historyData) {
           const d = row.date.includes('T')
             ? `${new Date(row.date).getFullYear()}-${String(new Date(row.date).getMonth() + 1).padStart(2, '0')}-${String(new Date(row.date).getDate()).padStart(2, '0')}`
             : row.date;
           if (!grouped.has(d)) grouped.set(d, []);
-          grouped.get(d)!.push({ reps: row.reps, weight: row.weight, set_number: row.set_number });
+          grouped.get(d)!.push({ reps: row.reps, weight: row.weight, set_number: row.set_number, note: row.exercise_note || undefined, pinned: row.note_pinned || undefined });
         }
         const dateLocaleStr = locale === 'fr' ? 'fr-FR' : 'en-US';
         return (
@@ -694,6 +711,16 @@ function StrengthWorkoutForm() {
                           <span className="text-center text-[13px] text-text-secondary">{parseFloat(s.weight) > 0 ? `${parseFloat(s.weight)} kg` : '-'}</span>
                         </div>
                       ))}
+                      {sets[0]?.note && (
+                        <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-border/50">
+                          {sets[0].pinned && (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#a78bfa" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                              <path d="M12 17v5M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7" /><path d="M5 11h14l-1.5 6h-11z" />
+                            </svg>
+                          )}
+                          <span className="text-[12px] text-text-muted italic">{sets[0].note}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })

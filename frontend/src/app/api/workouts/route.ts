@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       client.release();
       return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
-    const { date, type, notes, cycling_details, exercise_logs, workout_details, custom_emoji, custom_name } = parsed.data;
+    const { date, type, notes, cycling_details, exercise_logs, exercise_notes, workout_details, custom_emoji, custom_name } = parsed.data;
 
     const workoutResult = await client.query(
       'INSERT INTO workouts (date, type, notes, user_id, custom_emoji, custom_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
@@ -65,6 +65,17 @@ export async function POST(request: NextRequest) {
            VALUES ($1, $2, $3, $4, $5)`,
           [workout.id, log.exercise_id, log.set_number, log.reps, log.weight]
         );
+      }
+      if (exercise_notes) {
+        for (const en of exercise_notes) {
+          if (en.note) {
+            await client.query(
+              `INSERT INTO exercise_workout_notes (workout_id, exercise_id, note, pinned)
+               VALUES ($1, $2, $3, $4)`,
+              [workout.id, en.exercise_id, en.note, en.pinned]
+            );
+          }
+        }
       }
     }
 

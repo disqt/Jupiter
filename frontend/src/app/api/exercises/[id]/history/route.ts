@@ -7,9 +7,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const userId = authenticate(request);
     const { id } = params;
     const result = await pool.query(
-      `SELECT el.set_number, el.reps, el.weight, w.date
+      `SELECT el.set_number, el.reps, el.weight, w.date,
+              ewn.note as exercise_note, ewn.pinned as note_pinned
        FROM exercise_logs el
        JOIN workouts w ON w.id = el.workout_id
+       LEFT JOIN exercise_workout_notes ewn ON ewn.workout_id = w.id AND ewn.exercise_id = el.exercise_id
        WHERE el.exercise_id = $1
          AND w.user_id = $2
        AND w.date IN (

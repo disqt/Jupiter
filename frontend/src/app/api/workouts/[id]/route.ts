@@ -30,6 +30,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
          ORDER BY el.exercise_id, el.set_number`, [id]
       );
       workout.exercise_logs = logsResult.rows;
+      const notesResult = await pool.query(
+        `SELECT exercise_id, note, pinned FROM exercise_workout_notes WHERE workout_id = $1`, [id]
+      );
+      workout.exercise_notes = notesResult.rows;
     } else {
       const detailsResult = await pool.query(
         'SELECT * FROM workout_details WHERE workout_id = $1', [id]
@@ -55,7 +59,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       client.release();
       return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
-    const { date, type, notes, cycling_details, exercise_logs, workout_details, custom_emoji, custom_name } = parsed.data;
+    const { date, type, notes, cycling_details, exercise_logs, exercise_notes, workout_details, custom_emoji, custom_name } = parsed.data;
 
     const workoutResult = await client.query(
       'UPDATE workouts SET date = $1, type = $2, notes = $3, custom_emoji = $5, custom_name = $6 WHERE id = $4 AND user_id = $7 RETURNING *',
@@ -77,6 +81,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     await client.query('DELETE FROM exercise_logs WHERE workout_id = $1', [id]);
+    await client.query('DELETE FROM exercise_workout_notes WHERE workout_id = $1', [id]);
     if (type === 'musculation' && exercise_logs) {
       for (const log of exercise_logs) {
         await client.query(
@@ -84,6 +89,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
            VALUES ($1, $2, $3, $4, $5)`,
           [id, log.exercise_id, log.set_number, log.reps, log.weight]
         );
+      }
+      if (exercise_notes) {
+        for (const en of exercise_notes) {
+          if (en.note) {
+            await client.query(
+              `INSERT INTO exercise_workout_notes (workout_id, exercise_id, note, pinned)
+               VALUES ($1, $2, $3, $4)`,
+              [id, en.exercise_id, en.note, en.pinned]
+            );
+          }
+        }
       }
     }
 

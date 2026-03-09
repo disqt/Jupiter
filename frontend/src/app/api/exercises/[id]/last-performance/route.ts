@@ -21,7 +21,20 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
        ORDER BY el.set_number`,
       [id, userId]
     );
-    return NextResponse.json(result.rows);
+
+    // Fetch latest pinned note for this exercise (if any)
+    const pinnedResult = await pool.query(
+      `SELECT ewn.note FROM exercise_workout_notes ewn
+       JOIN workouts w ON w.id = ewn.workout_id
+       WHERE ewn.exercise_id = $1 AND ewn.pinned = true AND w.user_id = $2
+       ORDER BY w.date DESC LIMIT 1`,
+      [id, userId]
+    );
+
+    return NextResponse.json({
+      sets: result.rows,
+      pinned_note: pinnedResult.rows[0]?.note || null,
+    });
   } catch (err) {
     return handleApiError(err);
   }
