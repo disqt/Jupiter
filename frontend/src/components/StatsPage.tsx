@@ -27,8 +27,8 @@ import {
 } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
-import { WORKOUT_TYPES, WORKOUT_CONFIG, type WorkoutType } from '@/lib/data';
-import { getGuestWorkouts } from '@/lib/guest-storage';
+import { WORKOUT_TYPES, WORKOUT_CONFIG, type WorkoutType, computeLevel } from '@/lib/data';
+import { getGuestWorkouts, getGuestMedals, getGuestWeeklyMedalsForMonth } from '@/lib/guest-storage';
 import BlurredOverlay from '@/components/BlurredOverlay';
 
 // --- Constants ---
@@ -94,6 +94,7 @@ export default function StatsPage() {
   const [distanceData, setDistanceData] = useState<DistanceByType[]>([]);
   const [strengthData, setStrengthData] = useState<StrengthVolume>({ total_tonnage: 0, exercise_count: 0, total_sets: 0 });
   const [distanceFilter, setDistanceFilter] = useState<string | null>(null);
+  const [showLevelInfo, setShowLevelInfo] = useState(false);
 
   const monthYear = currentMonth.getFullYear();
   const monthIdx = currentMonth.getMonth();
@@ -260,6 +261,42 @@ export default function StatsPage() {
     ? `${t.months[monthIdx]} ${monthYear}`
     : yearStr;
 
+  // --- Level + period medals ---
+  const totalMedals = useMemo(() => {
+    if (isGuest) return getGuestMedals().total;
+    if (medalsHistory.length === 0) return 0;
+    return medalsHistory[medalsHistory.length - 1].cumulative;
+  }, [isGuest, medalsHistory]);
+
+  const levelData = useMemo(() => computeLevel(totalMedals), [totalMedals]);
+
+  const periodMedals = useMemo(() => {
+    if (isGuest) {
+      if (mode === 'month') {
+        return getGuestWeeklyMedalsForMonth(monthStr).reduce((sum, w) => sum + w.medals, 0);
+      }
+      // Year: sum all months
+      let total = 0;
+      for (let m = 1; m <= 12; m++) {
+        total += getGuestWeeklyMedalsForMonth(`${currentYear}-${String(m).padStart(2, '0')}`).reduce((sum, w) => sum + w.medals, 0);
+      }
+      return total;
+    }
+    // Authenticated: compute from medalsHistory
+    return medalsHistory.reduce((sum, entry) => {
+      const ws = entry.week_start;
+      if (mode === 'month') {
+        // Weeks that start in or overlap with the month
+        const weekDate = new Date(ws + 'T00:00:00');
+        const wMonth = `${weekDate.getFullYear()}-${String(weekDate.getMonth() + 1).padStart(2, '0')}`;
+        return wMonth === monthStr ? sum + entry.medals : sum;
+      } else {
+        const weekYear = ws.substring(0, 4);
+        return weekYear === yearStr ? sum + entry.medals : sum;
+      }
+    }, 0);
+  }, [isGuest, medalsHistory, mode, monthStr, yearStr, currentYear]);
+
   // --- Emoji breakdown for summary card ---
   const emojiBreakdown = useMemo(() => {
     return WORKOUT_TYPES
@@ -321,6 +358,37 @@ export default function StatsPage() {
           >
             &#8250;
           </button>
+        </div>
+      </div>
+
+      {/* Level card */}
+      <div onClick={() => setShowLevelInfo(true)}
+        className="bg-bg-card border border-border rounded-card p-4 mb-5 relative overflow-hidden cursor-pointer transition-all duration-150 active:scale-[0.98]">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#c9a96e] via-[#e2c992] to-transparent" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-[24px]">⭐</span>
+            <div>
+              <div className="text-[17px] font-bold text-[#e2c992] leading-tight">
+                {levelData.level === 0 ? t.levelBeginner : `${t.levelTitle} ${levelData.level}`}
+              </div>
+              <div className="text-[11px] text-text-muted font-medium mt-0.5">
+                {t.levelProgress(totalMedals, levelData.nextThreshold)}
+              </div>
+            </div>
+          </div>
+          {periodMedals > 0 && (
+            <div className="text-right">
+              <div className="text-[18px] font-bold text-accent leading-none">{periodMedals}</div>
+              <div className="text-[10px] text-text-muted font-medium mt-0.5">
+                {mode === 'month' ? t.medalsThisMonth : t.medalsThisYear}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="h-1.5 bg-border rounded-full overflow-hidden mt-3">
+          <div className="h-full rounded-full bg-gradient-to-r from-[#c9a96e] to-[#e2c992] transition-all duration-500"
+            style={{ width: `${(totalMedals / levelData.nextThreshold) * 100}%` }} />
         </div>
       </div>
 
@@ -664,6 +732,42 @@ export default function StatsPage() {
           )}
         </>
       ))}
+
+      {/* Level info modal */}
+      {showLevelInfo && (
+        <>
+          <div onClick={() => setShowLevelInfo(false)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
+          <div className="fixed inset-0 lg:left-[200px] z-[51] flex items-center justify-center px-8" onClick={() => setShowLevelInfo(false)}>
+            <div onClick={(e) => e.stopPropagation()}
+              className="bg-bg-card border border-border rounded-card p-5 w-full max-w-[320px] animate-fadeIn">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[20px]">⭐</span>
+                <h3 className="text-[15px] font-semibold">{t.levelTitle}</h3>
+              </div>
+              <div className="text-center py-3">
+                <div className="text-[36px] font-serif font-normal text-[#e2c992] leading-none">
+                  {levelData.level === 0 ? t.levelBeginner : `${t.levelTitle} ${levelData.level}`}
+                </div>
+                <div className="text-[11px] text-text-muted mt-2">
+                  {t.levelProgress(totalMedals, levelData.nextThreshold)}
+                </div>
+                <div className="h-1.5 bg-border rounded-full overflow-hidden mt-2 mx-8">
+                  <div className="h-full rounded-full bg-gradient-to-r from-[#c9a96e] to-[#e2c992] transition-all duration-500"
+                    style={{ width: `${(totalMedals / levelData.nextThreshold) * 100}%` }} />
+                </div>
+              </div>
+              <p className="text-[13px] text-text-secondary leading-relaxed mt-3">
+                {t.levelDescription}
+              </p>
+              <button onClick={() => setShowLevelInfo(false)}
+                className="w-full mt-4 py-2.5 bg-bg-elevated border border-border rounded-sm text-text text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
+                {t.understood}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
