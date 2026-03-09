@@ -255,6 +255,10 @@ const translations = {
 
     // Profile
     profile: 'Profil',
+    settings: 'Paramètres',
+    language: 'Langue',
+    french: 'Français',
+    english: 'English',
     currentPassword: 'Mot de passe actuel',
     newPassword: 'Nouveau mot de passe',
     saveChanges: 'Enregistrer',
@@ -519,6 +523,10 @@ const translations = {
 
     // Profile
     profile: 'Profile',
+    settings: 'Settings',
+    language: 'Language',
+    french: 'Français',
+    english: 'English',
     currentPassword: 'Current password',
     newPassword: 'New password',
     saveChanges: 'Save changes',
