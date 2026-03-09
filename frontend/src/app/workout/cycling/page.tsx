@@ -5,6 +5,7 @@ import { RIDE_TYPES } from '@/lib/data';
 import { parseDuration, formatDuration } from '@/lib/duration';
 import { useWorkoutForm } from '@/lib/useWorkoutForm';
 import WorkoutFormShell from '@/components/WorkoutFormShell';
+import TextInput from '@/components/TextInput';
 import { useI18n } from '@/lib/i18n';
 
 function CyclingWorkoutForm() {
@@ -24,9 +25,9 @@ function CyclingWorkoutForm() {
       },
     }),
     validate: (f) => {
-      if (f.duration && parseDuration(f.duration) === null) return t.errorInvalidDuration;
-      if (f.distance && (isNaN(parseFloat(f.distance)) || parseFloat(f.distance) < 0)) return t.errorInvalidDistance;
-      if (f.elevation && (isNaN(parseInt(f.elevation)) || parseInt(f.elevation) < 0)) return t.errorInvalidElevation;
+      if (f.duration && parseDuration(f.duration) === null) return { message: t.errorInvalidDuration, fields: ['duration'] };
+      if (f.distance && (isNaN(parseFloat(f.distance)) || parseFloat(f.distance) < 0)) return { message: t.errorInvalidDistance, fields: ['distance'] };
+      if (f.elevation && (isNaN(parseInt(f.elevation)) || parseInt(f.elevation) < 0)) return { message: t.errorInvalidElevation, fields: ['elevation'] };
       return null;
     },
     loadFromApi: (cd) => ({
@@ -53,34 +54,34 @@ function CyclingWorkoutForm() {
         {/* Duration */}
         <div className="mb-4">
           <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.duration}</label>
-          <input type="text" value={form.fields.duration} onChange={(e) => form.setField('duration', e.target.value)}
+          <TextInput value={form.fields.duration} onChange={(e) => form.setField('duration', e.target.value)}
             onBlur={() => {
               const mins = parseDuration(form.fields.duration);
               if (mins !== null) form.setField('duration', formatDuration(mins));
             }}
             placeholder={t.durationPlaceholder}
             disabled={form.readOnly}
-            className={`w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted ${form.readOnly ? 'opacity-50 cursor-not-allowed' : ''}`} />
+            error={form.fieldErrors.has('duration')} />
         </div>
 
         {/* Distance */}
         <div className="mb-4">
           <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.distance}</label>
-          <input type="text" inputMode="decimal" value={form.fields.distance}
+          <TextInput inputMode="decimal" value={form.fields.distance}
             onChange={(e) => { if (/^[0-9]*\.?[0-9]*$/.test(e.target.value)) form.setField('distance', e.target.value); }}
             placeholder="42.5"
             disabled={form.readOnly}
-            className={`w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted ${form.readOnly ? 'opacity-50 cursor-not-allowed' : ''}`} />
+            error={form.fieldErrors.has('distance')} />
         </div>
 
         {/* Elevation */}
         <div className="mb-4">
           <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.elevation}</label>
-          <input type="text" inputMode="numeric" value={form.fields.elevation}
+          <TextInput inputMode="numeric" value={form.fields.elevation}
             onChange={(e) => { if (/^[0-9]*$/.test(e.target.value)) form.setField('elevation', e.target.value); }}
             placeholder="680"
             disabled={form.readOnly}
-            className={`w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted ${form.readOnly ? 'opacity-50 cursor-not-allowed' : ''}`} />
+            error={form.fieldErrors.has('elevation')} />
         </div>
       </div>
     </WorkoutFormShell>

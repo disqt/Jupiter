@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
+import TextInput from '@/components/TextInput';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -89,11 +90,10 @@ export default function ProfilePage() {
         <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
           {t.nickname}
         </label>
-        <input
-          type="text"
+        <TextInput
           value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted"
+          onChange={(e) => { setNickname(e.target.value); if (errorMsg) setErrorMsg(''); }}
+          error={!!errorMsg}
         />
       </div>
 
@@ -102,11 +102,11 @@ export default function ProfilePage() {
         <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
           {t.currentPassword}
         </label>
-        <input
+        <TextInput
           type="password"
           value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted"
+          onChange={(e) => { setCurrentPassword(e.target.value); if (errorMsg) setErrorMsg(''); }}
+          error={!!errorMsg}
         />
       </div>
 
@@ -114,11 +114,11 @@ export default function ProfilePage() {
         <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
           {t.newPassword}
         </label>
-        <input
+        <TextInput
           type="password"
           value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted"
+          onChange={(e) => { setNewPassword(e.target.value); if (errorMsg) setErrorMsg(''); }}
+          error={!!errorMsg}
         />
       </div>
 

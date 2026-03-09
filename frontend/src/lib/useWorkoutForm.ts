@@ -6,12 +6,17 @@ import { WORKOUT_CONFIG, type WorkoutType } from '@/lib/data';
 import { createWorkout, updateWorkout, fetchWorkout, deleteWorkout, patchWorkoutMeta } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 
+export interface ValidationError<F> {
+  message: string;
+  fields?: (keyof F)[];
+}
+
 interface UseWorkoutFormOptions<F extends Record<string, string>> {
   type: WorkoutType;
   storagePrefix: string;
   defaultFields: F;
   buildPayload: (fields: F) => Record<string, unknown>;
-  validate: (fields: F) => string | null;
+  validate: (fields: F) => ValidationError<F> | null;
   loadFromApi: (apiData: Record<string, unknown>) => Partial<F>;
   hasData?: (fields: F) => boolean;
 }
@@ -26,6 +31,7 @@ export interface UseWorkoutFormReturn<F extends Record<string, string>> {
   setEditing: (v: boolean) => void;
   readOnly: boolean;
   saveError: string;
+  fieldErrors: Set<keyof F>;
   loadingWorkout: boolean;
   showSaveAnimation: boolean;
   showDeleteConfirm: boolean;
@@ -88,6 +94,7 @@ export function useWorkoutForm<F extends Record<string, string>>(
   const [hasDraft, setHasDraft] = useState(!!loadedDraft);
   const [showSaveAnimation, setShowSaveAnimation] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Set<keyof F>>(new Set());
 
   // Load existing workout
   useEffect(() => {
@@ -136,6 +143,14 @@ export function useWorkoutForm<F extends Record<string, string>>(
 
   const setField = (name: keyof F, value: string) => {
     setFieldsState(prev => ({ ...prev, [name]: value }));
+    if (fieldErrors.has(name)) {
+      setFieldErrors(prev => {
+        const next = new Set(prev);
+        next.delete(name);
+        return next;
+      });
+      if (saveError) setSaveError('');
+    }
   };
 
   const setFields = (updates: Partial<F>) => {
@@ -144,9 +159,11 @@ export function useWorkoutForm<F extends Record<string, string>>(
 
   const handleSave = async () => {
     setSaveError('');
+    setFieldErrors(new Set());
     const error = options.validate(fieldsState);
     if (error) {
-      setSaveError(error);
+      setSaveError(error.message);
+      if (error.fields) setFieldErrors(new Set(error.fields));
       return;
     }
 
@@ -237,6 +254,7 @@ export function useWorkoutForm<F extends Record<string, string>>(
     setEditing,
     readOnly,
     saveError,
+    fieldErrors,
     loadingWorkout,
     showSaveAnimation,
     showDeleteConfirm,
