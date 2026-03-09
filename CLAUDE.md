@@ -33,6 +33,7 @@ cd frontend && npx tsc --noEmit     # Type check
 - Middleware: `frontend/src/middleware.ts` (route protection — blocks API calls without Bearer token, except auth + health)
 - Error boundary: `frontend/src/components/ErrorBoundary.tsx` (wraps app inside I18nProvider, bilingual fallback UI)
 - Workout form shared: `frontend/src/lib/useWorkoutForm.ts` (hook), `frontend/src/components/WorkoutFormShell.tsx` (UI shell), `frontend/src/lib/duration.ts` (parsing), `frontend/src/components/DeleteConfirmModal.tsx` (modal)
+- Shared input: `frontend/src/components/TextInput.tsx` (error state support, used across all forms and auth pages)
 
 ## Environment
 
@@ -99,6 +100,10 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - ErrorBoundary wraps app inside I18nProvider (order: I18nProvider → ErrorBoundary → AuthProvider → App) so error UI is bilingual
 - DB indexes: `workouts(user_id, date)`, `workouts(user_id, type)`, `cycling_details(workout_id)`, `workout_details(workout_id)`, `exercise_logs(workout_id)`, `exercise_logs(exercise_id)`, `exercises(user_id, muscle_group)` — migration in `database/migrations/001_add_indexes.sql`
 - Numeric inputs use `type="text"` + `inputMode="decimal"/"numeric"` (NOT `type="number"`) — prevents silent value coercion. onChange filters non-numeric chars via regex (`/^[0-9]*\.?[0-9]*$/` for decimals, `/^[0-9]*$/` for integers). Validation also at save time + Zod on server.
+- TextInput component (`frontend/src/components/TextInput.tsx`): shared input with `error` prop (red border + red text). Used in all workout forms, login, register, profile. Pass `className="bg-bg"` to override background on auth pages.
+- Field-level validation errors: `useWorkoutForm.validate()` returns `{ message, fields[] }`. Hook tracks `fieldErrors: Set<keyof F>`, clears on field input. TextInput gets `error={form.fieldErrors.has('fieldName')}`.
+- Exercise notes: `exercise_workout_notes` table (workout_id, exercise_id, note, pinned). Pinned notes auto-appear on future workouts with same exercise. Notes visible in view mode + exercise history modal.
+- WorkoutFormShell save button uses static `colorClasses` map (NOT dynamic `bg-${color}`) — Tailwind cannot detect dynamic class names.
 - Medal formula: `GREATEST(count - 2, 0)` — 3 sessions/week = 1 medal, 4 = 2, etc.
 - Medal UI: header card = total medals (big icon + number), monthly card = month medals (sum of weeklyMedals) + progress bar + info modal on tap
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. Split into `UPPER_BODY_GROUPS` / `LOWER_BODY_GROUPS`. No "Jambes" or "Autre".
@@ -137,7 +142,7 @@ Moved from `/` to `/calendar`. All workout form redirects (`router.push`, `?save
 
 1. **DB**: Add value to `workouts.type` CHECK constraint in Supabase (`ALTER TABLE workouts DROP CONSTRAINT ..., ADD CONSTRAINT ... CHECK (type IN ('velo','musculation','course','natation','marche','custom','NEW_TYPE'))`)
 2. **`data.ts`**: Add to `WorkoutType` union + `WORKOUT_TYPES` array + `WORKOUT_CONFIG` (emoji, color, colorSoft, route)
-3. **Tailwind**: Add `bg-NEWCOLOR` / `text-NEWCOLOR` classes in `tailwind.config.ts` `theme.extend.colors` if new color
+3. **Tailwind**: Add `bg-NEWCOLOR` / `text-NEWCOLOR` classes in `tailwind.config.ts` `theme.extend.colors` if new color. Also add to `colorClasses` map in `WorkoutFormShell.tsx`
 4. **`i18n.tsx`**: Add translation keys for workout name (FR + EN), add to `workoutTypeLabels` and `workoutTypeTags` in both locales
 5. **`useWorkoutForm.ts`**: Add workout name mapping in `workoutNames` record (~line 202)
 6. **Page**: Create `frontend/src/app/workout/NEWTYPE/page.tsx` — ~30-70 lines using `useWorkoutForm()` + `<WorkoutFormShell>`. Copy from `running/page.tsx` (simplest) and adapt: type, storagePrefix, defaultFields, buildPayload, validate, loadFromApi, color, shadowColor

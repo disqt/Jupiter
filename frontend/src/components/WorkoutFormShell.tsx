@@ -16,6 +16,16 @@ interface WorkoutFormShellProps {
   children: React.ReactNode;
 }
 
+// Static map so Tailwind can detect classes at build time
+const colorClasses: Record<string, string> = {
+  cycling: 'bg-cycling',
+  running: 'bg-running',
+  swimming: 'bg-swimming',
+  walking: 'bg-walking',
+  'custom-workout': 'bg-custom-workout',
+  strength: 'bg-strength',
+};
+
 export default function WorkoutFormShell({ form, color, shadowColor, deleteMessage, children }: WorkoutFormShellProps) {
   const { t } = useI18n();
   const router = useRouter();
@@ -40,7 +50,7 @@ export default function WorkoutFormShell({ form, color, shadowColor, deleteMessa
 
       {(!form.workoutId || form.editing) && (
         <button onClick={form.handleSave} disabled={form.saving}
-          className={`w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] bg-${color} text-white disabled:opacity-50 disabled:cursor-not-allowed tracking-wide`}
+          className={`w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] ${colorClasses[color] || ''} text-white disabled:opacity-50 disabled:cursor-not-allowed tracking-wide`}
           style={{ boxShadow: `0 4px 20px ${shadowColor}` }}>
           {form.saving ? t.saving : t.save}
         </button>
