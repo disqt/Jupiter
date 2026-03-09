@@ -26,7 +26,7 @@ cd frontend && npx tsc --noEmit     # Type check
 - Validation: `frontend/src/lib/validations.ts` (Zod schemas for all API inputs)
 - Frontend API client: `frontend/src/lib/api.ts` (typed fetch functions, same-origin calls)
 - Constants: `frontend/src/lib/data.ts` (WorkoutType, WORKOUT_CONFIG, muscle groups, ride types, SPORT_EMOJIS)
-- i18n: `frontend/src/lib/i18n.tsx` (custom Context, FR default + EN)
+- i18n: `frontend/src/lib/i18n.tsx` (custom Context, FR default + EN). Language selector on profile page only (Settings section with dropdown).
 - Auth context: `frontend/src/lib/auth.tsx` (AuthProvider, JWT in localStorage, `isGuest` flag for guest mode)
 - Guest storage: `frontend/src/lib/guest-storage.ts` (guest workout CRUD + medal computation in localStorage, key `guest-workouts`)
 - Data source: `frontend/src/lib/useDataSource.ts` (abstraction hook — routes to API or localStorage based on `isGuest`)
@@ -111,6 +111,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - WorkoutFormShell save button uses static `colorClasses` map (NOT dynamic `bg-${color}`) — Tailwind cannot detect dynamic class names.
 - Medal formula: `GREATEST(count - 2, 0)` — 3 sessions/week = 1 medal, 4 = 2, etc.
 - Medal UI: header card = total medals (big icon + number), monthly card = month medals (sum of weeklyMedals) + progress bar + info modal on tap
+- Athlete level: `computeLevel(totalMedals)` in `data.ts` — level 0 = beginner, level N threshold = `N*(9+N)/2` (5, 11, 18, 26...). Displayed on HomePage header + StatsPage top card with progress bar + period medals. Clickable info modal on both.
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. Split into `UPPER_BODY_GROUPS` / `LOWER_BODY_GROUPS`. No "Jambes" or "Autre".
 - Default exercises seeded per user on registration (`frontend/src/lib/seed-exercises.ts`) — 58 exercises across 10 muscle groups. Data lives in `default-exercises.ts` (client-safe), seeding function in `seed-exercises.ts` (server-only).
 - Exercises sorted by `muscle_group, id` (oldest/seeded first, user-created last)
@@ -138,7 +139,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 ## Home Page
 
 `HomePage` component (`frontend/src/components/HomePage.tsx`) — dashboard landing page:
-- Greeting with user name + time-of-day (matin/après-midi/soir), gold accent color (`#c9a96e` / `#e2c992`)
+- Greeting with user name + time-of-day (matin/après-midi/soir), gold accent color (`#c9a96e` / `#e2c992`). Athlete level card on the right (clickable → level info modal with progress bar).
 - Today's workouts card with sport chips + "Commencer une séance" button (always visible, opens workout type picker modal)
 - Weekly tracker: 7 animated bars (Mon-Sun) with colored dots per workout type
 - Medals card (clickable → medal info modal): total + monthly count with gold styling
@@ -168,6 +169,7 @@ Moved from `/` to `/calendar`. All workout form redirects (`router.push`, `?save
 
 `StatsPage` component (`frontend/src/components/StatsPage.tsx`) — single scrollable page with Recharts graphs:
 - Period selector: month/year toggle + navigation arrows
+- Athlete level card (first, clickable → info modal): level + progress bar + period medals (month or year)
 - Summary cards: total sessions, distance (km), elevation (m), active days
 - Medal progression: AreaChart with cumulative medals (always full history, not filtered by period)
 - Type distribution: PieChart donut with sport colors + legend

@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth';
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { t, locale, setLocale } = useI18n();
+  const { t } = useI18n();
   const { user, isGuest, logout } = useAuth();
 
   const navItems = [
@@ -59,12 +59,6 @@ export default function BottomNav() {
           );
         })}
         <div className="mt-auto flex flex-col gap-2">
-          <button
-            onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
-            className="text-[11px] font-bold text-text-muted bg-bg border border-border rounded-md px-3 py-1.5 cursor-pointer transition-all duration-150 active:scale-95 uppercase tracking-wide"
-          >
-            {locale === 'fr' ? 'EN' : 'FR'}
-          </button>
           {!isGuest && (
             <button
               onClick={logout}

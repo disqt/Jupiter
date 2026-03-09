@@ -303,14 +303,22 @@ function GuestProfileView() {
         </p>
       </div>
 
-      {/* Language toggle */}
-      <div className="mt-6 flex justify-center">
-        <button
-          onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
-          className="px-4 py-2 bg-bg-elevated border border-border rounded-card font-inherit text-[14px] cursor-pointer text-text-muted transition-all duration-150 active:scale-95"
-        >
-          {locale === 'fr' ? 'EN' : 'FR'}
-        </button>
+      {/* Settings */}
+      <div className="mt-8">
+        <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">{t.settings}</h3>
+        <div className="bg-bg-elevated border border-border rounded-card p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[14px] font-medium text-text">{t.language}</span>
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as 'fr' | 'en')}
+              className="bg-bg border border-border rounded-sm px-3 py-1.5 text-[13px] text-text font-medium cursor-pointer outline-none appearance-none font-inherit"
+            >
+              <option value="fr">{t.french}</option>
+              <option value="en">{t.english}</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <RegisterSheet open={showRegister} onClose={() => setShowRegister(false)} />
@@ -322,7 +330,7 @@ function GuestProfileView() {
 function AuthenticatedProfileView() {
   const router = useRouter();
   const { user, logout, updateUser } = useAuth();
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
 
   const [nickname, setNickname] = useState(user?.nickname || '');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -450,10 +458,28 @@ function AuthenticatedProfileView() {
         {saving ? t.saving : t.saveChanges}
       </button>
 
+      {/* Settings */}
+      <div className="mt-8">
+        <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">{t.settings}</h3>
+        <div className="bg-bg-elevated border border-border rounded-card p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[14px] font-medium text-text">{t.language}</span>
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as 'fr' | 'en')}
+              className="bg-bg border border-border rounded-sm px-3 py-1.5 text-[13px] text-text font-medium cursor-pointer outline-none appearance-none font-inherit"
+            >
+              <option value="fr">{t.french}</option>
+              <option value="en">{t.english}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Logout button */}
       <button
         onClick={logout}
-        className="w-full py-4 bg-transparent border border-border rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-4 transition-all duration-200 active:scale-[0.98] text-red-400 tracking-wide"
+        className="w-full py-4 bg-transparent border border-border rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] text-red-400 tracking-wide"
       >
         {t.logout}
       </button>

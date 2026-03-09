@@ -13,7 +13,7 @@ import { getDraftWorkouts, getDraftRoute, type DraftWorkout } from '@/lib/drafts
 import { getGuestWeeklyMedalsForMonth, getGuestWeeklyProgress } from '@/lib/guest-storage';
 
 export default function Calendar() {
-  const { t, locale, setLocale } = useI18n();
+  const { t, locale } = useI18n();
   const { user } = useAuth();
   const { fetchWorkouts: dseFetchWorkouts, isGuest } = useDataSource();
   const today = new Date();
@@ -264,12 +264,6 @@ export default function Calendar() {
                 <WeeklyProgress />
               </Suspense>
             </div>
-            <button
-              onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
-              className="text-[11px] font-bold text-text-muted bg-bg-card border border-border rounded-md px-1.5 py-1 cursor-pointer transition-all duration-150 active:scale-95 uppercase tracking-wide shrink-0"
-            >
-              {locale === 'fr' ? 'EN' : 'FR'}
-            </button>
           </div>
         </div>
       </div>
