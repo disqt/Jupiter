@@ -14,7 +14,7 @@ export const loginSchema = z.object({
 export const registerSchema = z.object({
   nickname: z.string().min(2).max(50),
   password: z.string().min(6),
-  invite_code: z.string().min(1),
+  email: z.string().email().max(255),
 });
 
 export const updateProfileSchema = z.object({
