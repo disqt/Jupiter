@@ -27,9 +27,12 @@ cd frontend && npx tsc --noEmit     # Type check
 - Frontend API client: `frontend/src/lib/api.ts` (typed fetch functions, same-origin calls)
 - Constants: `frontend/src/lib/data.ts` (WorkoutType, WORKOUT_CONFIG, muscle groups, ride types, SPORT_EMOJIS)
 - i18n: `frontend/src/lib/i18n.tsx` (custom Context, FR default + EN)
-- Auth context: `frontend/src/lib/auth.tsx` (AuthProvider, JWT in localStorage)
+- Auth context: `frontend/src/lib/auth.tsx` (AuthProvider, JWT in localStorage, `isGuest` flag for guest mode)
+- Guest storage: `frontend/src/lib/guest-storage.ts` (guest workout CRUD in localStorage, key `guest-workouts`)
+- Data source: `frontend/src/lib/useDataSource.ts` (abstraction hook — routes to API or localStorage based on `isGuest`)
+- Blurred overlay: `frontend/src/components/BlurredOverlay.tsx` (blur + CTA for guest-restricted sections)
 - Rate limiter: `frontend/src/lib/rate-limit.ts` (in-memory, for login/register)
-- Seed exercises: `frontend/src/lib/seed-exercises.ts` (default exercises on registration)
+- Seed exercises: `frontend/src/lib/seed-exercises.ts` (default exercises on registration, also used client-side for guest mode)
 - Middleware: `frontend/src/middleware.ts` (route protection — blocks API calls without Bearer token, except auth + health)
 - Error boundary: `frontend/src/components/ErrorBoundary.tsx` (wraps app inside I18nProvider, bilingual fallback UI)
 - Workout form shared: `frontend/src/lib/useWorkoutForm.ts` (hook), `frontend/src/components/WorkoutFormShell.tsx` (UI shell), `frontend/src/lib/duration.ts` (parsing), `frontend/src/components/DeleteConfirmModal.tsx` (modal), `frontend/src/lib/drafts.ts` (scan localStorage drafts)
@@ -37,7 +40,7 @@ cd frontend && npx tsc --noEmit     # Type check
 
 ## Environment
 
-- `frontend/.env.local` → `DATABASE_URL`, `JWT_SECRET`, `INVITE_CODE`
+- `frontend/.env.local` → `DATABASE_URL`, `JWT_SECRET`
 - Production adds: `NEXT_PUBLIC_API_URL=/jupiter`, `NEXT_PUBLIC_BASE_PATH=/jupiter`
 - Production systemd service also sets env vars (standalone mode doesn't read `.env.local`)
 - **Never commit `.env` files**
@@ -59,7 +62,7 @@ nginx → /jupiter/*         → Next.js :3100 (basePath: /jupiter, standalone m
 
 **Key files on VPS:**
 - App code: `~/app/`
-- Services: `~/services/jupiter-frontend.service` (includes DATABASE_URL, JWT_SECRET, INVITE_CODE env vars)
+- Services: `~/services/jupiter-frontend.service` (includes DATABASE_URL, JWT_SECRET env vars)
 - Nginx: config in `/etc/nginx/sites-enabled/disqt.com` (Jupiter section)
 - Grafana: `~/grafana/` (config, data, provisioning)
 - Frontend env: `~/app/frontend/.env.local`
@@ -94,7 +97,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Draft visibility: unsaved drafts appear on Calendar grid + day panel + HomePage "Today" section with dashed border + 50% opacity. `getDraftWorkouts()` in `frontend/src/lib/drafts.ts` scans localStorage. Clicking a draft card navigates to the form which auto-loads it. "Supprimer le brouillon" button clears localStorage and redirects to calendar.
 - Save animation + redirect with `/calendar?saved=1` triggers medal celebration in WeeklyProgress. `replaceState` uses `pathname` (not hardcoded `/`) to strip query param without changing route.
 - DB values (muscle groups, ride types) stay in French — display translated via `t.muscleGroups[dbValue]`
-- env vars (`JWT_SECRET`, `INVITE_CODE`) read at call time in API route handlers — `getJwtSecret()` throws if undefined (never fallback to empty string)
+- env vars (`JWT_SECRET`) read at call time in API route handlers — `getJwtSecret()` throws if undefined (never fallback to empty string)
 - All POST/PUT API routes validate input with Zod schemas (`frontend/src/lib/validations.ts`) — returns 400 with field errors on invalid input
 - Middleware (`frontend/src/middleware.ts`) blocks unauthenticated API calls at the edge (except `/api/auth/*` and `/api/health`)
 - Security headers in `next.config.mjs`: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy
@@ -119,10 +122,14 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Homepage modals use `lg:left-[200px]` to offset for desktop sidebar — pass `desktopSidebarOffset` to `BottomSheet`
 - Homepage i18n keys prefixed `home*` to avoid conflicts with stats page keys (e.g. `homeMedalsLabel`, `homeDistance`, `homeVolume`)
 - Desktop layout: `page-container` (896px) / `page-container-wide` (1152px) utility classes in `globals.css` — use on page wrapper divs for consistent width, centering, and padding on `lg:`. Calendar uses `page-container-wide`, all other pages use `page-container`.
+- Guest mode: app usable without account, workouts stored in localStorage (`guest-workouts` key). `useDataSource()` hook routes all data ops to API (authenticated) or localStorage (guest). `isGuest` from AuthContext determines mode.
+- Guest exercises: stored in `guest-exercises` localStorage key, seeded from `seed-exercises.ts` on first strength form access.
+- Account creation: bottom sheet on profile page (email + nickname + password, no invite code). Migrates guest workouts + custom exercises to DB on registration/login.
+- BlurredOverlay: wraps content with blur + CTA button. Used on HomePage (medals, insights, streak) and StatsPage (charts) for guest users.
 
 ## Pages
 
-`/` (home), `/calendar`, `/login`, `/register`, `/profile`, `/stats`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`. Nav hidden on auth pages.
+`/` (home), `/calendar`, `/profile`, `/stats`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`. No login/register pages — account creation via bottom sheet on profile page. Nav always visible.
 
 ## Home Page
 
