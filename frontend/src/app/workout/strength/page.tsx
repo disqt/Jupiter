@@ -12,7 +12,7 @@ import { useI18n } from '@/lib/i18n';
 import { useDataSource } from '@/lib/useDataSource';
 import { useAuth } from '@/lib/auth';
 import { getGuestWorkouts } from '@/lib/guest-storage';
-import { DEFAULT_EXERCISES } from '@/lib/seed-exercises';
+import { DEFAULT_EXERCISES } from '@/lib/default-exercises';
 
 const GUEST_EXERCISES_KEY = 'guest-exercises';
 
