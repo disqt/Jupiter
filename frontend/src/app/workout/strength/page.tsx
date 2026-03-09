@@ -7,6 +7,7 @@ import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, fetchWorkou
 import SaveAnimation from '@/components/SaveAnimation';
 import WorkoutFormHeader from '@/components/WorkoutFormHeader';
 import BottomSheet from '@/components/BottomSheet';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import { useI18n } from '@/lib/i18n';
 
 interface SetLog {
@@ -593,43 +594,25 @@ function StrengthWorkoutForm() {
       )}
 
       {/* Delete confirmation modal */}
-      {showDeleteConfirm && (
-        <>
-          <div onClick={() => setShowDeleteConfirm(false)}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
-          <div className="fixed inset-0 z-[51] flex items-center justify-center px-8" onClick={() => setShowDeleteConfirm(false)}>
-            <div onClick={(e) => e.stopPropagation()}
-              className="bg-bg-card border border-border rounded-card p-5 w-full max-w-[320px] animate-fadeIn">
-              <h3 className="text-[15px] font-semibold mb-2">{t.deleteConfirmTitle}</h3>
-              <p className="text-[13px] text-text-secondary leading-relaxed mb-4">
-                {t.deleteConfirmStrength}
-              </p>
-              <div className="flex gap-2">
-                <button onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-2.5 bg-bg-elevated border border-border rounded-sm text-text text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
-                  {t.cancel}
-                </button>
-                <button onClick={async () => {
-                  setDeleting(true);
-                  try {
-                    await deleteWorkout(parseInt(workoutId!));
-                    localStorage.removeItem(storageKey);
-                    localStorage.removeItem(storageKey + '-meta');
-                    router.push('/calendar');
-                  } catch (err) {
-                    console.error('Delete failed:', err);
-                    setDeleting(false);
-                    setShowDeleteConfirm(false);
-                  }
-                }} disabled={deleting}
-                  className="flex-1 py-2.5 bg-red-500/15 border border-red-500/30 rounded-sm text-red-400 text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98] disabled:opacity-50">
-                  {deleting ? t.deleting : t.delete}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      <DeleteConfirmModal
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={async () => {
+          setDeleting(true);
+          try {
+            await deleteWorkout(parseInt(workoutId!));
+            localStorage.removeItem(storageKey);
+            localStorage.removeItem(storageKey + '-meta');
+            router.push('/calendar');
+          } catch (err) {
+            console.error('Delete failed:', err);
+            setDeleting(false);
+            setShowDeleteConfirm(false);
+          }
+        }}
+        deleting={deleting}
+        message={t.deleteConfirmStrength}
+      />
 
       {/* Remove exercise confirmation modal */}
       {pendingRemoveExercise !== null && (
