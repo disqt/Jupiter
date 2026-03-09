@@ -32,7 +32,7 @@ cd frontend && npx tsc --noEmit     # Type check
 - Seed exercises: `frontend/src/lib/seed-exercises.ts` (default exercises on registration)
 - Middleware: `frontend/src/middleware.ts` (route protection — blocks API calls without Bearer token, except auth + health)
 - Error boundary: `frontend/src/components/ErrorBoundary.tsx` (wraps app inside I18nProvider, bilingual fallback UI)
-- Workout form shared: `frontend/src/lib/useWorkoutForm.ts` (hook), `frontend/src/components/WorkoutFormShell.tsx` (UI shell), `frontend/src/lib/duration.ts` (parsing), `frontend/src/components/DeleteConfirmModal.tsx` (modal)
+- Workout form shared: `frontend/src/lib/useWorkoutForm.ts` (hook), `frontend/src/components/WorkoutFormShell.tsx` (UI shell), `frontend/src/lib/duration.ts` (parsing), `frontend/src/components/DeleteConfirmModal.tsx` (modal), `frontend/src/lib/drafts.ts` (scan localStorage drafts)
 - Shared input: `frontend/src/components/TextInput.tsx` (error state support, used across all forms and auth pages)
 
 ## Environment
@@ -91,6 +91,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Workout forms (5 simple types) use shared `useWorkoutForm()` hook (`frontend/src/lib/useWorkoutForm.ts`) + `WorkoutFormShell` component (`frontend/src/components/WorkoutFormShell.tsx`). Each form page is ~70 lines (hook config + field JSX). Adding a new type = ~30 lines.
 - Strength form is separate (complex exercise logs UI) but uses shared `DeleteConfirmModal` (`frontend/src/components/DeleteConfirmModal.tsx`)
 - localStorage draft autosave for all workout types (`{type}-draft-${date}` / `{type}-edit-${workoutId}`) — handled by useWorkoutForm hook
+- Draft visibility: unsaved drafts appear on Calendar grid + day panel + HomePage "Today" section with dashed border + 50% opacity. `getDraftWorkouts()` in `frontend/src/lib/drafts.ts` scans localStorage. Clicking a draft card navigates to the form which auto-loads it. "Supprimer le brouillon" button clears localStorage and redirects to calendar.
 - Save animation + redirect with `/calendar?saved=1` triggers medal celebration in WeeklyProgress. `replaceState` uses `pathname` (not hardcoded `/`) to strip query param without changing route.
 - DB values (muscle groups, ride types) stay in French — display translated via `t.muscleGroups[dbValue]`
 - env vars (`JWT_SECRET`, `INVITE_CODE`) read at call time in API route handlers — `getJwtSecret()` throws if undefined (never fallback to empty string)

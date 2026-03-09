@@ -37,6 +37,7 @@ export interface UseWorkoutFormReturn<F extends Record<string, string>> {
   showDeleteConfirm: boolean;
   setShowDeleteConfirm: (v: boolean) => void;
   confirmDelete: () => Promise<void>;
+  deleteDraft: () => void;
   deleting: boolean;
   dateDisplay: string;
   customEmoji: string;
@@ -136,8 +137,10 @@ export function useWorkoutForm<F extends Record<string, string>>(
     const checkHasData = options.hasData || ((f: F) => Object.values(f).some(v => v !== ''));
     if (checkHasData(fieldsState)) {
       localStorage.setItem(storageKey, JSON.stringify(data));
+      setHasDraft(true);
     } else {
       localStorage.removeItem(storageKey);
+      setHasDraft(false);
     }
   }, [fieldsState, customEmoji, customName, storageKey, date, workoutId, editing]);
 
@@ -204,6 +207,11 @@ export function useWorkoutForm<F extends Record<string, string>>(
     }
   };
 
+  const deleteDraft = () => {
+    localStorage.removeItem(storageKey);
+    router.push('/calendar');
+  };
+
   const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
   const dateDisplay = date
     ? new Date(date + 'T00:00:00').toLocaleDateString(dateLocale, {
@@ -260,6 +268,7 @@ export function useWorkoutForm<F extends Record<string, string>>(
     showDeleteConfirm,
     setShowDeleteConfirm,
     confirmDelete,
+    deleteDraft,
     deleting,
     dateDisplay,
     customEmoji,

@@ -44,7 +44,10 @@ function StrengthWorkoutForm() {
     } catch { /* ignore */ }
     return [];
   });
-  const [hasDraft, setHasDraft] = useState(false);
+  const [hasDraft, setHasDraft] = useState(() => {
+    if (workoutId || typeof window === 'undefined' || !date) return false;
+    return !!localStorage.getItem(storageKey);
+  });
   const [loadingWorkout, setLoadingWorkout] = useState(!!workoutId);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [exerciseSearch, setExerciseSearch] = useState('');
@@ -160,9 +163,11 @@ function StrengthWorkoutForm() {
     if (entries.length > 0) {
       localStorage.setItem(storageKey, JSON.stringify(entries));
       localStorage.setItem(storageKey + '-meta', JSON.stringify({ customEmoji, customName }));
+      setHasDraft(true);
     } else {
       localStorage.removeItem(storageKey);
       localStorage.removeItem(storageKey + '-meta');
+      setHasDraft(false);
     }
   }, [entries, customEmoji, customName, storageKey, date, workoutId, editing]);
 
@@ -624,6 +629,16 @@ function StrengthWorkoutForm() {
         <button onClick={() => setShowDeleteConfirm(true)}
           className="w-full py-3.5 bg-transparent border border-border rounded-card text-red-400 text-[14px] font-medium font-inherit cursor-pointer mt-3 transition-all duration-200 active:scale-[0.98] active:bg-red-500/10">
           {t.deleteWorkout}
+        </button>
+      )}
+      {!workoutId && hasDraft && (
+        <button onClick={() => {
+          localStorage.removeItem(storageKey);
+          localStorage.removeItem(storageKey + '-meta');
+          router.push('/calendar');
+        }}
+          className="w-full py-3.5 bg-transparent border border-border rounded-card text-red-400 text-[14px] font-medium font-inherit cursor-pointer mt-3 transition-all duration-200 active:scale-[0.98] active:bg-red-500/10">
+          {t.deleteDraft}
         </button>
       )}
 
