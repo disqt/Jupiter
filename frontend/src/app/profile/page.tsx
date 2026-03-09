@@ -7,11 +7,37 @@ import { useI18n } from '@/lib/i18n';
 import TextInput from '@/components/TextInput';
 import BottomSheet from '@/components/BottomSheet';
 import { getGuestWorkouts, clearGuestWorkouts } from '@/lib/guest-storage';
-import { createWorkout } from '@/lib/api';
+import { fetchExercises, createExercise, createWorkout } from '@/lib/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
-async function migrateGuestWorkouts() {
+async function migrateGuestData() {
+  // 1. Get guest exercises and workouts
+  const guestExercisesRaw = localStorage.getItem('guest-exercises');
+  const guestExercises: { id: number; name: string; muscle_group: string }[] =
+    guestExercisesRaw ? JSON.parse(guestExercisesRaw) : [];
+
+  // 2. Fetch DB exercises (seeded on registration, or existing for login)
+  const dbExercises = await fetchExercises();
+
+  // 3. Build ID mapping: guest exercise ID → DB exercise ID
+  const idMap = new Map<number, number>();
+
+  for (const ge of guestExercises) {
+    // Try to find matching DB exercise by name + muscle_group
+    const match = dbExercises.find(
+      (de) => de.name === ge.name && de.muscle_group === ge.muscle_group
+    );
+    if (match) {
+      idMap.set(ge.id, match.id);
+    } else {
+      // Custom exercise — create in DB
+      const created = await createExercise(ge.name, ge.muscle_group);
+      idMap.set(ge.id, created.id);
+    }
+  }
+
+  // 4. Migrate workouts, remapping exercise IDs
   const guestWorkouts = getGuestWorkouts();
   for (const gw of guestWorkouts) {
     const payload: Record<string, unknown> = {
@@ -23,11 +49,27 @@ async function migrateGuestWorkouts() {
     };
     if (gw.cycling_details) payload.cycling_details = gw.cycling_details;
     if (gw.workout_details) payload.workout_details = gw.workout_details;
-    if (gw.exercise_logs) payload.exercise_logs = gw.exercise_logs;
-    if (gw.exercise_notes) payload.exercise_notes = gw.exercise_notes;
+    if (gw.exercise_logs) {
+      payload.exercise_logs = gw.exercise_logs.map(log => ({
+        exercise_id: idMap.get(log.exercise_id) || log.exercise_id,
+        set_number: log.set_number,
+        reps: log.reps,
+        weight: log.weight,
+      }));
+    }
+    if (gw.exercise_notes) {
+      payload.exercise_notes = gw.exercise_notes.map(note => ({
+        exercise_id: idMap.get(note.exercise_id) || note.exercise_id,
+        note: note.note,
+        pinned: note.pinned,
+      }));
+    }
     await createWorkout(payload as Parameters<typeof createWorkout>[0]);
   }
+
+  // 5. Clear guest data
   clearGuestWorkouts();
+  localStorage.removeItem('guest-exercises');
 }
 
 function RegisterSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -49,7 +91,7 @@ function RegisterSheet({ open, onClose }: { open: boolean; onClose: () => void }
     try {
       await register(nickname.trim(), password, email.trim());
       setMigrating(true);
-      await migrateGuestWorkouts();
+      await migrateGuestData();
       router.push('/calendar');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error';
@@ -149,7 +191,7 @@ function LoginSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
     try {
       await login(nickname.trim(), password);
       setMigrating(true);
-      await migrateGuestWorkouts();
+      await migrateGuestData();
       router.push('/calendar');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error';
