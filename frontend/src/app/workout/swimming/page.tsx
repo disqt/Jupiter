@@ -82,6 +82,7 @@ function SwimmingWorkoutForm() {
   const [hasDraft, setHasDraft] = useState(false);
 
   const [showSaveAnimation, setShowSaveAnimation] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Load existing workout from API (or edit draft from localStorage)
   useEffect(() => {
@@ -128,6 +129,17 @@ function SwimmingWorkoutForm() {
   }, [duration, laps, customEmoji, customName, storageKey, date, workoutId, editing]);
 
   const handleSave = async () => {
+    setSaveError('');
+
+    if (duration && parseDuration(duration) === null) {
+      setSaveError(t.errorInvalidDuration);
+      return;
+    }
+    if (laps && (isNaN(parseInt(laps)) || parseInt(laps) < 0)) {
+      setSaveError(t.errorInvalidLaps);
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -151,6 +163,7 @@ function SwimmingWorkoutForm() {
       }
     } catch (err) {
       console.error('Save failed:', err);
+      setSaveError(t.errorSaveFailed);
       setSaving(false);
     }
   };
@@ -192,7 +205,7 @@ function SwimmingWorkoutForm() {
 
         <div className="mb-4">
           <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.laps}</label>
-          <input type="number" value={laps} onChange={(e) => setLaps(e.target.value)} placeholder={t.lapsPlaceholder}
+          <input type="text" inputMode="numeric" value={laps} onChange={(e) => { if (/^[0-9]*$/.test(e.target.value)) setLaps(e.target.value); }} placeholder={t.lapsPlaceholder}
             disabled={!!workoutId && !editing}
             className={`w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-text font-inherit text-[15px] outline-none transition-colors duration-200 focus:border-accent placeholder:text-text-muted ${workoutId && !editing ? 'opacity-50 cursor-not-allowed' : ''}`} />
         </div>
@@ -203,6 +216,12 @@ function SwimmingWorkoutForm() {
       )}
 
       {showSaveAnimation && <SaveAnimation onComplete={() => router.push('/calendar?saved=1')} />}
+
+      {saveError && (
+        <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-[13px] text-center">
+          {saveError}
+        </div>
+      )}
 
       {(!workoutId || editing) && (
         <button onClick={handleSave} disabled={saving}

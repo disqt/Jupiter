@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '@/lib/db-server';
 import { rateLimit } from '@/lib/rate-limit';
+import { getJwtSecret } from '@/lib/auth-api';
+import { loginSchema } from '@/lib/validations';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,11 +13,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many attempts, try again later' }, { status: 429 });
     }
 
-    const { nickname, password } = await request.json();
-
-    if (!nickname || !password) {
-      return NextResponse.json({ error: 'Nickname and password are required' }, { status: 400 });
+    const body = await request.json();
+    const parsed = loginSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+    const { nickname, password } = parsed.data;
 
     const result = await pool.query('SELECT * FROM users WHERE nickname = $1', [nickname]);
     if (result.rows.length === 0) {
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid nickname or password' }, { status: 401 });
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || '', { expiresIn: '30d' });
+    const token = jwt.sign({ userId: user.id }, getJwtSecret(), { expiresIn: '30d' });
 
     return NextResponse.json({ token, user: { id: user.id, nickname: user.nickname } });
   } catch (err) {

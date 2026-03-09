@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db-server';
 import { authenticate, handleApiError } from '@/lib/auth-api';
+import { createExerciseSchema } from '@/lib/validations';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +19,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const userId = authenticate(request);
-    const { name, muscle_group } = await request.json();
+    const body = await request.json();
+    const parsed = createExerciseSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
+    const { name, muscle_group } = parsed.data;
     const result = await pool.query(
       'INSERT INTO exercises (name, muscle_group, user_id) VALUES ($1, $2, $3) RETURNING *',
       [name, muscle_group, userId]

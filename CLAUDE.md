@@ -22,13 +22,16 @@ cd frontend && npx tsc --noEmit     # Type check
 
 **Key files:**
 - API routes: `frontend/src/app/api/` (auth, workouts, exercises, stats, home, health)
-- Server libs: `frontend/src/lib/db-server.ts` (pg pool), `frontend/src/lib/schema.ts` (Drizzle), `frontend/src/lib/auth-api.ts` (JWT helper)
+- Server libs: `frontend/src/lib/db-server.ts` (pg pool), `frontend/src/lib/schema.ts` (Drizzle), `frontend/src/lib/auth-api.ts` (JWT helper + `getJwtSecret()`)
+- Validation: `frontend/src/lib/validations.ts` (Zod schemas for all API inputs)
 - Frontend API client: `frontend/src/lib/api.ts` (typed fetch functions, same-origin calls)
 - Constants: `frontend/src/lib/data.ts` (WorkoutType, WORKOUT_CONFIG, muscle groups, ride types, SPORT_EMOJIS)
 - i18n: `frontend/src/lib/i18n.tsx` (custom Context, FR default + EN)
 - Auth context: `frontend/src/lib/auth.tsx` (AuthProvider, JWT in localStorage)
 - Rate limiter: `frontend/src/lib/rate-limit.ts` (in-memory, for login/register)
 - Seed exercises: `frontend/src/lib/seed-exercises.ts` (default exercises on registration)
+- Middleware: `frontend/src/middleware.ts` (route protection — blocks API calls without Bearer token, except auth + health)
+- Error boundary: `frontend/src/components/ErrorBoundary.tsx` (wraps app inside I18nProvider, bilingual fallback UI)
 
 ## Environment
 
@@ -86,7 +89,13 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - localStorage draft autosave for all workout types (`{type}-draft-${date}` / `{type}-edit-${workoutId}`)
 - Save animation + redirect with `/calendar?saved=1` triggers medal celebration in WeeklyProgress. `replaceState` uses `pathname` (not hardcoded `/`) to strip query param without changing route.
 - DB values (muscle groups, ride types) stay in French — display translated via `t.muscleGroups[dbValue]`
-- env vars (`JWT_SECRET`, `INVITE_CODE`) read at call time in API route handlers
+- env vars (`JWT_SECRET`, `INVITE_CODE`) read at call time in API route handlers — `getJwtSecret()` throws if undefined (never fallback to empty string)
+- All POST/PUT API routes validate input with Zod schemas (`frontend/src/lib/validations.ts`) — returns 400 with field errors on invalid input
+- Middleware (`frontend/src/middleware.ts`) blocks unauthenticated API calls at the edge (except `/api/auth/*` and `/api/health`)
+- Security headers in `next.config.mjs`: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy
+- ErrorBoundary wraps app inside I18nProvider (order: I18nProvider → ErrorBoundary → AuthProvider → App) so error UI is bilingual
+- DB indexes: `workouts(user_id, date)`, `workouts(user_id, type)`, `cycling_details(workout_id)`, `workout_details(workout_id)`, `exercise_logs(workout_id)`, `exercise_logs(exercise_id)`, `exercises(user_id, muscle_group)` — migration in `database/migrations/001_add_indexes.sql`
+- Numeric inputs use `type="text"` + `inputMode="decimal"/"numeric"` (NOT `type="number"`) — prevents silent value coercion. onChange filters non-numeric chars via regex (`/^[0-9]*\.?[0-9]*$/` for decimals, `/^[0-9]*$/` for integers). Validation also at save time + Zod on server.
 - Medal formula: `GREATEST(count - 2, 0)` — 3 sessions/week = 1 medal, 4 = 2, etc.
 - Medal UI: header card = total medals (big icon + number), monthly card = month medals (sum of weeklyMedals) + progress bar + info modal on tap
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. Split into `UPPER_BODY_GROUPS` / `LOWER_BODY_GROUPS`. No "Jambes" or "Autre".

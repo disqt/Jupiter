@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db-server';
 import { authenticate, handleApiError } from '@/lib/auth-api';
+import { monthParamSchema, createWorkoutSchema } from '@/lib/validations';
 
 export async function GET(request: NextRequest) {
   try {
     const userId = authenticate(request);
     const month = request.nextUrl.searchParams.get('month');
-    if (!month) {
-      return NextResponse.json({ error: 'month query param required (YYYY-MM)' }, { status: 400 });
+    const parsed = monthParamSchema.safeParse({ month });
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid month format (YYYY-MM)' }, { status: 400 });
     }
     const result = await pool.query(
       `SELECT w.*,
@@ -33,7 +35,13 @@ export async function POST(request: NextRequest) {
   try {
     const userId = authenticate(request);
     await client.query('BEGIN');
-    const { date, type, notes, cycling_details, exercise_logs, workout_details, custom_emoji, custom_name } = await request.json();
+    const body = await request.json();
+    const parsed = createWorkoutSchema.safeParse(body);
+    if (!parsed.success) {
+      client.release();
+      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
+    const { date, type, notes, cycling_details, exercise_logs, workout_details, custom_emoji, custom_name } = parsed.data;
 
     const workoutResult = await client.query(
       'INSERT INTO workouts (date, type, notes, user_id, custom_emoji, custom_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',

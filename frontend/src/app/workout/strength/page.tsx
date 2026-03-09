@@ -321,8 +321,33 @@ function StrengthWorkoutForm() {
   };
 
   const [showSaveAnimation, setShowSaveAnimation] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const handleSave = async () => {
+    setSaveError('');
+
+    // Validate every exercise has at least one valid set, and no set has invalid data
+    for (const entry of entries) {
+      let hasValidSet = false;
+      for (const s of entry.sets) {
+        if (!s.reps.trim()) continue; // truly empty = skip
+        const reps = parseInt(s.reps);
+        if (isNaN(reps) || reps <= 0) {
+          setSaveError(t.errorInvalidReps);
+          return;
+        }
+        if (s.weight.trim() && isNaN(parseFloat(s.weight))) {
+          setSaveError(t.errorInvalidWeight);
+          return;
+        }
+        hasValidSet = true;
+      }
+      if (!hasValidSet) {
+        setSaveError(t.errorNoValidSets(entry.exercise.name));
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const exercise_logs = entries.flatMap((entry) =>
@@ -355,6 +380,7 @@ function StrengthWorkoutForm() {
       }
     } catch (err) {
       console.error('Save failed:', err);
+      setSaveError(t.errorSaveFailed);
       setSaving(false);
     }
   };
@@ -453,13 +479,13 @@ function StrengthWorkoutForm() {
                   <div className="text-center text-[11px] text-text-muted bg-bg rounded-md h-10 leading-10 border border-transparent overflow-hidden text-ellipsis whitespace-nowrap">
                     {lastPerf ? `${lastPerf.reps} × ${lastPerf.weight}kg` : '-'}
                   </div>
-                  <input type="number" value={set.reps}
-                    onChange={(e) => updateSet(entryIdx, setIdx, 'reps', e.target.value)}
+                  <input type="text" inputMode="numeric" value={set.reps}
+                    onChange={(e) => { if (/^[0-9]*$/.test(e.target.value)) updateSet(entryIdx, setIdx, 'reps', e.target.value); }}
                     disabled={!!workoutId && !editing}
                     placeholder={lastPerf ? String(lastPerf.reps) : '0'}
                     className={`w-full min-w-0 text-center text-sm font-medium text-text bg-bg border border-border rounded-md h-10 leading-10 font-inherit outline-none transition-colors duration-200 focus:border-strength p-0 box-border placeholder:text-text-muted ${workoutId && !editing ? 'opacity-50 cursor-not-allowed' : ''}`} />
-                  <input type="number" step="0.5" value={set.weight}
-                    onChange={(e) => updateSet(entryIdx, setIdx, 'weight', e.target.value)}
+                  <input type="text" inputMode="decimal" value={set.weight}
+                    onChange={(e) => { if (/^[0-9]*\.?[0-9]*$/.test(e.target.value)) updateSet(entryIdx, setIdx, 'weight', e.target.value); }}
                     onBlur={() => autoFillWeight(entryIdx, setIdx)}
                     disabled={!!workoutId && !editing}
                     placeholder={lastPerf ? String(lastPerf.weight) : '0'}
@@ -539,6 +565,12 @@ function StrengthWorkoutForm() {
       )}
 
       {/* Save */}
+      {saveError && (
+        <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-[13px] text-center">
+          {saveError}
+        </div>
+      )}
+
       {entries.length > 0 && (!workoutId || editing) && (
         <button onClick={handleSave} disabled={saving}
           className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] bg-strength text-white shadow-[0_4px_20px_rgba(255,138,59,0.3)] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide">
