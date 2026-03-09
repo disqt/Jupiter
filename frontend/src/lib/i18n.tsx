@@ -240,6 +240,20 @@ const translations = {
     errorCurrentPasswordRequired: 'Le mot de passe actuel est requis',
     errorCurrentPasswordWrong: 'Le mot de passe actuel est incorrect',
     errorAllFieldsRequired: 'Tous les champs sont requis',
+    errorInvalidReps: 'Les répétitions doivent être un nombre valide supérieur à 0',
+    errorInvalidWeight: 'Le poids doit être un nombre valide',
+    errorNoValidSets: (name: string) => `Aucune série valide pour "${name}". Remplissez au moins les reps d'une série.`,
+    errorInvalidDuration: 'Format de durée invalide (ex: 1h30, 45min, 1:30)',
+    errorInvalidDistance: 'La distance doit être un nombre valide',
+    errorInvalidElevation: 'Le dénivelé doit être un nombre entier valide',
+    errorInvalidLaps: 'Le nombre de longueurs doit être un nombre entier valide',
+    errorSaveFailed: 'Erreur lors de la sauvegarde. Réessayez.',
+
+    // Error boundary
+    errorBoundaryTitle: 'Une erreur est survenue',
+    errorBoundaryMessage: "Quelque chose ne s'est pas passé comme prévu. Essayez de recharger la page.",
+    errorBoundaryRetry: 'Réessayer',
+    errorBoundaryReload: 'Recharger la page',
   },
   en: {
     appTitle: 'Jupiter',
@@ -463,6 +477,20 @@ const translations = {
     errorCurrentPasswordRequired: 'Current password is required',
     errorCurrentPasswordWrong: 'Current password is incorrect',
     errorAllFieldsRequired: 'All fields are required',
+    errorInvalidReps: 'Reps must be a valid number greater than 0',
+    errorInvalidWeight: 'Weight must be a valid number',
+    errorNoValidSets: (name: string) => `No valid sets for "${name}". Fill in the reps for at least one set.`,
+    errorInvalidDuration: 'Invalid duration format (e.g. 1h30, 45min, 1:30)',
+    errorInvalidDistance: 'Distance must be a valid number',
+    errorInvalidElevation: 'Elevation must be a valid integer',
+    errorInvalidLaps: 'Laps must be a valid integer',
+    errorSaveFailed: 'Failed to save. Please try again.',
+
+    // Error boundary
+    errorBoundaryTitle: 'Something went wrong',
+    errorBoundaryMessage: 'Something unexpected happened. Try reloading the page.',
+    errorBoundaryRetry: 'Try again',
+    errorBoundaryReload: 'Reload page',
   },
 };
 

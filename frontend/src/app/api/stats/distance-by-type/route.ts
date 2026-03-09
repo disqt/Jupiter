@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db-server';
 import { authenticate, handleApiError } from '@/lib/auth-api';
+import { monthParamSchema, yearParamSchema } from '@/lib/validations';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,10 +14,18 @@ export async function GET(request: NextRequest) {
     let periodExpr: string;
 
     if (month) {
+      const parsed = monthParamSchema.safeParse({ month });
+      if (!parsed.success) {
+        return NextResponse.json({ error: 'Invalid month format (YYYY-MM)' }, { status: 400 });
+      }
       dateFormat = 'YYYY-MM';
       dateValue = month;
       periodExpr = `EXTRACT(ISOYEAR FROM w.date)::int * 100 + EXTRACT(WEEK FROM w.date)::int`;
     } else if (year) {
+      const parsed = yearParamSchema.safeParse({ year });
+      if (!parsed.success) {
+        return NextResponse.json({ error: 'Invalid year format (YYYY)' }, { status: 400 });
+      }
       dateFormat = 'YYYY';
       dateValue = year;
       periodExpr = `to_char(w.date, 'MM')`;

@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import pool from '@/lib/db-server';
 import { seedDefaultExercises } from '@/lib/seed-exercises';
 import { rateLimit } from '@/lib/rate-limit';
+import { getJwtSecret } from '@/lib/auth-api';
+import { registerSchema } from '@/lib/validations';
 
 const SALT_ROUNDS = 12;
 
@@ -14,22 +16,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many attempts, try again later' }, { status: 429 });
     }
 
-    const { nickname, password, invite_code } = await request.json();
-
-    if (!nickname || !password || !invite_code) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
+    const body = await request.json();
+    const parsed = registerSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+    const { nickname, password, invite_code } = parsed.data;
 
-    if (invite_code !== (process.env.INVITE_CODE || '')) {
+    if (!process.env.INVITE_CODE || invite_code !== process.env.INVITE_CODE) {
       return NextResponse.json({ error: 'Invalid invite code' }, { status: 403 });
-    }
-
-    if (nickname.length < 2 || nickname.length > 50) {
-      return NextResponse.json({ error: 'Nickname must be 2-50 characters' }, { status: 400 });
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
     }
 
     const existing = await pool.query('SELECT id FROM users WHERE nickname = $1', [nickname]);
@@ -46,7 +41,7 @@ export async function POST(request: NextRequest) {
     const user = result.rows[0];
     await seedDefaultExercises(user.id);
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || '', { expiresIn: '30d' });
+    const token = jwt.sign({ userId: user.id }, getJwtSecret(), { expiresIn: '30d' });
 
     return NextResponse.json({ token, user: { id: user.id, nickname: user.nickname } }, { status: 201 });
   } catch (err) {

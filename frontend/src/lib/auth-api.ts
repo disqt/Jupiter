@@ -7,15 +7,25 @@ export class AuthError extends Error {
   }
 }
 
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not set');
+  }
+  return secret;
+}
+
 export function authenticate(request: NextRequest): number {
   const header = request.headers.get('authorization');
   if (!header || !header.startsWith('Bearer ')) {
     throw new AuthError('Authentication required');
   }
   const token = header.slice(7);
-  const payload = jwt.verify(token, process.env.JWT_SECRET || '') as { userId: number };
+  const payload = jwt.verify(token, getJwtSecret()) as { userId: number };
   return payload.userId;
 }
+
+export { getJwtSecret };
 
 export function handleApiError(err: unknown): NextResponse {
   if (err instanceof AuthError) {

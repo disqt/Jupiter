@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db-server';
 import { authenticate, handleApiError } from '@/lib/auth-api';
+import { updateWorkoutSchema, patchWorkoutSchema } from '@/lib/validations';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -48,7 +49,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const userId = authenticate(request);
     await client.query('BEGIN');
     const { id } = params;
-    const { date, type, notes, cycling_details, exercise_logs, workout_details, custom_emoji, custom_name } = await request.json();
+    const body = await request.json();
+    const parsed = updateWorkoutSchema.safeParse(body);
+    if (!parsed.success) {
+      client.release();
+      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
+    const { date, type, notes, cycling_details, exercise_logs, workout_details, custom_emoji, custom_name } = parsed.data;
 
     const workoutResult = await client.query(
       'UPDATE workouts SET date = $1, type = $2, notes = $3, custom_emoji = $5, custom_name = $6 WHERE id = $4 AND user_id = $7 RETURNING *',
@@ -104,7 +111,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   try {
     const userId = authenticate(request);
     const { id } = params;
-    const { custom_emoji, custom_name } = await request.json();
+    const body = await request.json();
+    const parsed = patchWorkoutSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
+    const { custom_emoji, custom_name } = parsed.data;
     const result = await pool.query(
       'UPDATE workouts SET custom_emoji = $1, custom_name = $2 WHERE id = $3 AND user_id = $4 RETURNING *',
       [custom_emoji || null, custom_name || null, id, userId]
