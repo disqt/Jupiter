@@ -32,7 +32,8 @@ cd frontend && npx tsc --noEmit     # Type check
 - Data source: `frontend/src/lib/useDataSource.ts` (abstraction hook — routes to API or localStorage based on `isGuest`)
 - Blurred overlay: `frontend/src/components/BlurredOverlay.tsx` (blur + CTA for guest-restricted sections)
 - Rate limiter: `frontend/src/lib/rate-limit.ts` (in-memory, for login/register)
-- Seed exercises: `frontend/src/lib/seed-exercises.ts` (default exercises on registration, also used client-side for guest mode)
+- Default exercises data: `frontend/src/lib/default-exercises.ts` (58 exercises, pure data, no server deps — safe for client import)
+- Seed exercises: `frontend/src/lib/seed-exercises.ts` (server-side seeding on registration, re-exports DEFAULT_EXERCISES from default-exercises.ts)
 - Middleware: `frontend/src/middleware.ts` (route protection — blocks API calls without Bearer token, except auth + health)
 - Error boundary: `frontend/src/components/ErrorBoundary.tsx` (wraps app inside I18nProvider, bilingual fallback UI)
 - Workout form shared: `frontend/src/lib/useWorkoutForm.ts` (hook), `frontend/src/components/WorkoutFormShell.tsx` (UI shell), `frontend/src/lib/duration.ts` (parsing), `frontend/src/components/DeleteConfirmModal.tsx` (modal), `frontend/src/lib/drafts.ts` (scan localStorage drafts)
@@ -111,7 +112,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Medal formula: `GREATEST(count - 2, 0)` — 3 sessions/week = 1 medal, 4 = 2, etc.
 - Medal UI: header card = total medals (big icon + number), monthly card = month medals (sum of weeklyMedals) + progress bar + info modal on tap
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. Split into `UPPER_BODY_GROUPS` / `LOWER_BODY_GROUPS`. No "Jambes" or "Autre".
-- Default exercises seeded per user on registration (`frontend/src/lib/seed-exercises.ts`) — 58 exercises across 10 muscle groups
+- Default exercises seeded per user on registration (`frontend/src/lib/seed-exercises.ts`) — 58 exercises across 10 muscle groups. Data lives in `default-exercises.ts` (client-safe), seeding function in `seed-exercises.ts` (server-only).
 - Exercises sorted by `muscle_group, id` (oldest/seeded first, user-created last)
 - Strength sets: only reps required, weight defaults to 0 if empty. Weight auto-fills empty sets below on blur (not on keystroke) + new sets copy previous weight.
 - `window.location.href` redirects use `BASE_PATH` env var (for subpath deployment)
@@ -126,6 +127,8 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Guest exercises: stored in `guest-exercises` localStorage key, seeded from `seed-exercises.ts` on first strength form access.
 - Account creation: bottom sheet on profile page (email + nickname + password, no invite code). Migrates guest workouts + custom exercises to DB on registration/login.
 - BlurredOverlay: wraps content with blur + CTA button. Used on HomePage (medals, insights, streak) and StatsPage (charts) for guest users.
+- API 401 guard: `api.ts` `request()` does `window.location.href = '/'` on 401. ANY component calling API functions MUST check `isGuest` first to avoid infinite reload loops. WeeklyProgress, Calendar, HomePage, StatsPage all guard with `if (isGuest) return`.
+- Default exercises split: `default-exercises.ts` (pure data) vs `seed-exercises.ts` (imports db-server). Client components must import from `default-exercises.ts` — importing `seed-exercises.ts` client-side fails because `pg` module can't be bundled.
 
 ## Pages
 
@@ -141,6 +144,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Key insights grid (2x2): sessions, distance, active time, strength volume — with trend vs previous week
 - Streak card: consecutive days + best streak
 - API route: `GET /api/home` (`frontend/src/app/api/home/route.ts`) — returns today, week, medals, insights, streak in one call. Today's `exercise_count` uses `COUNT(DISTINCT exercise_id)` (not total sets).
+- Guest mode: today's workouts + weekly tracker computed from localStorage. Medals, insights, streak wrapped in `<BlurredOverlay>` with placeholder data. Greeting shows no name.
 
 ## Calendar Page
 
@@ -169,3 +173,4 @@ Moved from `/` to `/calendar`. All workout form redirects (`router.push`, `?save
 - Distance by sport: stacked BarChart with sport filter chips
 - Strength volume: conditional card (tonnage, exercises, sets) — only if musculation data exists
 - Recharts dependency in frontend/package.json
+- Guest mode: total sessions + active days shown, all charts wrapped in `<BlurredOverlay>` with CTA
