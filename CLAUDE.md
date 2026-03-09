@@ -133,6 +133,19 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 
 Moved from `/` to `/calendar`. All workout form redirects (`router.push`, `?saved=1`) point to `/calendar`.
 
+## Adding a New Workout Type (checklist)
+
+1. **DB**: Add value to `workouts.type` CHECK constraint in Supabase (`ALTER TABLE workouts DROP CONSTRAINT ..., ADD CONSTRAINT ... CHECK (type IN ('velo','musculation','course','natation','marche','custom','NEW_TYPE'))`)
+2. **`data.ts`**: Add to `WorkoutType` union + `WORKOUT_TYPES` array + `WORKOUT_CONFIG` (emoji, color, colorSoft, route)
+3. **Tailwind**: Add `bg-NEWCOLOR` / `text-NEWCOLOR` classes in `tailwind.config.ts` `theme.extend.colors` if new color
+4. **`i18n.tsx`**: Add translation keys for workout name (FR + EN), add to `workoutTypeLabels` and `workoutTypeTags` in both locales
+5. **`useWorkoutForm.ts`**: Add workout name mapping in `workoutNames` record (~line 202)
+6. **Page**: Create `frontend/src/app/workout/NEWTYPE/page.tsx` — ~30-70 lines using `useWorkoutForm()` + `<WorkoutFormShell>`. Copy from `running/page.tsx` (simplest) and adapt: type, storagePrefix, defaultFields, buildPayload, validate, loadFromApi, color, shadowColor
+7. **API**: If using `workout_details`, add type to the allowed list in `frontend/src/app/api/workouts/route.ts` (`['course', 'natation', 'marche', 'custom'].includes(type)`)
+8. **Zod**: Add type to `createWorkoutSchema`/`updateWorkoutSchema` in `frontend/src/lib/validations.ts`
+9. **Calendar**: Type will auto-appear via `WORKOUT_CONFIG` lookup — no changes needed
+10. **Home/Stats**: `api.ts` `toWorkout()` needs a case for the new type's detail string. Stats pages auto-include via type distribution.
+
 ## Stats Page
 
 `StatsPage` component (`frontend/src/components/StatsPage.tsx`) — single scrollable page with Recharts graphs:
