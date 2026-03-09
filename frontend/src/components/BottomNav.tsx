@@ -10,9 +10,7 @@ import { useAuth } from '@/lib/auth';
 export default function BottomNav() {
   const pathname = usePathname();
   const { t, locale, setLocale } = useI18n();
-  const { user, logout } = useAuth();
-
-  if (pathname === '/login' || pathname === '/register') return null;
+  const { user, isGuest, logout } = useAuth();
 
   const navItems = [
     { href: '/', label: t.home, icon: '🏠' },
@@ -42,11 +40,9 @@ export default function BottomNav() {
         <h2 className="font-serif text-xl mb-1">
           Jupiter <span className="text-text-muted italic">Tracker</span>
         </h2>
-        {user && (
-          <Link href="/profile" className="text-xs text-text-muted no-underline hover:text-accent transition-colors mb-3">
-            {user.nickname}
-          </Link>
-        )}
+        <Link href="/profile" className="text-xs text-text-muted no-underline hover:text-accent transition-colors mb-3">
+          {isGuest ? t.guestMode : user?.nickname}
+        </Link>
         <div className="mb-6">
           <Suspense fallback={null}>
             <WeeklyProgress />
@@ -69,12 +65,14 @@ export default function BottomNav() {
           >
             {locale === 'fr' ? 'EN' : 'FR'}
           </button>
-          <button
-            onClick={logout}
-            className="text-sm text-text-muted hover:text-red-400 transition-colors cursor-pointer bg-transparent border border-border rounded-md font-inherit text-center px-3 py-2"
-          >
-            {t.logout}
-          </button>
+          {!isGuest && (
+            <button
+              onClick={logout}
+              className="text-sm text-text-muted hover:text-red-400 transition-colors cursor-pointer bg-transparent border border-border rounded-md font-inherit text-center px-3 py-2"
+            >
+              {t.logout}
+            </button>
+          )}
         </div>
       </nav>
     </>
