@@ -223,6 +223,8 @@ export interface LastPerformanceSet {
   reps: number;
   weight: string;
   date: string;
+  mode?: string;
+  duration?: number;
 }
 
 export interface LastPerformanceResponse {
