@@ -42,6 +42,7 @@ export const exercises = pgTable('exercises', {
   userId: integer('user_id').notNull().references(() => users.id),
   name: varchar('name', { length: 100 }).notNull(),
   muscleGroup: varchar('muscle_group', { length: 50 }).notNull(),
+  defaultMode: text('default_mode').notNull().default('reps-weight'),
 });
 
 export const exerciseLogs = pgTable('exercise_logs', {
@@ -51,6 +52,8 @@ export const exerciseLogs = pgTable('exercise_logs', {
   setNumber: integer('set_number').notNull(),
   reps: integer('reps').notNull(),
   weight: decimal('weight', { precision: 6, scale: 2 }).notNull(),
+  mode: text('mode').notNull().default('reps-weight'),
+  duration: integer('duration'),
 });
 
 export const exerciseWorkoutNotes = pgTable('exercise_workout_notes', {

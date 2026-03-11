@@ -27,11 +27,13 @@ export const updateProfileSchema = z.object({
 export const createExerciseSchema = z.object({
   name: z.string().min(1).max(100),
   muscle_group: z.enum(MUSCLE_GROUPS),
+  default_mode: z.enum(['reps-weight', 'time']).default('reps-weight'),
 });
 
 export const updateExerciseSchema = z.object({
   name: z.string().min(1).max(100),
   muscle_group: z.enum(MUSCLE_GROUPS),
+  default_mode: z.enum(['reps-weight', 'time']).optional(),
 });
 
 // Nested schemas
@@ -45,8 +47,10 @@ export const cyclingDetailsSchema = z.object({
 export const exerciseLogSchema = z.object({
   exercise_id: z.number().int().positive(),
   set_number: z.number().int().positive(),
-  reps: z.number().int().positive(),
+  reps: z.number().int().nonnegative(),
   weight: z.number().nonnegative().default(0),
+  mode: z.enum(['reps-weight', 'time']).default('reps-weight'),
+  duration: z.number().int().positive().nullable().optional(),
 });
 
 export const exerciseNoteSchema = z.object({

@@ -24,10 +24,10 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
-    const { name, muscle_group } = parsed.data;
+    const { name, muscle_group, default_mode } = parsed.data;
     const result = await pool.query(
-      'INSERT INTO exercises (name, muscle_group, user_id) VALUES ($1, $2, $3) RETURNING *',
-      [name, muscle_group, userId]
+      'INSERT INTO exercises (name, muscle_group, user_id, default_mode) VALUES ($1, $2, $3, $4) RETURNING *',
+      [name, muscle_group, userId, default_mode || 'reps-weight']
     );
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (err) {
