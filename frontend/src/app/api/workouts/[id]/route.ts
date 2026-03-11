@@ -85,9 +85,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (type === 'musculation' && exercise_logs) {
       for (const log of exercise_logs) {
         await client.query(
-          `INSERT INTO exercise_logs (workout_id, exercise_id, set_number, reps, weight)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [id, log.exercise_id, log.set_number, log.reps, log.weight]
+          `INSERT INTO exercise_logs (workout_id, exercise_id, set_number, reps, weight, mode, duration)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [id, log.exercise_id, log.set_number, log.reps, log.weight, log.mode || 'reps-weight', log.duration || null]
         );
       }
       if (exercise_notes) {

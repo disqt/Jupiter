@@ -27,6 +27,8 @@ export interface GuestWorkout {
     set_number: number;
     reps: number;
     weight: number;
+    mode?: string;
+    duration?: number;
   }[];
   exercise_notes?: {
     exercise_id: number;

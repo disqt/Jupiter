@@ -20,6 +20,7 @@ interface GuestExercise {
   id: number;
   name: string;
   muscle_group: string;
+  default_mode?: string;
 }
 
 function getGuestExercises(): GuestExercise[] {
@@ -38,25 +39,24 @@ function getGuestExercises(): GuestExercise[] {
   return exercises;
 }
 
-function saveGuestExercise(name: string, muscleGroup: string): GuestExercise {
+function saveGuestExercise(name: string, muscleGroup: string, defaultMode: string = 'reps-weight'): GuestExercise {
   const exercises = getGuestExercises();
   const maxId = exercises.reduce((max, e) => Math.max(max, e.id), 0);
-  const newExercise = { id: maxId + 1, name, muscle_group: muscleGroup };
+  const newExercise = { id: maxId + 1, name, muscle_group: muscleGroup, default_mode: defaultMode };
   exercises.push(newExercise);
   localStorage.setItem(GUEST_EXERCISES_KEY, JSON.stringify(exercises));
   return newExercise;
 }
 
-function getGuestLastPerformance(exerciseId: number): { sets: { set_number: number; reps: number; weight: string }[]; pinned_note: string | null } {
+function getGuestLastPerformance(exerciseId: number): { sets: { set_number: number; reps: number; weight: string; mode?: string; duration?: number }[]; pinned_note: string | null } {
   const workouts = getGuestWorkouts();
-  // Find most recent workout with this exercise
   const sorted = workouts
     .filter(w => w.exercise_logs?.some(l => l.exercise_id === exerciseId))
     .sort((a, b) => b.date.localeCompare(a.date));
   if (sorted.length === 0) return { sets: [], pinned_note: null };
   const sets = sorted[0].exercise_logs!
     .filter(l => l.exercise_id === exerciseId)
-    .map(l => ({ set_number: l.set_number, reps: l.reps, weight: String(l.weight) }));
+    .map(l => ({ set_number: l.set_number, reps: l.reps, weight: String(l.weight), mode: l.mode, duration: l.duration }));
   const pinnedNote = sorted[0].exercise_notes?.find(n => n.exercise_id === exerciseId && n.pinned)?.note || null;
   return { sets, pinned_note: pinnedNote };
 }
@@ -74,6 +74,8 @@ function getGuestExerciseHistory(exerciseId: number): HistorySet[] {
           set_number: l.set_number,
           reps: l.reps,
           weight: String(l.weight),
+          mode: l.mode || 'reps-weight',
+          duration: l.duration || undefined,
           date: w.date,
           exercise_note: note?.note || null,
           note_pinned: note?.pinned || null,
@@ -85,15 +87,24 @@ interface SetLog {
   setNumber: number;
   reps: string;
   weight: string;
+  duration: string;
 }
 
 interface ExerciseEntry {
   exercise: { id: number; name: string; muscleGroup: string };
   sets: SetLog[];
-  lastPerformance: { setNumber: number; reps: number; weight: number }[];
+  lastPerformance: { setNumber: number; reps: number; weight: number; mode?: string; duration?: number }[];
+  mode: 'reps-weight' | 'time';
   note: string;
   notePinned: boolean;
   showNote: boolean;
+}
+
+function formatDurationSeconds(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s > 0 ? `${m}:${String(s).padStart(2, '0')}` : `${m}:00`;
 }
 
 function StrengthWorkoutForm() {
@@ -107,7 +118,7 @@ function StrengthWorkoutForm() {
 
   const storageKey = workoutId ? `strength-edit-${workoutId}` : `strength-draft-${date}`;
 
-  const [exercises, setExercises] = useState<{ id: number; name: string; muscleGroup: string }[]>([]);
+  const [exercises, setExercises] = useState<{ id: number; name: string; muscleGroup: string; defaultMode?: string }[]>([]);
   const [entries, setEntries] = useState<ExerciseEntry[]>(() => {
     if (workoutId) return []; // Will load from API (then check for edit draft)
     if (typeof window === 'undefined' || !date) return [];
@@ -129,6 +140,7 @@ function StrengthWorkoutForm() {
   const [showNewExercise, setShowNewExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseMuscle, setNewExerciseMuscle] = useState('');
+  const [newExerciseMode, setNewExerciseMode] = useState<'reps-weight' | 'time'>('reps-weight');
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -154,16 +166,30 @@ function StrengthWorkoutForm() {
   const [historyExercise, setHistoryExercise] = useState<{ id: number; name: string } | null>(null);
   const [historyData, setHistoryData] = useState<HistorySet[]>([]);
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
+  const [openMenu, setOpenMenu] = useState<number | null>(null);
+  const [replacingExerciseIdx, setReplacingExerciseIdx] = useState<number | null>(null);
+  const [showTrackingMode, setShowTrackingMode] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Close exercise menu on click outside
+  useEffect(() => {
+    if (openMenu === null) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpenMenu(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openMenu]);
 
   // Load exercises from API or localStorage (guest)
   useEffect(() => {
     if (isGuest) {
       const data = getGuestExercises();
-      setExercises(data.map((e) => ({ id: e.id, name: e.name, muscleGroup: e.muscle_group })));
+      setExercises(data.map((e) => ({ id: e.id, name: e.name, muscleGroup: e.muscle_group, defaultMode: e.default_mode })));
     } else {
       fetchExercises().then((data) => {
-        setExercises(data.map((e) => ({ id: e.id, name: e.name, muscleGroup: e.muscle_group })));
+        setExercises(data.map((e) => ({ id: e.id, name: e.name, muscleGroup: e.muscle_group, defaultMode: e.default_mode })));
       }).catch(console.error);
     }
   }, [isGuest]);
@@ -175,7 +201,14 @@ function StrengthWorkoutForm() {
     try {
       const draft = localStorage.getItem(storageKey);
       if (draft) {
-        setEntries(JSON.parse(draft));
+        const parsed = JSON.parse(draft);
+        // Migrate old drafts without mode/duration
+        const migrated = parsed.map((e: ExerciseEntry) => ({
+          ...e,
+          mode: e.mode || 'reps-weight',
+          sets: e.sets.map((s: SetLog) => ({ ...s, duration: s.duration ?? '' })),
+        }));
+        setEntries(migrated);
         try {
           const meta = localStorage.getItem(storageKey + '-meta');
           if (meta) {
@@ -203,27 +236,31 @@ function StrengthWorkoutForm() {
           }
         }
         // Group logs by exercise
-        const grouped = new Map<number, { name: string; muscleGroup: string; sets: { setNumber: number; reps: number; weight: string }[] }>();
+        const grouped = new Map<number, { name: string; muscleGroup: string; mode: string; sets: { setNumber: number; reps: number; weight: string; duration?: number }[] }>();
         for (const log of data.exercise_logs) {
           const exId = (log as Record<string, unknown>).exercise_id as number;
           const exName = (log as Record<string, unknown>).exercise_name as string;
           const exGroup = (log as Record<string, unknown>).muscle_group as string;
+          const logMode = ((log as Record<string, unknown>).mode as string) || 'reps-weight';
           if (!grouped.has(exId)) {
-            grouped.set(exId, { name: exName, muscleGroup: exGroup, sets: [] });
+            grouped.set(exId, { name: exName, muscleGroup: exGroup, mode: logMode, sets: [] });
           }
           grouped.get(exId)!.sets.push({
             setNumber: (log as Record<string, unknown>).set_number as number,
             reps: (log as Record<string, unknown>).reps as number,
             weight: String((log as Record<string, unknown>).weight),
+            duration: (log as Record<string, unknown>).duration as number | undefined,
           });
         }
         const loadedEntries: ExerciseEntry[] = [];
         grouped.forEach((val, exId) => {
           const noteData = notesMap.get(exId);
+          const entryMode = (val.mode || 'reps-weight') as 'reps-weight' | 'time';
           loadedEntries.push({
             exercise: { id: exId, name: val.name, muscleGroup: val.muscleGroup },
-            sets: val.sets.map((s) => ({ setNumber: s.setNumber, reps: String(s.reps), weight: s.weight })),
+            sets: val.sets.map((s) => ({ setNumber: s.setNumber, reps: String(s.reps), weight: s.weight, duration: s.duration != null ? String(s.duration) : '' })),
             lastPerformance: [],
+            mode: entryMode,
             note: noteData?.note || '',
             notePinned: noteData?.pinned || false,
             showNote: !!(noteData?.note),
@@ -290,7 +327,22 @@ function StrengthWorkoutForm() {
     });
   };
 
+  const entryHasData = (entry: ExerciseEntry) =>
+    entry.sets.some(s => s.reps.trim() || s.weight.trim() || s.duration.trim());
+
   const getExerciseSummary = (entry: ExerciseEntry) => {
+    if (entry.mode === 'time') {
+      const filledSets = entry.sets.filter(s => s.duration.trim());
+      const count = filledSets.length || entry.sets.length;
+      if (filledSets.length === 0) return `${count} ${t.sets}`;
+      const allSame = filledSets.every(s => s.duration === filledSets[0].duration);
+      if (allSame) {
+        const sec = parseInt(filledSets[0].duration);
+        return `${filledSets.length}× ${formatDurationSeconds(sec)}`;
+      }
+      return `${filledSets.length} ${t.sets}`;
+    }
+
     const filledSets = entry.sets.filter(s => s.reps);
     const count = filledSets.length || entry.sets.length;
 
@@ -309,9 +361,9 @@ function StrengthWorkoutForm() {
     return `${filledSets.length} ${t.sets}`;
   };
 
-  const addExercise = async (exercise: { id: number; name: string; muscleGroup: string }) => {
+  const addExercise = async (exercise: { id: number; name: string; muscleGroup: string; defaultMode?: string }) => {
     // Fetch last performance + pinned note for this exercise
-    let lastPerf: { setNumber: number; reps: number; weight: number }[] = [];
+    let lastPerf: { setNumber: number; reps: number; weight: number; mode?: string; duration?: number }[] = [];
     let pinnedNote = '';
     try {
       const resp = isGuest
@@ -321,16 +373,20 @@ function StrengthWorkoutForm() {
         setNumber: p.set_number,
         reps: p.reps,
         weight: parseFloat(p.weight),
+        mode: p.mode,
+        duration: p.duration,
       }));
       if (resp.pinned_note) pinnedNote = resp.pinned_note;
     } catch { /* no previous performance */ }
 
     const initialSets: SetLog[] = lastPerf.length > 0
-      ? lastPerf.map((p) => ({ setNumber: p.setNumber, reps: '', weight: '' }))
-      : [{ setNumber: 1, reps: '', weight: '' }];
+      ? lastPerf.map((p) => ({ setNumber: p.setNumber, reps: '', weight: '', duration: '' }))
+      : [{ setNumber: 1, reps: '', weight: '', duration: '' }];
 
+    const mode = (exercise.defaultMode === 'time' ? 'time' : 'reps-weight') as 'reps-weight' | 'time';
     setEntries([...entries, {
       exercise, sets: initialSets, lastPerformance: lastPerf,
+      mode,
       note: pinnedNote, notePinned: !!pinnedNote, showNote: !!pinnedNote,
     }]);
     setShowExercisePicker(false);
@@ -340,18 +396,22 @@ function StrengthWorkoutForm() {
     if (!newExerciseName || !newExerciseMuscle) return;
     try {
       const newEx = isGuest
-        ? saveGuestExercise(newExerciseName, newExerciseMuscle)
-        : await createExercise(newExerciseName, newExerciseMuscle);
-      const mapped = { id: newEx.id, name: newEx.name, muscleGroup: newEx.muscle_group };
+        ? saveGuestExercise(newExerciseName, newExerciseMuscle, newExerciseMode)
+        : await createExercise(newExerciseName, newExerciseMuscle, newExerciseMode);
+      const mapped = { id: newEx.id, name: newEx.name, muscleGroup: newEx.muscle_group, defaultMode: newEx.default_mode || newExerciseMode };
       setExercises([...exercises, mapped]);
-      setNewExerciseName(''); setNewExerciseMuscle(''); setShowNewExercise(false);
-      addExercise(mapped);
+      setNewExerciseName(''); setNewExerciseMuscle(''); setNewExerciseMode('reps-weight'); setShowNewExercise(false);
+      if (replacingExerciseIdx !== null) {
+        replaceExercise(replacingExerciseIdx, mapped);
+      } else {
+        addExercise(mapped);
+      }
     } catch (err) {
       console.error('Failed to create exercise:', err);
     }
   };
 
-  const updateSet = (entryIdx: number, setIdx: number, field: 'reps' | 'weight', value: string) => {
+  const updateSet = (entryIdx: number, setIdx: number, field: 'reps' | 'weight' | 'duration', value: string) => {
     const updated = [...entries];
     updated[entryIdx] = {
       ...updated[entryIdx],
@@ -384,10 +444,11 @@ function StrengthWorkoutForm() {
     const updated = [...entries];
     const sets = updated[entryIdx].sets;
     const lastWeight = sets.length > 0 ? sets[sets.length - 1].weight : '';
+    const lastDuration = sets.length > 0 ? sets[sets.length - 1].duration : '';
     const nextNum = sets.length + 1;
     updated[entryIdx] = {
       ...updated[entryIdx],
-      sets: [...sets, { setNumber: nextNum, reps: '', weight: lastWeight }],
+      sets: [...sets, { setNumber: nextNum, reps: '', weight: lastWeight, duration: lastDuration }],
     };
     setEntries(updated);
   };
@@ -403,6 +464,55 @@ function StrengthWorkoutForm() {
 
   const removeExercise = (entryIdx: number) => {
     setEntries(entries.filter((_, i) => i !== entryIdx));
+  };
+
+  const replaceExercise = async (entryIdx: number, exercise: { id: number; name: string; muscleGroup: string; defaultMode?: string }) => {
+    let lastPerf: { setNumber: number; reps: number; weight: number; mode?: string; duration?: number }[] = [];
+    let pinnedNote = '';
+    try {
+      const resp = isGuest
+        ? getGuestLastPerformance(exercise.id)
+        : await fetchLastPerformance(exercise.id);
+      lastPerf = resp.sets.map((p) => ({
+        setNumber: p.set_number,
+        reps: p.reps,
+        weight: parseFloat(p.weight),
+        mode: p.mode,
+        duration: p.duration,
+      }));
+      if (resp.pinned_note) pinnedNote = resp.pinned_note;
+    } catch { /* no previous performance */ }
+
+    const initialSets: SetLog[] = lastPerf.length > 0
+      ? lastPerf.map((p) => ({ setNumber: p.setNumber, reps: '', weight: '', duration: '' }))
+      : [{ setNumber: 1, reps: '', weight: '', duration: '' }];
+
+    const newMode = (exercise.defaultMode === 'time' ? 'time' : 'reps-weight') as 'reps-weight' | 'time';
+    const updated = [...entries];
+    updated[entryIdx] = {
+      exercise, sets: initialSets, lastPerformance: lastPerf,
+      mode: newMode,
+      note: pinnedNote, notePinned: !!pinnedNote, showNote: !!pinnedNote,
+    };
+    setEntries(updated);
+    setShowExercisePicker(false);
+    setReplacingExerciseIdx(null);
+  };
+
+  const autoFillDuration = (entryIdx: number, setIdx: number) => {
+    setEntries(prev => {
+      const value = prev[entryIdx].sets[setIdx].duration;
+      if (!value) return prev;
+      const updated = [...prev];
+      updated[entryIdx] = {
+        ...updated[entryIdx],
+        sets: updated[entryIdx].sets.map((s, i) => {
+          if (i > setIdx && !s.duration) return { ...s, duration: value };
+          return s;
+        }),
+      };
+      return updated;
+    });
   };
 
   const toggleShowNote = (entryIdx: number) => {
@@ -433,17 +543,27 @@ function StrengthWorkoutForm() {
     for (const entry of entries) {
       let hasValidSet = false;
       for (const s of entry.sets) {
-        if (!s.reps.trim()) continue; // truly empty = skip
-        const reps = parseInt(s.reps);
-        if (isNaN(reps) || reps <= 0) {
-          setSaveError(t.errorInvalidReps);
-          return;
+        if (entry.mode === 'time') {
+          if (!s.duration.trim()) continue;
+          const dur = parseInt(s.duration);
+          if (isNaN(dur) || dur <= 0) {
+            setSaveError(t.errorInvalidSetDuration);
+            return;
+          }
+          hasValidSet = true;
+        } else {
+          if (!s.reps.trim()) continue;
+          const reps = parseInt(s.reps);
+          if (isNaN(reps) || reps <= 0) {
+            setSaveError(t.errorInvalidReps);
+            return;
+          }
+          if (s.weight.trim() && isNaN(parseFloat(s.weight))) {
+            setSaveError(t.errorInvalidWeight);
+            return;
+          }
+          hasValidSet = true;
         }
-        if (s.weight.trim() && isNaN(parseFloat(s.weight))) {
-          setSaveError(t.errorInvalidWeight);
-          return;
-        }
-        hasValidSet = true;
       }
       if (!hasValidSet) {
         setSaveError(t.errorNoValidSets(entry.exercise.name));
@@ -455,14 +575,16 @@ function StrengthWorkoutForm() {
     try {
       const exercise_logs = entries.flatMap((entry) =>
         entry.sets
-          .filter((s) => s.reps)
+          .filter((s) => entry.mode === 'time' ? s.duration.trim() : s.reps.trim())
           .map((s) => ({
             exercise_id: entry.exercise.id,
             exercise_name: entry.exercise.name,
             muscle_group: entry.exercise.muscleGroup,
             set_number: s.setNumber,
-            reps: parseInt(s.reps),
-            weight: parseFloat(s.weight) || 0,
+            reps: entry.mode === 'time' ? 0 : parseInt(s.reps),
+            weight: entry.mode === 'time' ? 0 : (parseFloat(s.weight) || 0),
+            mode: entry.mode,
+            duration: entry.mode === 'time' ? parseInt(s.duration) : null,
           }))
       );
 
@@ -530,39 +652,139 @@ function StrengthWorkoutForm() {
           const isCollapsed = collapsed.has(entryIdx);
           return (
           <div key={entryIdx} className="bg-bg-card border border-border rounded-card p-4 mb-3 lg:mb-0">
-            {/* Exercise header — clickable to toggle collapse */}
-            <div className={`flex items-center gap-2.5 ${isCollapsed ? '' : 'mb-3.5'} cursor-pointer`} onClick={() => toggleCollapse(entryIdx)}>
-              {(!workoutId || editing) && (
-                <button onClick={(e) => { e.stopPropagation(); setPendingRemoveExercise(entryIdx); }} aria-label="Retirer"
-                  className="shrink-0 bg-transparent border-none cursor-pointer p-0 opacity-50 flex items-center justify-center active:opacity-80">
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5" opacity="0.3" />
-                    <path d="M7 7l6 6M13 7l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                </button>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="text-[15px] font-semibold">{entry.exercise.name}</div>
-                <div className="text-[11px] text-strength font-medium mt-0.5">
-                  {t.muscleGroups[entry.exercise.muscleGroup] || entry.exercise.muscleGroup}
-                  {isCollapsed && <span className="text-text-muted"> · {getExerciseSummary(entry)}</span>}
+            {/* Exercise header — chevron left, menu right */}
+            <div className={`flex items-center gap-2.5 ${isCollapsed ? '' : 'mb-3.5'}`}>
+              {/* Chevron + name: clickable to toggle collapse */}
+              <div className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer" onClick={() => toggleCollapse(entryIdx)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  className={`shrink-0 text-text-muted transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}>
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[15px] font-semibold">{entry.exercise.name}</div>
+                  <div className="text-[11px] text-strength font-medium mt-0.5">
+                    {t.muscleGroups[entry.exercise.muscleGroup] || entry.exercise.muscleGroup}
+                    {isCollapsed && <span className="text-text-muted"> · {getExerciseSummary(entry)}</span>}
+                  </div>
                 </div>
               </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                className={`shrink-0 text-text-muted transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}>
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
+              {/* Three-dot menu */}
+              <div className="relative shrink-0" ref={openMenu === entryIdx ? menuRef : undefined}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === entryIdx ? null : entryIdx); }}
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent border-none cursor-pointer transition-colors duration-150 active:bg-white/10 hover:bg-white/[0.06]"
+                  aria-label="Options"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-text-muted">
+                    <circle cx="8" cy="3" r="1.5" />
+                    <circle cx="8" cy="8" r="1.5" />
+                    <circle cx="8" cy="13" r="1.5" />
+                  </svg>
+                </button>
+                {openMenu === entryIdx && (
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-bg-card border border-border rounded-xl shadow-lg min-w-[180px] py-1.5 animate-fadeIn">
+                    {/* History */}
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setOpenMenu(null);
+                        setHistoryExercise({ id: entry.exercise.id, name: entry.exercise.name });
+                        try {
+                          const data = isGuest
+                            ? getGuestExerciseHistory(entry.exercise.id)
+                            : await fetchExerciseHistory(entry.exercise.id);
+                          setHistoryData(data);
+                        } catch { setHistoryData([]); }
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 bg-transparent border-none text-text text-[13px] font-medium font-inherit cursor-pointer transition-colors duration-150 hover:bg-white/[0.06] active:bg-white/10 text-left"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-text-muted">
+                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      {t.viewHistory}
+                    </button>
+                    {/* Replace */}
+                    {(!workoutId || editing) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenu(null);
+                          if (entryHasData(entry)) {
+                            setReplacingExerciseIdx(entryIdx);
+                          } else {
+                            setReplacingExerciseIdx(entryIdx);
+                            setShowExercisePicker(true);
+                          }
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 bg-transparent border-none text-text text-[13px] font-medium font-inherit cursor-pointer transition-colors duration-150 hover:bg-white/[0.06] active:bg-white/10 text-left"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-text-muted">
+                          <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" />
+                        </svg>
+                        {t.replaceExercise}
+                      </button>
+                    )}
+                    {/* Tracking mode */}
+                    {(!workoutId || editing) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setOpenMenu(null); setShowTrackingMode(entryIdx); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 bg-transparent border-none text-text text-[13px] font-medium font-inherit cursor-pointer transition-colors duration-150 hover:bg-white/[0.06] active:bg-white/10 text-left"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-text-muted">
+                          <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                          <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                          <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                          <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+                        </svg>
+                        {t.trackingMode}
+                      </button>
+                    )}
+                    {/* Note */}
+                    {(!workoutId || editing) && !entry.showNote && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setOpenMenu(null); toggleShowNote(entryIdx); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 bg-transparent border-none text-text text-[13px] font-medium font-inherit cursor-pointer transition-colors duration-150 hover:bg-white/[0.06] active:bg-white/10 text-left"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-text-muted">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                        {t.addNote}
+                      </button>
+                    )}
+                    {/* Remove */}
+                    {(!workoutId || editing) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setOpenMenu(null); setPendingRemoveExercise(entryIdx); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 bg-transparent border-none text-red-400 text-[13px] font-medium font-inherit cursor-pointer transition-colors duration-150 hover:bg-red-500/10 active:bg-red-500/15 text-left"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                        </svg>
+                        {t.remove}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Collapsible content */}
             <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'}`}>
             {/* Sets header */}
-            <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 mb-2">
-              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.set}</span>
-              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.previous}</span>
-              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.reps}</span>
-              <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.weight}</span>
-            </div>
+            {entry.mode === 'time' ? (
+              <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 mb-2">
+                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.set}</span>
+                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.previous}</span>
+                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.durationLabel}</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 mb-2">
+                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.set}</span>
+                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.previous}</span>
+                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.reps}</span>
+                <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide text-center">{t.weight}</span>
+              </div>
+            )}
 
             {/* Set rows */}
             {entry.sets.map((set, setIdx) => {
@@ -570,27 +792,46 @@ function StrengthWorkoutForm() {
               const canDelete = set.setNumber > 1;
               const deleteKey = `${entryIdx}-${setIdx}`;
               const isDeleting = pendingDelete === deleteKey;
+              const setNumberCell = canDelete && (!workoutId || editing) ? (
+                isDeleting ? (
+                  <button onClick={(e) => { e.stopPropagation(); removeSet(entryIdx, setIdx); setPendingDelete(null); }}
+                    aria-label="Confirmer suppression"
+                    className="flex items-center justify-center w-7 h-7 mx-auto bg-danger/15 border border-danger/30 rounded-lg cursor-pointer p-0 animate-pulseDelete">
+                    <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+                      <path d="M4.5 4.5h9M7.5 4.5V3a1.5 1.5 0 011.5-1.5h0A1.5 1.5 0 0110.5 3v1.5M6 7.5v6M9 7.5v6M12 7.5v6M5.25 4.5l.5 10a1.5 1.5 0 001.5 1.5h3.5a1.5 1.5 0 001.5-1.5l.5-10"
+                        stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button onClick={(e) => { e.stopPropagation(); setPendingDelete(deleteKey); }}
+                    className="text-center text-[13px] font-bold text-text bg-white/[0.08] border border-white/[0.15] rounded-lg w-7 h-7 leading-7 mx-auto cursor-pointer transition-all duration-200 p-0 font-inherit active:bg-white/[0.15]">
+                    {set.setNumber}
+                  </button>
+                )
+              ) : (
+                <div className="text-center text-[13px] font-semibold text-text-muted leading-10">{set.setNumber}</div>
+              );
+
+              if (entry.mode === 'time') {
+                return (
+                  <div key={setIdx} className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 mb-1.5 items-center">
+                    {setNumberCell}
+                    <div className="text-center text-[11px] text-text-muted bg-bg rounded-md h-10 leading-10 border border-transparent overflow-hidden text-ellipsis whitespace-nowrap">
+                      {lastPerf?.duration ? formatDurationSeconds(lastPerf.duration) : '-'}
+                    </div>
+                    <input type="text" inputMode="numeric" value={set.duration}
+                      onChange={(e) => { if (/^[0-9]*$/.test(e.target.value)) updateSet(entryIdx, setIdx, 'duration', e.target.value); }}
+                      onBlur={() => autoFillDuration(entryIdx, setIdx)}
+                      disabled={!!workoutId && !editing}
+                      placeholder={lastPerf?.duration ? String(lastPerf.duration) : t.durationSec}
+                      className={`w-full min-w-0 text-center text-sm font-medium text-text bg-bg border border-border rounded-md h-10 leading-10 font-inherit outline-none transition-colors duration-200 focus:border-strength p-0 box-border placeholder:text-text-muted ${workoutId && !editing ? 'opacity-50 cursor-not-allowed' : ''}`} />
+                  </div>
+                );
+              }
+
               return (
                 <div key={setIdx} className="grid grid-cols-[36px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5 mb-1.5 items-center">
-                  {canDelete && (!workoutId || editing) ? (
-                    isDeleting ? (
-                      <button onClick={(e) => { e.stopPropagation(); removeSet(entryIdx, setIdx); setPendingDelete(null); }}
-                        aria-label="Confirmer suppression"
-                        className="flex items-center justify-center w-7 h-7 mx-auto bg-danger/15 border border-danger/30 rounded-lg cursor-pointer p-0 animate-pulseDelete">
-                        <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-                          <path d="M4.5 4.5h9M7.5 4.5V3a1.5 1.5 0 011.5-1.5h0A1.5 1.5 0 0110.5 3v1.5M6 7.5v6M9 7.5v6M12 7.5v6M5.25 4.5l.5 10a1.5 1.5 0 001.5 1.5h3.5a1.5 1.5 0 001.5-1.5l.5-10"
-                            stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </button>
-                    ) : (
-                      <button onClick={(e) => { e.stopPropagation(); setPendingDelete(deleteKey); }}
-                        className="text-center text-[13px] font-bold text-text bg-white/[0.08] border border-white/[0.15] rounded-lg w-7 h-7 leading-7 mx-auto cursor-pointer transition-all duration-200 p-0 font-inherit active:bg-white/[0.15]">
-                        {set.setNumber}
-                      </button>
-                    )
-                  ) : (
-                    <div className="text-center text-[13px] font-semibold text-text-muted leading-10">{set.setNumber}</div>
-                  )}
+                  {setNumberCell}
                   <div className="text-center text-[11px] text-text-muted bg-bg rounded-md h-10 leading-10 border border-transparent overflow-hidden text-ellipsis whitespace-nowrap">
                     {lastPerf ? `${lastPerf.reps} × ${lastPerf.weight}kg` : '-'}
                   </div>
@@ -636,15 +877,7 @@ function StrengthWorkoutForm() {
                     )}
                   </button>
                 </div>
-              ) : (
-                <button onClick={() => toggleShowNote(entryIdx)}
-                  className="w-full py-2 mt-2 bg-transparent border-none text-text-muted text-xs font-medium font-inherit cursor-pointer opacity-70 transition-opacity duration-150 active:opacity-100 flex items-center justify-center gap-1.5">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
-                  </svg>
-                  {t.note}
-                </button>
-              )
+              ) : null
             )}
 
             {/* Note section — view mode (read-only) */}
@@ -666,18 +899,6 @@ function StrengthWorkoutForm() {
               </button>
             )}
 
-            <button onClick={async () => {
-              setHistoryExercise({ id: entry.exercise.id, name: entry.exercise.name });
-              try {
-                const data = isGuest
-                  ? getGuestExerciseHistory(entry.exercise.id)
-                  : await fetchExerciseHistory(entry.exercise.id);
-                setHistoryData(data);
-              } catch { setHistoryData([]); }
-            }}
-              className="w-full py-2 mt-1 bg-transparent border-none text-accent text-xs font-medium font-inherit cursor-pointer opacity-70 transition-opacity duration-150 active:opacity-100">
-              {t.viewHistory}
-            </button>
             </div>
           </div>
           );
@@ -779,16 +1000,111 @@ function StrengthWorkoutForm() {
         </>
       )}
 
+      {/* Replace exercise confirmation modal */}
+      {replacingExerciseIdx !== null && !showExercisePicker && (
+        <>
+          <div onClick={() => setReplacingExerciseIdx(null)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-overlayIn" />
+          <div className="fixed inset-0 z-[51] flex items-center justify-center px-8" onClick={() => setReplacingExerciseIdx(null)}>
+            <div onClick={(e) => e.stopPropagation()}
+              className="bg-bg-card border border-border rounded-card p-5 w-full max-w-[320px] animate-fadeIn">
+              <h3 className="text-[15px] font-semibold mb-2">{t.replaceExerciseConfirm}</h3>
+              <p className="text-[13px] text-text-secondary leading-relaxed mb-4">
+                {t.replaceExerciseDesc}
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setReplacingExerciseIdx(null)}
+                  className="flex-1 py-2.5 bg-bg-elevated border border-border rounded-sm text-text text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
+                  {t.cancel}
+                </button>
+                <button onClick={() => setShowExercisePicker(true)}
+                  className="flex-1 py-2.5 bg-strength/15 border border-strength/30 rounded-sm text-strength text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
+                  {t.replace}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Tracking mode modal */}
+      {showTrackingMode !== null && entries[showTrackingMode] && (
+        <BottomSheet open={true} onClose={() => setShowTrackingMode(null)}>
+          <h3 className="font-serif text-xl font-normal m-0 mb-4">{t.trackingMode}</h3>
+
+          <button
+            onClick={() => {
+              const entry = entries[showTrackingMode];
+              if (entry.mode === 'reps-weight') { setShowTrackingMode(null); return; }
+              const updated = [...entries];
+              updated[showTrackingMode] = {
+                ...entry,
+                mode: 'reps-weight',
+                sets: entryHasData(entry) ? [{ setNumber: 1, reps: '', weight: '', duration: '' }] : entry.sets,
+              };
+              setEntries(updated);
+              setShowTrackingMode(null);
+            }}
+            className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 mb-3 bg-transparent cursor-pointer text-left font-inherit transition-all duration-150
+              ${entries[showTrackingMode].mode === 'reps-weight' ? 'border-strength bg-strength/5' : 'border-border'}`}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+              className={entries[showTrackingMode].mode === 'reps-weight' ? 'text-strength' : 'text-text-muted'}>
+              <path d="M6 7v10M18 7v10M2 9v6M22 9v6M6 12h12M2 12h4M18 12h4" />
+            </svg>
+            <div>
+              <div className="text-[15px] font-semibold text-text">{t.repsAndWeight}</div>
+              <div className="text-[12px] text-text-muted mt-0.5">{t.repsAndWeightDesc}</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => {
+              const entry = entries[showTrackingMode];
+              if (entry.mode === 'time') { setShowTrackingMode(null); return; }
+              const updated = [...entries];
+              updated[showTrackingMode] = {
+                ...entry,
+                mode: 'time',
+                sets: entryHasData(entry) ? [{ setNumber: 1, reps: '', weight: '', duration: '' }] : entry.sets,
+              };
+              setEntries(updated);
+              setShowTrackingMode(null);
+            }}
+            className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 mb-3 bg-transparent cursor-pointer text-left font-inherit transition-all duration-150
+              ${entries[showTrackingMode].mode === 'time' ? 'border-strength bg-strength/5' : 'border-border'}`}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+              className={entries[showTrackingMode].mode === 'time' ? 'text-strength' : 'text-text-muted'}>
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+            <div>
+              <div className="text-[15px] font-semibold text-text">{t.timeMode}</div>
+              <div className="text-[12px] text-text-muted mt-0.5">{t.timeModeDesc}</div>
+            </div>
+          </button>
+
+          {entryHasData(entries[showTrackingMode]) && (
+            <p className="text-[12px] text-amber-400 text-center mt-1 mb-2">{t.trackingModeResetWarning}</p>
+          )}
+
+          <button onClick={() => setShowTrackingMode(null)}
+            className="block w-full mt-2 py-3 bg-transparent border-none text-text-muted text-sm cursor-pointer font-inherit">
+            {t.cancel}
+          </button>
+        </BottomSheet>
+      )}
+
       {/* History modal */}
       {historyExercise && (() => {
         // Group history sets by date
-        const grouped = new Map<string, { reps: number; weight: string; set_number: number; note?: string; pinned?: boolean }[]>();
+        const grouped = new Map<string, { reps: number; weight: string; set_number: number; mode?: string; duration?: number; note?: string; pinned?: boolean }[]>();
         for (const row of historyData) {
           const d = row.date.includes('T')
             ? `${new Date(row.date).getFullYear()}-${String(new Date(row.date).getMonth() + 1).padStart(2, '0')}-${String(new Date(row.date).getDate()).padStart(2, '0')}`
             : row.date;
           if (!grouped.has(d)) grouped.set(d, []);
-          grouped.get(d)!.push({ reps: row.reps, weight: row.weight, set_number: row.set_number, note: row.exercise_note || undefined, pinned: row.note_pinned || undefined });
+          grouped.get(d)!.push({ reps: row.reps, weight: row.weight, set_number: row.set_number, mode: row.mode, duration: row.duration, note: row.exercise_note || undefined, pinned: row.note_pinned || undefined });
         }
         const dateLocaleStr = locale === 'fr' ? 'fr-FR' : 'en-US';
         return (
@@ -803,18 +1119,35 @@ function StrengthWorkoutForm() {
                   return (
                     <div key={dateStr} className="bg-bg border border-border rounded-sm p-3 mb-2.5">
                       <div className="text-[13px] font-semibold text-text mb-2 capitalize">{label}</div>
-                      <div className="grid grid-cols-3 gap-1.5 mb-1">
-                        <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.set}</span>
-                        <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.reps}</span>
-                        <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.weight}</span>
-                      </div>
-                      {sets.map((s, j) => (
-                        <div key={j} className="grid grid-cols-3 gap-1.5 py-1">
-                          <span className="text-center text-[13px] font-semibold text-text-muted">{s.set_number}</span>
-                          <span className="text-center text-[13px] text-text-secondary">{s.reps}</span>
-                          <span className="text-center text-[13px] text-text-secondary">{parseFloat(s.weight) > 0 ? `${parseFloat(s.weight)} kg` : '-'}</span>
-                        </div>
-                      ))}
+                      {sets[0]?.mode === 'time' ? (
+                        <>
+                          <div className="grid grid-cols-2 gap-1.5 mb-1">
+                            <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.set}</span>
+                            <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.durationLabel}</span>
+                          </div>
+                          {sets.map((s, j) => (
+                            <div key={j} className="grid grid-cols-2 gap-1.5 py-1">
+                              <span className="text-center text-[13px] font-semibold text-text-muted">{s.set_number}</span>
+                              <span className="text-center text-[13px] text-text-secondary">{s.duration ? formatDurationSeconds(s.duration) : '-'}</span>
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-3 gap-1.5 mb-1">
+                            <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.set}</span>
+                            <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.reps}</span>
+                            <span className="text-center text-[10px] font-semibold text-text-muted uppercase">{t.weight}</span>
+                          </div>
+                          {sets.map((s, j) => (
+                            <div key={j} className="grid grid-cols-3 gap-1.5 py-1">
+                              <span className="text-center text-[13px] font-semibold text-text-muted">{s.set_number}</span>
+                              <span className="text-center text-[13px] text-text-secondary">{s.reps}</span>
+                              <span className="text-center text-[13px] text-text-secondary">{parseFloat(s.weight) > 0 ? `${parseFloat(s.weight)} kg` : '-'}</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
                       {sets[0]?.note && (
                         <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-border/50">
                           {sets[0].pinned && (
@@ -903,6 +1236,10 @@ function StrengthWorkoutForm() {
 
               {/* Scrollable exercise list */}
               <div className="flex-1 overflow-y-auto px-6 pb-10 overscroll-contain" data-bottom-sheet-scroll>
+                <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); setShowNewExercise(true); }}
+                  className="w-full py-3 mt-1 mb-2 bg-transparent border-2 border-dashed border-accent text-accent rounded-card text-sm font-medium font-inherit cursor-pointer transition-all duration-200">
+                  {t.createExercise}
+                </button>
                 {!filterUpper && !filterLower ? (
                   <div className="text-text-muted text-sm text-center py-8">{t.enableFilter}</div>
                 ) : filtered.length === 0 ? (
@@ -917,7 +1254,7 @@ function StrengthWorkoutForm() {
                           {t.muscleGroups[group] || group}
                         </div>
                         {groupExercises.map((ex) => (
-                          <button key={ex.id} onClick={() => { addExercise(ex); setExerciseSearch(''); }}
+                          <button key={ex.id} onClick={() => { if (replacingExerciseIdx !== null) { replaceExercise(replacingExerciseIdx, ex); } else { addExercise(ex); } setExerciseSearch(''); }}
                             className="block w-full text-left py-3 px-2 bg-transparent border-none border-b border-border/50 text-text text-sm font-inherit cursor-pointer transition-all duration-100 active:bg-bg-elevated">
                             {ex.name}
                           </button>
@@ -926,13 +1263,7 @@ function StrengthWorkoutForm() {
                     );
                   })
                 )}
-                <div className="py-5">
-                  <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); setShowNewExercise(true); }}
-                    className="w-full py-[18px] bg-transparent border-2 border-dashed border-accent text-accent rounded-card text-sm font-medium font-inherit cursor-pointer transition-all duration-200">
-                    {t.createExercise}
-                  </button>
-                </div>
-                <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(''); }}
+                <button onClick={() => { setShowExercisePicker(false); setReplacingExerciseIdx(null); setExerciseSearch(''); }}
                   className="block w-full py-3 bg-transparent border-none text-text-muted text-sm cursor-pointer font-inherit">
                   {t.cancel}
                 </button>
@@ -964,6 +1295,31 @@ function StrengthWorkoutForm() {
             <option value="">{t.choose}</option>
             {MUSCLE_GROUPS.map((g) => <option key={g} value={g}>{t.muscleGroups[g] || g}</option>)}
           </select>
+        </div>
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+            {t.trackingMode}
+          </label>
+          <div className="flex gap-2">
+            <button onClick={() => setNewExerciseMode('reps-weight')}
+              className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 bg-transparent cursor-pointer text-left font-inherit transition-all duration-150
+                ${newExerciseMode === 'reps-weight' ? 'border-strength bg-strength/5' : 'border-border'}`}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                className={newExerciseMode === 'reps-weight' ? 'text-strength' : 'text-text-muted'}>
+                <path d="M6 7v10M18 7v10M2 9v6M22 9v6M6 12h12M2 12h4M18 12h4" />
+              </svg>
+              <span className={`text-[13px] font-medium ${newExerciseMode === 'reps-weight' ? 'text-text' : 'text-text-muted'}`}>{t.repsAndWeight}</span>
+            </button>
+            <button onClick={() => setNewExerciseMode('time')}
+              className={`flex-1 flex items-center gap-2 p-3 rounded-xl border-2 bg-transparent cursor-pointer text-left font-inherit transition-all duration-150
+                ${newExerciseMode === 'time' ? 'border-strength bg-strength/5' : 'border-border'}`}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                className={newExerciseMode === 'time' ? 'text-strength' : 'text-text-muted'}>
+                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              </svg>
+              <span className={`text-[13px] font-medium ${newExerciseMode === 'time' ? 'text-text' : 'text-text-muted'}`}>{t.timeMode}</span>
+            </button>
+          </div>
         </div>
         <button onClick={createAndAddExercise}
           className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-6 transition-all duration-200 active:scale-[0.98] bg-strength text-white shadow-[0_4px_20px_rgba(255,138,59,0.3)]">

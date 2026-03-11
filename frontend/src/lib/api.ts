@@ -204,16 +204,17 @@ export interface Exercise {
   id: number;
   name: string;
   muscle_group: string;
+  default_mode?: string;
 }
 
 export async function fetchExercises(): Promise<Exercise[]> {
   return request<Exercise[]>('/api/exercises');
 }
 
-export async function createExercise(name: string, muscleGroup: string): Promise<Exercise> {
+export async function createExercise(name: string, muscleGroup: string, defaultMode: string = 'reps-weight'): Promise<Exercise> {
   return request<Exercise>('/api/exercises', {
     method: 'POST',
-    body: JSON.stringify({ name, muscle_group: muscleGroup }),
+    body: JSON.stringify({ name, muscle_group: muscleGroup, default_mode: defaultMode }),
   });
 }
 
@@ -237,6 +238,8 @@ export interface HistorySet {
   set_number: number;
   reps: number;
   weight: string;
+  mode?: string;
+  duration?: number;
   date: string;
   exercise_note: string | null;
   note_pinned: boolean | null;
