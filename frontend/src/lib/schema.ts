@@ -43,6 +43,7 @@ export const exercises = pgTable('exercises', {
   name: varchar('name', { length: 100 }).notNull(),
   muscleGroup: varchar('muscle_group', { length: 50 }).notNull(),
   defaultMode: text('default_mode').notNull().default('reps-weight'),
+  catalogId: text('catalog_id'),
 });
 
 export const exerciseLogs = pgTable('exercise_logs', {
@@ -65,3 +66,20 @@ export const exerciseWorkoutNotes = pgTable('exercise_workout_notes', {
 }, (table) => ({
   uniqueWorkoutExercise: unique().on(table.workoutId, table.exerciseId),
 }));
+
+export const workoutTemplates = pgTable('workout_templates', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 100 }).notNull(),
+  workoutType: varchar('workout_type', { length: 20 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const workoutTemplateExercises = pgTable('workout_template_exercises', {
+  id: serial('id').primaryKey(),
+  templateId: integer('template_id').notNull().references(() => workoutTemplates.id, { onDelete: 'cascade' }),
+  exerciseId: integer('exercise_id').notNull().references(() => exercises.id, { onDelete: 'cascade' }),
+  sortOrder: integer('sort_order').notNull(),
+  mode: varchar('mode', { length: 20 }).default('reps-weight'),
+  setCount: integer('set_count').default(3),
+});

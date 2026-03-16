@@ -14,13 +14,13 @@ paths:
 - `workouts` — id, user_id (FK → users), date, type (CHECK: `velo`|`musculation`|`course`|`natation`|`marche`|`custom`), notes, custom_emoji, custom_name, created_at
 - `cycling_details` — id, workout_id (FK CASCADE), duration, distance, elevation, ride_type
 - `workout_details` — id, workout_id (FK CASCADE), duration, distance, elevation, laps. Used by course/natation/marche/custom.
-- `exercises` — id, user_id (FK → users), name, muscle_group, default_mode (TEXT, default 'reps-weight'). 58 defaults seeded per user on registration.
+- `exercises` — id, user_id (FK → users), name, muscle_group, default_mode (TEXT, default 'reps-weight'), catalog_id (TEXT, nullable — links to Free Exercise DB). 58 defaults seeded per user on registration.
 - `exercise_logs` — id, workout_id (FK CASCADE), exercise_id (FK CASCADE), set_number, reps, weight, mode (TEXT, default 'reps-weight'), duration (nullable)
 - `exercise_workout_notes` — id, workout_id (FK CASCADE), exercise_id (FK CASCADE), note, pinned (boolean). Unique on (workout_id, exercise_id).
 
 ## Indexes
 
-`workouts(user_id, date)`, `workouts(user_id, type)`, `cycling_details(workout_id)`, `workout_details(workout_id)`, `exercise_logs(workout_id)`, `exercise_logs(exercise_id)`, `exercises(user_id, muscle_group)`
+`workouts(user_id, date)`, `workouts(user_id, type)`, `cycling_details(workout_id)`, `workout_details(workout_id)`, `exercise_logs(workout_id)`, `exercise_logs(exercise_id)`, `exercises(user_id, muscle_group)`, `exercises(catalog_id)`
 
 ## Supabase MCP tools
 
@@ -38,4 +38,4 @@ paths:
 
 ## Migrations
 
-- `001_add_indexes.sql`, `003_exercise_log_mode.sql` (mode + duration on exercise_logs), `004_exercise_default_mode.sql` (default_mode on exercises), `add_email_to_users` (email on users, via Supabase MCP)
+- `001_add_indexes.sql`, `003_exercise_log_mode.sql` (mode + duration on exercise_logs), `004_exercise_default_mode.sql` (default_mode on exercises), `add_email_to_users` (email on users, via Supabase MCP), `add_catalog_id_to_exercises` (catalog_id on exercises + index)

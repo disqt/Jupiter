@@ -114,6 +114,18 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     await client.query('COMMIT');
+
+    // Clean up unused exercises (no history, no template refs) — fire and forget
+    pool.query(
+      `DELETE FROM exercises e
+       WHERE e.user_id = $1
+         AND NOT EXISTS (SELECT 1 FROM exercise_logs el WHERE el.exercise_id = e.id)
+         AND NOT EXISTS (SELECT 1 FROM workout_template_exercises wte
+                         JOIN workout_templates wt ON wt.id = wte.template_id
+                         WHERE wte.exercise_id = e.id AND wt.user_id = $1)`,
+      [userId]
+    ).catch(() => {});
+
     return NextResponse.json(workoutResult.rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');

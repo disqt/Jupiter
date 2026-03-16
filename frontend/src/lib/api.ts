@@ -205,16 +205,21 @@ export interface Exercise {
   name: string;
   muscle_group: string;
   default_mode?: string;
+  catalog_id?: string | null;
 }
 
 export async function fetchExercises(): Promise<Exercise[]> {
   return request<Exercise[]>('/api/exercises');
 }
 
-export async function createExercise(name: string, muscleGroup: string, defaultMode: string = 'reps-weight'): Promise<Exercise> {
+export async function deleteExercise(id: number): Promise<void> {
+  await request(`/api/exercises/${id}`, { method: 'DELETE' });
+}
+
+export async function createExercise(name: string, muscleGroup: string, defaultMode: string = 'reps-weight', catalogId?: string): Promise<Exercise> {
   return request<Exercise>('/api/exercises', {
     method: 'POST',
-    body: JSON.stringify({ name, muscle_group: muscleGroup, default_mode: defaultMode }),
+    body: JSON.stringify({ name, muscle_group: muscleGroup, default_mode: defaultMode, catalog_id: catalogId || null }),
   });
 }
 
@@ -343,4 +348,42 @@ export interface HomeData {
 
 export async function fetchHomeData(): Promise<HomeData> {
   return request<HomeData>('/api/home');
+}
+
+// --- Templates ---
+
+export interface TemplateExercise {
+  exercise_id: number;
+  exercise_name: string;
+  muscle_group: string;
+  sort_order: number;
+  mode: string;
+  set_count: number;
+}
+
+export interface Template {
+  id: number;
+  name: string;
+  workout_type: string;
+  created_at: string;
+  exercises: TemplateExercise[];
+}
+
+export async function fetchTemplates(workoutType: string): Promise<Template[]> {
+  return request<Template[]>(`/api/templates?type=${workoutType}`);
+}
+
+export async function createTemplate(data: {
+  name: string;
+  workout_type: string;
+  exercises: { exercise_id: number; sort_order: number; mode: string; set_count: number }[];
+}): Promise<Template> {
+  return request<Template>('/api/templates', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteTemplate(id: number): Promise<void> {
+  await request(`/api/templates/${id}`, { method: 'DELETE' });
 }
