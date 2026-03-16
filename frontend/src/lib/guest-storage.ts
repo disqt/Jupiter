@@ -161,6 +161,69 @@ export function getGuestWeeklyMedalsForMonth(month: string): { week_start: strin
     .sort((a, b) => a.week_start.localeCompare(b.week_start));
 }
 
+// ── Guest Template Storage ──
+
+export interface GuestTemplate {
+  id: string;
+  name: string;
+  workout_type: string;
+  created_at: string;
+  exercises: {
+    exercise_id: number;
+    exercise_name: string;
+    muscle_group: string;
+    sort_order: number;
+    mode: string;
+    set_count: number;
+  }[];
+}
+
+const TEMPLATES_KEY = 'guest-templates';
+
+function readAllTemplates(): GuestTemplate[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(TEMPLATES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeAllTemplates(templates: GuestTemplate[]): void {
+  localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+}
+
+export function getGuestTemplates(workoutType?: string): GuestTemplate[] {
+  const all = readAllTemplates();
+  return workoutType ? all.filter(t => t.workout_type === workoutType) : all;
+}
+
+export function saveGuestTemplate(template: Omit<GuestTemplate, 'id' | 'created_at'>): GuestTemplate {
+  const all = readAllTemplates();
+  if (all.length >= 50) throw new Error('Maximum 50 templates reached');
+  const newTemplate: GuestTemplate = {
+    ...template,
+    id: `guest-tpl-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    created_at: new Date().toISOString(),
+  };
+  all.push(newTemplate);
+  writeAllTemplates(all);
+  return newTemplate;
+}
+
+export function deleteGuestTemplate(id: string): boolean {
+  const all = readAllTemplates();
+  const filtered = all.filter(t => t.id !== id);
+  if (filtered.length === all.length) return false;
+  writeAllTemplates(filtered);
+  return true;
+}
+
+export function clearGuestTemplates(): void {
+  localStorage.removeItem(TEMPLATES_KEY);
+}
+
 /** Get total + month medals (for HomePage) */
 export function getGuestMedals(): { total: number; month: number } {
   const all = readAll();

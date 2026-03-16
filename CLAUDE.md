@@ -34,8 +34,8 @@ cd frontend && npx tsc --noEmit     # Type check
 
 ## Environment
 
-- `frontend/.env.local` → `DATABASE_URL`, `JWT_SECRET`
-- Production adds: `NEXT_PUBLIC_API_URL=/jupiter`, `NEXT_PUBLIC_BASE_PATH=/jupiter`
+- `frontend/.env.local` → `DATABASE_URL`, `JWT_SECRET`, `NEXT_PUBLIC_EXERCISE_IMAGE_URL=/jupiter/exercises`
+- Production adds: `NEXT_PUBLIC_API_URL=/jupiter`, `NEXT_PUBLIC_BASE_PATH=/jupiter`, `NEXT_PUBLIC_EXERCISE_IMAGE_URL=/jupiter/exercises`
 - Production systemd service also sets env vars (standalone mode doesn't read `.env.local`)
 - **Never commit `.env` files**
 
@@ -61,7 +61,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 
 ## Pages
 
-`/` (home), `/calendar`, `/profile`, `/stats`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`. Account creation via bottom sheet on profile page. Nav always visible.
+`/` (home), `/calendar`, `/profile`, `/stats`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`, `/workout/templates`. Account creation via bottom sheet on profile page. Nav always visible.
 
 ## Gotchas & Key Patterns
 
@@ -73,6 +73,9 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - DB values (muscle groups, ride types) stay in French — display translated via `t.muscleGroups[dbValue]`
 - Numeric inputs: `type="text"` + `inputMode="decimal"/"numeric"` (NOT `type="number"`). Distance fields accept comma (converted to dot), limited to 2 decimal places. Integer fields use `/^[0-9]*$/`.
 - Default exercises split: `default-exercises.ts` (pure data) vs `seed-exercises.ts` (imports db-server). Client components must import from `default-exercises.ts` — `seed-exercises.ts` client-side fails (pg module can't be bundled).
+- Exercise catalog: `exercise-catalog-index.ts` (170 curated exercises, lightweight index) + `exercise-catalog-details.json` (lazy-loaded full metadata with level/force/mechanic/muscles/instructions in French). `exercise-catalog.ts` has lookup helpers. `catalog_id` column on `exercises` table links user exercises to catalog entries.
+- Exercise picker (strength page): two sections — "Mes exercices" (user's) on top, then "Catalogue" below, separated by a centered divider. Both sorted alphabetically within muscle groups. Equipment filter pills are cumulative (multi-select) and persist across picker open/close. Advanced filter modal (muscles, level, force, mechanic) opens on top via filter icon button — catalog details are lazy-loaded on first filter open. "+ nouveau" button in header to create custom exercises.
+- Exercise cleanup: unused exercises (no workout history, no template references) are automatically deleted after each workout save (POST/PUT). On remove from session, catalog exercises with no history/templates are also cleaned up immediately. Exercises with info show a small ℹ icon in the picker.
 - `window.location.href` redirects use `BASE_PATH` env var (for subpath deployment)
 - ErrorBoundary wraps app inside I18nProvider (order: I18nProvider → ErrorBoundary → AuthProvider → App)
 - Security headers in `next.config.mjs`: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy
@@ -82,4 +85,6 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Muscle groups: Pectoraux, Dos, Épaules, Biceps, Triceps, Abdominaux, Quadriceps, Ischios, Fessiers, Mollets. No "Jambes" or "Autre".
 - Guest mode: `isGuest` from AuthContext. API 401 guard redirects to `/` — components MUST check `isGuest` before calling API functions.
 - localStorage draft autosave: `{type}-draft-${date}` / `{type}-edit-${workoutId}`. Drafts appear on Calendar + HomePage with dashed border + 50% opacity.
+- Templates: `workout_templates` + `workout_template_exercises` tables. API at `/api/templates`. Guest templates in `guest-templates` localStorage key. `TemplateButton` component is reusable (accepts `workoutType` prop). Apply flow uses `sessionStorage` `apply-template` key for cross-page data handoff. Max 50 templates per user. Access via ⋮ header menu (strength page) or full-width CTA when session is empty. Create from scratch: `?templateMode=1` on strength page changes save button to "Save as template" with name modal. Apply confirmation uses gentle orange styling (not destructive red).
+- Strength page header menu (⋮): contains "Templates" and "Delete draft/workout". Uses `headerRight` prop on `WorkoutFormHeader`. Only visible in edit/create mode.
 - Save redirect: `/calendar?saved=1` triggers medal celebration. `replaceState` uses `pathname` to strip query param.

@@ -7,15 +7,24 @@ import { useI18n } from '@/lib/i18n';
 import TextInput from '@/components/TextInput';
 import BottomSheet from '@/components/BottomSheet';
 import { getGuestWorkouts, clearGuestWorkouts } from '@/lib/guest-storage';
-import { fetchExercises, createExercise, createWorkout } from '@/lib/api';
+import { fetchExercises, createExercise, createWorkout, createTemplate } from '@/lib/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 async function migrateGuestData() {
-  // 1. Get guest exercises and workouts
+  // 1. Snapshot guest data and clear localStorage immediately to prevent
+  //    duplicate migrations if the user logs in again before this finishes
   const guestExercisesRaw = localStorage.getItem('guest-exercises');
   const guestExercises: { id: number; name: string; muscle_group: string }[] =
     guestExercisesRaw ? JSON.parse(guestExercisesRaw) : [];
+  const guestWorkouts = getGuestWorkouts();
+
+  // Nothing to migrate
+  if (guestExercises.length === 0 && guestWorkouts.length === 0) return;
+
+  // Clear guest data NOW — before any async work
+  clearGuestWorkouts();
+  localStorage.removeItem('guest-exercises');
 
   // 2. Fetch DB exercises (seeded on registration, or existing for login)
   const dbExercises = await fetchExercises();
@@ -24,21 +33,18 @@ async function migrateGuestData() {
   const idMap = new Map<number, number>();
 
   for (const ge of guestExercises) {
-    // Try to find matching DB exercise by name + muscle_group
     const match = dbExercises.find(
       (de) => de.name === ge.name && de.muscle_group === ge.muscle_group
     );
     if (match) {
       idMap.set(ge.id, match.id);
     } else {
-      // Custom exercise — create in DB
       const created = await createExercise(ge.name, ge.muscle_group);
       idMap.set(ge.id, created.id);
     }
   }
 
   // 4. Migrate workouts, remapping exercise IDs
-  const guestWorkouts = getGuestWorkouts();
   for (const gw of guestWorkouts) {
     const payload: Record<string, unknown> = {
       type: gw.type,
@@ -67,9 +73,26 @@ async function migrateGuestData() {
     await createWorkout(payload as Parameters<typeof createWorkout>[0]);
   }
 
-  // 5. Clear guest data
-  clearGuestWorkouts();
-  localStorage.removeItem('guest-exercises');
+  // 5. Migrate guest templates, remapping exercise IDs
+  const guestTemplatesRaw = localStorage.getItem('guest-templates');
+  localStorage.removeItem('guest-templates');
+  const guestTemplates: { name: string; workout_type: string; exercises: { exercise_id: number; sort_order: number; mode: string; set_count: number }[] }[] =
+    guestTemplatesRaw ? JSON.parse(guestTemplatesRaw) : [];
+
+  for (const gt of guestTemplates) {
+    try {
+      await createTemplate({
+        name: gt.name,
+        workout_type: gt.workout_type,
+        exercises: gt.exercises.map(e => ({
+          exercise_id: idMap.get(e.exercise_id) || e.exercise_id,
+          sort_order: e.sort_order,
+          mode: e.mode,
+          set_count: e.set_count,
+        })),
+      });
+    } catch { /* ignore failed template migration */ }
+  }
 }
 
 function RegisterSheet({ open, onClose }: { open: boolean; onClose: () => void }) {

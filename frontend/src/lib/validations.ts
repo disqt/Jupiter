@@ -28,6 +28,7 @@ export const createExerciseSchema = z.object({
   name: z.string().min(1).max(100),
   muscle_group: z.enum(MUSCLE_GROUPS),
   default_mode: z.enum(['reps-weight', 'time']).default('reps-weight'),
+  catalog_id: z.string().max(200).nullable().optional(),
 });
 
 export const updateExerciseSchema = z.object({
@@ -105,4 +106,20 @@ export const monthParamSchema = z.object({
 
 export const yearParamSchema = z.object({
   year: z.string().regex(/^\d{4}$/),
+});
+
+// Templates
+export const createTemplateSchema = z.object({
+  name: z.string().min(1).max(100),
+  workout_type: z.enum(WORKOUT_TYPES),
+  exercises: z.array(z.object({
+    exercise_id: z.number().int().positive(),
+    sort_order: z.number().int().nonnegative(),
+    mode: z.enum(['reps-weight', 'time']).default('reps-weight'),
+    set_count: z.number().int().min(1).max(20).default(3),
+  })).min(1),
+});
+
+export const templateQuerySchema = z.object({
+  type: z.enum(WORKOUT_TYPES),
 });
