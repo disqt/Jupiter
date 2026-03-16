@@ -49,7 +49,7 @@ function RunningWorkoutForm() {
         <div className="mb-4">
           <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.distance}</label>
           <TextInput inputMode="decimal" value={form.fields.distance}
-            onChange={(e) => { if (/^[0-9]*\.?[0-9]*$/.test(e.target.value)) form.setField('distance', e.target.value); }}
+            onChange={(e) => { const v = e.target.value.replace(',', '.'); if (/^[0-9]*\.?[0-9]{0,2}$/.test(v)) form.setField('distance', v); }}
             placeholder="10.5"
             disabled={form.readOnly}
             error={form.fieldErrors.has('distance')} />
