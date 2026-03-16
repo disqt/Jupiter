@@ -265,6 +265,10 @@ const translations = {
     noAccount: 'Pas encore de compte ?',
     hasAccount: 'Déjà un compte ?',
     logout: 'Déconnexion',
+    deleteAccount: 'Supprimer mon compte',
+    deleteAccountConfirmTitle: 'Supprimer votre compte ?',
+    deleteAccountConfirmMessage: 'Cette action est irréversible. Toutes vos séances, exercices et données seront supprimées définitivement.',
+    deleteAccountConfirmButton: 'Supprimer définitivement',
 
     // Profile
     profile: 'Profil',
@@ -553,6 +557,10 @@ const translations = {
     noAccount: "Don't have an account?",
     hasAccount: 'Already have an account?',
     logout: 'Log out',
+    deleteAccount: 'Delete my account',
+    deleteAccountConfirmTitle: 'Delete your account?',
+    deleteAccountConfirmMessage: 'This action is irreversible. All your workouts, exercises and data will be permanently deleted.',
+    deleteAccountConfirmButton: 'Delete permanently',
 
     // Profile
     profile: 'Profile',

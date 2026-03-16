@@ -104,71 +104,74 @@ function RegisterSheet({ open, onClose }: { open: boolean; onClose: () => void }
 
   return (
     <BottomSheet open={open} onClose={onClose} desktopSidebarOffset>
-      <h2 className="text-[17px] font-semibold text-text mb-4">{t.createAccount}</h2>
+      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+        <h2 className="text-[17px] font-semibold text-text mb-4">{t.createAccount}</h2>
 
-      <div className="space-y-3">
-        <div>
-          <label className="block text-[13px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-            {t.email}
-          </label>
-          <TextInput
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
-            placeholder={t.emailPlaceholder}
-            type="email"
-            autoComplete="email"
-            error={!!error}
-          />
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[13px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              {t.email}
+            </label>
+            <TextInput
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); if (error) setError(''); }}
+              placeholder={t.emailPlaceholder}
+              type="email"
+              autoComplete="email"
+              error={!!error}
+            />
+          </div>
+
+          <div>
+            <label className="block text-[13px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              {t.nickname}
+            </label>
+            <TextInput
+              value={nickname}
+              onChange={(e) => { setNickname(e.target.value); if (error) setError(''); }}
+              autoComplete="username"
+              error={!!error}
+            />
+          </div>
+
+          <div>
+            <label className="block text-[13px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              {t.password}
+            </label>
+            <TextInput
+              type="password"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
+              autoComplete="new-password"
+              error={!!error}
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="block text-[13px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-            {t.nickname}
-          </label>
-          <TextInput
-            value={nickname}
-            onChange={(e) => { setNickname(e.target.value); if (error) setError(''); }}
-            autoComplete="username"
-            error={!!error}
-          />
-        </div>
+        {error && (
+          <p className="text-red-400 text-[13px] text-center mt-3">{error}</p>
+        )}
 
-        <div>
-          <label className="block text-[13px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-            {t.password}
-          </label>
-          <TextInput
-            type="password"
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
-            autoComplete="new-password"
-            error={!!error}
-          />
-        </div>
-      </div>
+        {migrating && (
+          <p className="text-text-muted text-[13px] text-center mt-3">{t.migrating}</p>
+        )}
 
-      {error && (
-        <p className="text-red-400 text-[13px] text-center mt-3">{error}</p>
-      )}
+        <button
+          type="submit"
+          disabled={submitting || migrating}
+          className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-5 transition-all duration-200 active:scale-[0.98] bg-accent text-white disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
+        >
+          {submitting ? '...' : t.createMyAccount}
+        </button>
 
-      {migrating && (
-        <p className="text-text-muted text-[13px] text-center mt-3">{t.migrating}</p>
-      )}
-
-      <button
-        onClick={handleSubmit}
-        disabled={submitting || migrating}
-        className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-5 transition-all duration-200 active:scale-[0.98] bg-accent text-white disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
-      >
-        {submitting ? '...' : t.createMyAccount}
-      </button>
-
-      <button
-        onClick={onClose}
-        className="w-full py-3 bg-transparent border-none font-inherit text-[14px] cursor-pointer mt-2 text-text-muted"
-      >
-        {t.cancel}
-      </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-3 bg-transparent border-none font-inherit text-[14px] cursor-pointer mt-2 text-text-muted"
+        >
+          {t.cancel}
+        </button>
+      </form>
     </BottomSheet>
   );
 }
@@ -204,57 +207,60 @@ function LoginSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 
   return (
     <BottomSheet open={open} onClose={onClose} desktopSidebarOffset>
-      <h2 className="text-[17px] font-semibold text-text mb-4">{t.loginButton}</h2>
+      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+        <h2 className="text-[17px] font-semibold text-text mb-4">{t.loginButton}</h2>
 
-      <div className="space-y-3">
-        <div>
-          <label className="block text-[13px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-            {t.nickname}
-          </label>
-          <TextInput
-            value={nickname}
-            onChange={(e) => { setNickname(e.target.value); if (error) setError(''); }}
-            autoComplete="username"
-            error={!!error}
-          />
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[13px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              {t.nickname}
+            </label>
+            <TextInput
+              value={nickname}
+              onChange={(e) => { setNickname(e.target.value); if (error) setError(''); }}
+              autoComplete="username"
+              error={!!error}
+            />
+          </div>
+
+          <div>
+            <label className="block text-[13px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              {t.password}
+            </label>
+            <TextInput
+              type="password"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
+              autoComplete="current-password"
+              error={!!error}
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="block text-[13px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-            {t.password}
-          </label>
-          <TextInput
-            type="password"
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); if (error) setError(''); }}
-            autoComplete="current-password"
-            error={!!error}
-          />
-        </div>
-      </div>
+        {error && (
+          <p className="text-red-400 text-[13px] text-center mt-3">{error}</p>
+        )}
 
-      {error && (
-        <p className="text-red-400 text-[13px] text-center mt-3">{error}</p>
-      )}
+        {migrating && (
+          <p className="text-text-muted text-[13px] text-center mt-3">{t.migrating}</p>
+        )}
 
-      {migrating && (
-        <p className="text-text-muted text-[13px] text-center mt-3">{t.migrating}</p>
-      )}
+        <button
+          type="submit"
+          disabled={submitting || migrating}
+          className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-5 transition-all duration-200 active:scale-[0.98] bg-accent text-white disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
+        >
+          {submitting ? '...' : t.loginButton}
+        </button>
 
-      <button
-        onClick={handleSubmit}
-        disabled={submitting || migrating}
-        className="w-full py-4 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer mt-5 transition-all duration-200 active:scale-[0.98] bg-accent text-white disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
-      >
-        {submitting ? '...' : t.loginButton}
-      </button>
-
-      <button
-        onClick={onClose}
-        className="w-full py-3 bg-transparent border-none font-inherit text-[14px] cursor-pointer mt-2 text-text-muted"
-      >
-        {t.cancel}
-      </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-3 bg-transparent border-none font-inherit text-[14px] cursor-pointer mt-2 text-text-muted"
+        >
+          {t.cancel}
+        </button>
+      </form>
     </BottomSheet>
   );
 }
@@ -374,6 +380,8 @@ function AuthenticatedProfileView() {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
@@ -533,6 +541,57 @@ function AuthenticatedProfileView() {
       >
         {t.logout}
       </button>
+
+      {/* Delete account */}
+      <button
+        onClick={() => setShowDeleteConfirm(true)}
+        className="w-full py-3.5 bg-transparent border-none rounded-card font-inherit text-[14px] font-medium cursor-pointer mt-3 text-red-400 tracking-wide transition-all duration-200 active:scale-[0.98]"
+      >
+        {t.deleteAccount}
+      </button>
+
+      {/* Delete account confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="absolute inset-0 bg-black/60" onClick={() => !deleting && setShowDeleteConfirm(false)} />
+          <div className="relative bg-bg-card border border-border rounded-card p-6 max-w-sm w-full">
+            <h3 className="text-[17px] font-semibold text-text mb-2">{t.deleteAccountConfirmTitle}</h3>
+            <p className="text-[13px] text-text-muted leading-relaxed mb-6">{t.deleteAccountConfirmMessage}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 py-3 bg-bg-elevated border border-border rounded-card font-inherit text-[14px] font-medium cursor-pointer text-text disabled:opacity-50"
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`${API_URL}/api/auth/account`, {
+                      method: 'DELETE',
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) throw new Error('Failed to delete account');
+                    logout();
+                  } catch {
+                    setDeleting(false);
+                    setShowDeleteConfirm(false);
+                    setErrorMsg('Error deleting account');
+                    setTimeout(() => setErrorMsg(''), 3000);
+                  }
+                }}
+                disabled={deleting}
+                className="flex-1 py-3 bg-red-500 border-none rounded-card font-inherit text-[14px] font-semibold cursor-pointer text-white disabled:opacity-50"
+              >
+                {deleting ? '...' : t.deleteAccountConfirmButton}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
