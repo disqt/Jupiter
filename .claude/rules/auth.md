@@ -1,18 +1,22 @@
 ---
 paths:
-  - "backend/src/middleware/**"
-  - "backend/src/routes/auth.ts"
   - "frontend/src/lib/auth.tsx"
-  - "frontend/src/app/login/**"
-  - "frontend/src/app/register/**"
+  - "frontend/src/lib/auth-api.ts"
+  - "frontend/src/app/api/auth/**"
+  - "frontend/src/app/profile/**"
+  - "frontend/src/middleware.ts"
 ---
 
 # Authentication
 
 - **JWT-based** — token in `localStorage` (key: `token`), 30-day expiry, payload: `{ userId }`
-- **AuthProvider** (`frontend/src/lib/auth.tsx`) — React Context. Provides `user`, `token`, `login()`, `register()`, `logout()`, `updateUser()`. Validates token on mount via `GET /api/auth/me`. Redirects to `/login` if unauthenticated.
-- **Auth middleware** (`backend/src/middleware/auth.ts`) — verifies JWT on all routes except `/api/auth/login`, `/api/auth/register`, `/api/health`. Sets `req.userId`.
-- **Invite code** — registration requires `invite_code` matching `INVITE_CODE` env var
-- **Rate limiting** — 5 req/min on auth endpoints via `express-rate-limit`
+- **AuthProvider** (`frontend/src/lib/auth.tsx`) — React Context. Provides `user`, `token`, `login()`, `register()`, `logout()`, `updateUser()`, `isGuest`. Validates token on mount via `GET /api/auth/me`.
+- **Guest mode** — app usable without account. `isGuest` flag in AuthContext. Workouts in localStorage (`guest-workouts`), exercises in `guest-exercises`.
+- **Account creation** — bottom sheet on profile page (email + nickname + password, no invite code). Migrates guest data to DB on registration/login.
+- **Account deletion** — `DELETE /api/auth/account` — cascade deletes all user data in a transaction. Confirmation modal on profile page.
+- **Middleware** (`frontend/src/middleware.ts`) — blocks unauthenticated API calls at the edge (except `/api/auth/*` and `/api/health`)
+- **Auth API helper** (`frontend/src/lib/auth-api.ts`) — `authenticate(request)` extracts userId from JWT, `getJwtSecret()` throws if env var missing, `handleApiError()` for consistent error responses
+- **Rate limiting** — in-memory, 5 req/min on auth endpoints (`frontend/src/lib/rate-limit.ts`)
 - **Password hashing** — bcrypt, 12 salt rounds
-- **Exercise seeding** — `seedDefaultExercises(userId)` in `backend/src/seedExercises.ts` inserts 58 exercises on registration
+- **Exercise seeding** — `seedDefaultExercises(userId)` inserts 58 exercises on registration
+- **API 401 guard** — `api.ts` `request()` redirects to `/` on 401. Components MUST check `isGuest` before calling API functions to avoid infinite reload loops.
