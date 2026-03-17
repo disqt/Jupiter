@@ -37,9 +37,11 @@ export default function BottomNav() {
 
       {/* Desktop: sidebar */}
       <nav className="hidden lg:flex flex-col w-[200px] h-dvh sticky top-0 bg-bg-card border-r border-border p-6 pt-8 shrink-0">
-        <h2 className="font-serif text-xl mb-1">
-          Jupiter <span className="text-text-muted italic">Tracker</span>
-        </h2>
+        <img
+          src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/logo-horizontal-dark.svg`}
+          alt="Jupiter Tracker"
+          className="h-12 w-auto mb-1"
+        />
         <Link href="/profile" className="text-xs text-text-muted no-underline hover:text-accent transition-colors mb-3">
           {isGuest ? t.guestMode : user?.nickname}
         </Link>

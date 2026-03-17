@@ -314,7 +314,7 @@ export default function StatsPage() {
     <div className="page-container px-5 pb-24 overflow-x-hidden">
       {/* Page title */}
       <div className="pt-14 pb-4 lg:pt-8">
-        <h1 className="font-serif text-[22px] font-normal">{t.statsTitle}</h1>
+        <h1 className="font-serif text-[32px] lg:text-[38px] font-normal leading-tight">{t.statsTitle}</h1>
       </div>
 
       {/* Section 1: Period Selector */}
@@ -528,8 +528,8 @@ export default function StatsPage() {
                   <AreaChart data={medalChartData} margin={{ top: 5, right: 0, bottom: 0, left: -25 }}>
                     <defs>
                       <linearGradient id="medalGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#c9a96e" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#c9a96e" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="#2a2b32" strokeDasharray="3 3" />
@@ -562,7 +562,7 @@ export default function StatsPage() {
                     <Area
                       type="monotone"
                       dataKey="cumulative"
-                      stroke="#a78bfa"
+                      stroke="#c9a96e"
                       strokeWidth={2}
                       fill="url(#medalGradient)"
                     />
@@ -641,7 +641,7 @@ export default function StatsPage() {
                           ? 'text-white'
                           : 'bg-bg-elevated text-text-secondary'
                       }`}
-                      style={distanceFilter === null ? { backgroundColor: '#a78bfa' } : undefined}
+                      style={distanceFilter === null ? { backgroundColor: '#c9a96e' } : undefined}
                     >
                       {t.allSports}
                     </button>

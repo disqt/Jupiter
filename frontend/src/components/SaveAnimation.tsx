@@ -24,7 +24,7 @@ export default function SaveAnimation({ onComplete }: SaveAnimationProps) {
       <div
         className="absolute w-28 h-28 rounded-full animate-saveGlow"
         style={{
-          background: 'radial-gradient(circle, rgba(167, 139, 250, 0.3) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(201, 169, 110, 0.3) 0%, transparent 70%)',
         }}
       />
 
@@ -32,7 +32,7 @@ export default function SaveAnimation({ onComplete }: SaveAnimationProps) {
       <svg width="60" height="60" viewBox="0 0 48 48" fill="none">
         <circle
           cx="24" cy="24" r={CIRCLE_R}
-          stroke="#a78bfa"
+          stroke="#c9a96e"
           strokeWidth="2"
           strokeLinecap="round"
           className="animate-saveCircleDraw"
@@ -45,7 +45,7 @@ export default function SaveAnimation({ onComplete }: SaveAnimationProps) {
         />
         <path
           d="M14 24l7 7 13-13"
-          stroke="#a78bfa"
+          stroke="#c9a96e"
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"

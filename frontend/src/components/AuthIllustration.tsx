@@ -22,12 +22,12 @@ export default function AuthIllustration({ className = '', label = 'SESSIONS' }:
     <svg viewBox="0 0 320 260" fill="none" className={className} aria-hidden="true">
       <defs>
         <linearGradient id="auth-ring-grad" x1="0" y1="0" x2="1" y2="1">
-          <stop stopColor="#a78bfa" />
-          <stop offset="1" stopColor="#7c5ce0" />
+          <stop stopColor="#c9a96e" />
+          <stop offset="1" stopColor="#a0833a" />
         </linearGradient>
         <radialGradient id="auth-glow" cx=".5" cy=".42" r=".35">
-          <stop stopColor="#a78bfa" stopOpacity=".07" />
-          <stop offset="1" stopColor="#a78bfa" stopOpacity="0" />
+          <stop stopColor="#c9a96e" stopOpacity=".07" />
+          <stop offset="1" stopColor="#c9a96e" stopOpacity="0" />
         </radialGradient>
       </defs>
 
@@ -35,7 +35,7 @@ export default function AuthIllustration({ className = '', label = 'SESSIONS' }:
       <circle cx="160" cy="110" r="130" fill="url(#auth-glow)" />
 
       {/* Ring track */}
-      <circle cx="160" cy="110" r={R} stroke="#a78bfa" strokeWidth="5" opacity=".07" />
+      <circle cx="160" cy="110" r={R} stroke="#c9a96e" strokeWidth="5" opacity=".07" />
 
       {/* Ring fill (animated) */}
       <circle
@@ -71,7 +71,7 @@ export default function AuthIllustration({ className = '', label = 'SESSIONS' }:
       {Array.from({ length: 7 }, (_, i) => {
         const x = 97 + i * 21;
         const active = i < 3;
-        const fill = active ? (i === 1 ? '#e2a93b' : '#a78bfa') : 'none';
+        const fill = active ? (i === 1 ? '#e2a93b' : '#c9a96e') : 'none';
         return (
           <circle
             key={i}
@@ -92,9 +92,9 @@ export default function AuthIllustration({ className = '', label = 'SESSIONS' }:
         className="auth-float"
         style={{ opacity: ready ? .45 : 0, transition: 'opacity .6s ease .5s' }}
       >
-        <rect x="52" y="72" width="7" height="13" rx="2" fill="#a78bfa" />
-        <rect x="59" y="75" width="12" height="7" rx="1.5" fill="#a78bfa" opacity=".55" />
-        <rect x="71" y="72" width="7" height="13" rx="2" fill="#a78bfa" />
+        <rect x="52" y="72" width="7" height="13" rx="2" fill="#c9a96e" />
+        <rect x="59" y="75" width="12" height="7" rx="1.5" fill="#c9a96e" opacity=".55" />
+        <rect x="71" y="72" width="7" height="13" rx="2" fill="#c9a96e" />
       </g>
 
       {/* Bicycle (right) */}
@@ -108,9 +108,9 @@ export default function AuthIllustration({ className = '', label = 'SESSIONS' }:
       </g>
 
       {/* Accent dots */}
-      <circle cx="88" cy="46" r="1.5" fill="#a78bfa" opacity=".14" />
+      <circle cx="88" cy="46" r="1.5" fill="#c9a96e" opacity=".14" />
       <circle cx="232" cy="38" r="1.5" fill="#e2a93b" opacity=".16" />
-      <circle cx="278" cy="140" r="1.5" fill="#a78bfa" opacity=".1" />
+      <circle cx="278" cy="140" r="1.5" fill="#c9a96e" opacity=".1" />
       <circle cx="42" cy="145" r="1.5" fill="#e2a93b" opacity=".12" />
     </svg>
   );

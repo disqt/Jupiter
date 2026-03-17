@@ -51,7 +51,7 @@ const config: Config = {
           glow: 'rgba(167, 139, 250, 0.15)',
           soft: '#1f1a2e',
         },
-        accent: '#a78bfa',
+        accent: '#c9a96e',
         danger: '#ef4444',
       },
       borderRadius: {
