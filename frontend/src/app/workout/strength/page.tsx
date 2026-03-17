@@ -1117,7 +1117,7 @@ function StrengthWorkoutForm() {
                     aria-label={entry.notePinned ? t.unpin : t.pin}
                   >
                     {entry.notePinned ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#a78bfa" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#c9a96e" stroke="#c9a96e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 17v5M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7" /><path d="M5 11h14l-1.5 6h-11z" />
                       </svg>
                     ) : (
@@ -1134,7 +1134,7 @@ function StrengthWorkoutForm() {
             {workoutId && !editing && entry.note && (
               <div className="mt-2 mb-1 flex items-center gap-1.5 px-3 py-2 bg-bg border border-border rounded-lg">
                 {entry.notePinned && (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#a78bfa" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#c9a96e" stroke="#c9a96e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                     <path d="M12 17v5M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7" /><path d="M5 11h14l-1.5 6h-11z" />
                   </svg>
                 )}
@@ -1429,7 +1429,7 @@ function StrengthWorkoutForm() {
                       {sets[0]?.note && (
                         <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-border/50">
                           {sets[0].pinned && (
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#a78bfa" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#c9a96e" stroke="#c9a96e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                               <path d="M12 17v5M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7" /><path d="M5 11h14l-1.5 6h-11z" />
                             </svg>
                           )}

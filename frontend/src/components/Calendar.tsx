@@ -246,7 +246,7 @@ export default function Calendar() {
     <div>
       {/* Page title */}
       <div className="page-container-wide px-5 pt-14 pb-2 lg:pt-8">
-        <h1 className="font-serif text-[22px] font-normal">{t.calendar}</h1>
+        <h1 className="font-serif text-[32px] lg:text-[38px] font-normal leading-tight">{t.calendar}</h1>
       </div>
 
       {/* Desktop: two-column | Mobile: single column */}
@@ -446,7 +446,7 @@ export default function Calendar() {
             </div>
             <div className="h-1.5 bg-border rounded-full overflow-hidden mt-2.5">
               <div
-                className={`h-full rounded-full bg-gradient-to-r from-accent to-[#8b5cf6] transition-all duration-500 ease-out ${weekCount >= 3 ? 'animate-progressGlow' : ''}`}
+                className={`h-full rounded-full bg-gradient-to-r from-accent to-[#e2c992] transition-all duration-500 ease-out ${weekCount >= 3 ? 'animate-progressGlow' : ''}`}
                 style={{ width: `${weekProgress * 100}%` }}
               />
             </div>
@@ -494,7 +494,7 @@ export default function Calendar() {
       {/* FAB */}
       {selectedDate && (
         <button onClick={() => setShowSheet(true)}
-          className="fixed bottom-[104px] lg:bottom-8 right-6 lg:right-8 w-14 h-14 rounded-full bg-gradient-to-br from-accent to-[#7c5ce0] border-none text-white text-[28px] font-light cursor-pointer shadow-[0_8px_32px_rgba(167,139,250,0.35)] flex items-center justify-center transition-all duration-200 active:scale-90 active:rotate-90 z-20">
+          className="fixed bottom-[104px] lg:bottom-8 right-6 lg:right-8 w-14 h-14 rounded-full bg-gradient-to-br from-accent to-[#a0833a] border-none text-white text-[28px] font-light cursor-pointer shadow-[0_8px_32px_rgba(201,169,110,0.35)] flex items-center justify-center transition-all duration-200 active:scale-90 active:rotate-90 z-20">
           +
         </button>
       )}

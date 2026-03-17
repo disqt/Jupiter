@@ -339,7 +339,7 @@ function GuestProfileView() {
     <div className="page-container px-5 pb-36 lg:pb-20">
       {/* Header */}
       <div className="pt-14 pb-4 lg:pt-8">
-        <h1 className="font-serif text-[22px] font-normal">{t.profile}</h1>
+        <h1 className="font-serif text-[32px] lg:text-[38px] font-normal leading-tight">{t.profile}</h1>
       </div>
 
       {/* Guest avatar + CTA hero */}
@@ -462,7 +462,7 @@ function AuthenticatedProfileView() {
     <div className="page-container px-5 pb-36 lg:pb-20">
       {/* Header */}
       <div className="pt-14 pb-4 lg:pt-8">
-        <h1 className="font-serif text-[22px] font-normal">{t.profile}</h1>
+        <h1 className="font-serif text-[32px] lg:text-[38px] font-normal leading-tight">{t.profile}</h1>
       </div>
 
       {/* User header card */}
@@ -535,7 +535,7 @@ function AuthenticatedProfileView() {
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full py-3.5 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer transition-all duration-200 active:scale-[0.98] bg-gradient-to-br from-accent to-[#7c5ce0] text-white shadow-[0_4px_20px_rgba(139,92,246,0.2)] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide mb-8"
+        className="w-full py-3.5 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer transition-all duration-200 active:scale-[0.98] bg-gradient-to-br from-accent to-[#a0833a] text-white shadow-[0_4px_20px_rgba(201,169,110,0.2)] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide mb-8"
       >
         {saving ? t.saving : t.saveChanges}
       </button>

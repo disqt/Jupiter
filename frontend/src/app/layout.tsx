@@ -3,6 +3,7 @@ import { DM_Sans, Instrument_Serif } from 'next/font/google';
 import './globals.css';
 import BottomNav from '@/components/BottomNav';
 import Providers from '@/components/Providers';
+import InstallPrompt from '@/components/InstallPrompt';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -18,9 +19,24 @@ const instrumentSerif = Instrument_Serif({
   style: ['normal', 'italic'],
 });
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 export const metadata: Metadata = {
   title: 'Jupiter Tracker',
-  description: 'Track your workouts',
+  description: 'Multi-Sports Made Simple',
+  manifest: `${basePath}/manifest.json`,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Jupiter Tracker',
+  },
+  icons: {
+    icon: [
+      { url: `${basePath}/favicon.svg`, type: 'image/svg+xml' },
+      { url: `${basePath}/favicon.png`, sizes: '32x32', type: 'image/png' },
+    ],
+    apple: `${basePath}/apple-touch-icon.png`,
+  },
 };
 
 export const viewport: Viewport = {
@@ -28,6 +44,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: '#0e0f11',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -41,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </main>
           </div>
+          <InstallPrompt />
         </Providers>
       </body>
     </html>

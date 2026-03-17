@@ -325,6 +325,10 @@ const translations = {
     targetMuscles: 'Muscles ciblés',
     instructions: 'Instructions',
     noExerciseInfo: 'Aucune information détaillée disponible pour cet exercice.',
+    installApp: 'Installer l\'app',
+    installPrompt: 'Ajouter Jupiter Tracker sur ton écran d\'accueil',
+    installIosInstructions: 'Appuie sur le bouton partager puis "Sur l\'écran d\'accueil"',
+    install: 'Installer',
     primary: 'Principal',
     secondary: 'Secondaire',
 
@@ -696,6 +700,10 @@ const translations = {
     targetMuscles: 'Target muscles',
     instructions: 'Instructions',
     noExerciseInfo: 'No detailed information available for this exercise.',
+    installApp: 'Install app',
+    installPrompt: 'Add Jupiter Tracker to your home screen',
+    installIosInstructions: 'Tap the share button then "Add to Home Screen"',
+    install: 'Install',
     primary: 'Primary',
     secondary: 'Secondary',
 

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Sport Tracker — mobile-first workout tracking webapp. 6 workout types: cycling, strength, running, swimming, walking, custom. Bilingual FR/EN. Single Next.js app with API Route Handlers + Supabase PostgreSQL.
+Jupiter Tracker — mobile-first multi-sport tracking webapp. 6 workout types: cycling, strength, running, swimming, walking, custom. Bilingual FR/EN. Single Next.js app with API Route Handlers + Supabase PostgreSQL. PWA-installable on Android & iOS.
 
 ## Commands
 
@@ -88,3 +88,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - Templates: `workout_templates` + `workout_template_exercises` tables. API at `/api/templates`. Guest templates in `guest-templates` localStorage key. `TemplateButton` component is reusable (accepts `workoutType` prop). Apply flow uses `sessionStorage` `apply-template` key for cross-page data handoff. Max 50 templates per user. Access via ⋮ header menu (strength page) or full-width CTA when session is empty. Create from scratch: `?templateMode=1` on strength page changes save button to "Save as template" with name modal. Apply confirmation uses gentle orange styling (not destructive red).
 - Strength page header menu (⋮): contains "Templates" and "Delete draft/workout". Uses `headerRight` prop on `WorkoutFormHeader`. Only visible in edit/create mode.
 - Save redirect: `/calendar?saved=1` triggers medal celebration. `replaceState` uses `pathname` to strip query param.
+- PWA: `manifest.json` + minimal service worker (`sw.js`) in `public/`. Icons generated from favicon SVG (192, 512, apple-touch-icon). `InstallPrompt` component handles Android (`beforeinstallprompt` event) and iOS Safari (manual instructions). Dismissal stored in localStorage for 7 days. Service worker registered in the component.
+- Brand colors: accent is gold `#c9a96e` (matching logo). Gradient pairs: `#c9a96e` → `#a0833a` (dark gold) or `#c9a96e` → `#e2c992` (light gold). Custom workout type stays violet `#a78bfa`.
+- Page titles: all pages (home, calendar, stats, profile) use `text-[32px] lg:text-[38px] font-serif` for consistency.
+- Logo: favicon SVG has intentional `#333` background. Horizontal dark logo in desktop sidebar via `<img>` tag.
