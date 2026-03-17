@@ -14,7 +14,9 @@ import { useAuth } from '@/lib/auth';
 import { getGuestWorkouts, getGuestTemplates, saveGuestTemplate } from '@/lib/guest-storage';
 import { DEFAULT_EXERCISES } from '@/lib/default-exercises';
 import ExerciseInfoModal from '@/components/ExerciseInfoModal';
-import { EXERCISE_CATALOG, getCatalogExercise, type CatalogDetails } from '@/lib/exercise-catalog';
+import { EXERCISE_CATALOG, getCatalogExercise, getAllCatalogDetails, type CatalogDetails } from '@/lib/exercise-catalog';
+import WorkoutGeneratorModal from '@/components/WorkoutGeneratorModal';
+import { swapExercise, type GeneratedExercise, type GeneratorInput } from '@/lib/workout-generator';
 
 const GUEST_EXERCISES_KEY = 'guest-exercises';
 
@@ -185,6 +187,9 @@ function StrengthWorkoutForm() {
   const [showTemplateNameModal, setShowTemplateNameModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [generatorInput, setGeneratorInput] = useState<GeneratorInput | null>(null);
+  const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const headerMenuRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -502,6 +507,95 @@ function StrengthWorkoutForm() {
       note: pinnedNote, notePinned: !!pinnedNote, showNote: !!pinnedNote,
     }]);
     setShowExercisePicker(false);
+  };
+
+  const handleGeneratorResult = async (generated: GeneratedExercise[]) => {
+    const newEntries: ExerciseEntry[] = [];
+    const newExercises = [...exercises];
+
+    for (const gen of generated) {
+      const newEx = isGuest
+        ? saveGuestExercise(gen.name, gen.muscleGroup, 'reps-weight', gen.catalogId)
+        : await createExercise(gen.name, gen.muscleGroup, 'reps-weight', gen.catalogId);
+
+      const mapped = { id: newEx.id, name: newEx.name, muscleGroup: newEx.muscle_group, defaultMode: newEx.default_mode, catalogId: gen.catalogId };
+      newExercises.push(mapped);
+
+      const sets: SetLog[] = Array.from({ length: gen.sets }, (_, i) => ({
+        setNumber: i + 1,
+        reps: '',
+        weight: '',
+        duration: '',
+      }));
+
+      newEntries.push({
+        exercise: mapped,
+        sets,
+        lastPerformance: [],
+        mode: 'reps-weight',
+        note: '',
+        notePinned: false,
+        showNote: false,
+      });
+    }
+
+    setExercises(newExercises);
+    setEntries(newEntries);
+    setGeneratorInput(generated.length > 0 ? { selectedMuscles: [], level: 'intermediate', equipment: [] } : null);
+    setShowGenerator(false);
+  };
+
+  const handleSwapExercise = async (idx: number) => {
+    if (!generatorInput) return;
+    const entry = entries[idx];
+    const catalogId = entry.exercise.catalogId;
+    if (!catalogId) return;
+
+    const allDetails = await getAllCatalogDetails();
+    const det = allDetails[catalogId];
+    const currentGen: GeneratedExercise = {
+      catalogId,
+      name: entry.exercise.name,
+      muscleGroup: entry.exercise.muscleGroup,
+      mechanic: (det?.mechanic as 'compound' | 'isolation' | null) || null,
+      force: (det?.force as 'push' | 'pull' | 'static' | null) || null,
+      sets: entry.sets.length,
+      reps: parseInt(entry.sets[0]?.reps || '10'),
+    };
+
+    const allGen: GeneratedExercise[] = entries.map(e => {
+      const cid = e.exercise.catalogId || '';
+      const d = cid ? allDetails[cid] : undefined;
+      return {
+        catalogId: cid,
+        name: e.exercise.name,
+        muscleGroup: e.exercise.muscleGroup,
+        mechanic: (d?.mechanic as 'compound' | 'isolation' | null) || null,
+        force: (d?.force as 'push' | 'pull' | 'static' | null) || null,
+        sets: e.sets.length,
+        reps: 10,
+      };
+    });
+
+    const swapped = swapExercise(currentGen, allGen, generatorInput, EXERCISE_CATALOG, allDetails);
+    if (!swapped) return;
+
+    const newEx = isGuest
+      ? saveGuestExercise(swapped.name, swapped.muscleGroup, 'reps-weight', swapped.catalogId)
+      : await createExercise(swapped.name, swapped.muscleGroup, 'reps-weight', swapped.catalogId);
+
+    const mapped = { id: newEx.id, name: newEx.name, muscleGroup: newEx.muscle_group, defaultMode: newEx.default_mode, catalogId: swapped.catalogId };
+    const newSets: SetLog[] = Array.from({ length: swapped.sets }, (_, i) => ({
+      setNumber: i + 1,
+      reps: '',
+      weight: '',
+      duration: '',
+    }));
+
+    const newEntries = [...entries];
+    newEntries[idx] = { ...newEntries[idx], exercise: mapped, sets: newSets, lastPerformance: [] };
+    setEntries(newEntries);
+    setExercises(prev => [...prev, mapped]);
   };
 
   const createAndAddExercise = async () => {
@@ -845,6 +939,20 @@ function StrengthWorkoutForm() {
                 <button
                   onClick={() => {
                     setShowHeaderMenu(false);
+                    if (entries.length > 0) {
+                      setShowOverwriteConfirm(true);
+                    } else {
+                      setShowGenerator(true);
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-[14px] text-text cursor-pointer bg-transparent border-none font-inherit transition-colors hover:bg-bg-elevated active:bg-bg-elevated"
+                >
+                  <span className="shrink-0 text-[16px]">✨</span>
+                  {t.generatorTitle}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowHeaderMenu(false);
                     const params = new URLSearchParams({ type: 'musculation', date });
                     if (workoutId) params.set('from', workoutId);
                     router.push(`/workout/templates?${params.toString()}`);
@@ -918,6 +1026,18 @@ function StrengthWorkoutForm() {
                   </div>
                 </div>
               </div>
+              {/* Swap button (only for generated sessions) */}
+              {generatorInput && (!workoutId || editing) && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleSwapExercise(entryIdx); }}
+                  className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-transparent border-none cursor-pointer transition-colors duration-150 active:bg-white/10 hover:bg-white/[0.06] text-text-muted hover:text-[#c9a96e]"
+                  title={t.replaceExercise}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" />
+                  </svg>
+                </button>
+              )}
               {/* Three-dot menu */}
               <div className="relative shrink-0" ref={openMenu === entryIdx ? menuRef : undefined}>
                 <button
@@ -1181,22 +1301,33 @@ function StrengthWorkoutForm() {
             {t.addExercise}
           </button>
           {entries.length === 0 && (
-            <button
-              onClick={() => {
-                const params = new URLSearchParams({ type: 'musculation', date });
-                if (workoutId) params.set('from', workoutId);
-                router.push(`/workout/templates?${params.toString()}`);
-              }}
-              className="w-full py-3.5 flex items-center justify-center gap-2 bg-strength/10 border border-strength/20 rounded-card text-strength text-[14px] font-semibold font-inherit cursor-pointer mb-4 transition-all duration-200 active:scale-[0.98]"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" />
-                <rect x="14" y="3" width="7" height="7" />
-                <rect x="3" y="14" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" />
-              </svg>
-              {t.applyTemplate}
-            </button>
+            <div className="flex flex-col items-center gap-3 mt-2 mb-4">
+              <p className="text-text-muted text-[13px] mb-1">{t.generatorEmptySubtitle}</p>
+              {/* Primary — Generate */}
+              <button
+                onClick={() => setShowGenerator(true)}
+                className="w-full py-4 rounded-card bg-[#c9a96e] text-black font-semibold text-[15px] flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(201,169,110,0.25)] transition-all duration-200 active:scale-[0.98] font-inherit cursor-pointer border-none"
+              >
+                <span>✨</span> {t.generatorEmptyCTA}
+              </button>
+              {/* Secondary — Templates */}
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams({ type: 'musculation', date });
+                  if (workoutId) params.set('from', workoutId);
+                  router.push(`/workout/templates?${params.toString()}`);
+                }}
+                className="w-full py-3.5 flex items-center justify-center gap-2 bg-transparent border border-border rounded-card text-text-secondary text-[14px] font-medium font-inherit cursor-pointer transition-all duration-200 active:scale-[0.98]"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" />
+                </svg>
+                {t.applyTemplate}
+              </button>
+            </div>
           )}
         </>
       )}
@@ -1911,6 +2042,30 @@ function StrengthWorkoutForm() {
           </button>
         </div>
       </BottomSheet>
+
+      {/* Workout Generator Modal */}
+      <WorkoutGeneratorModal
+        open={showGenerator}
+        onClose={() => setShowGenerator(false)}
+        onGenerate={handleGeneratorResult}
+      />
+
+      {/* Overwrite confirmation */}
+      {showOverwriteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowOverwriteConfirm(false)}>
+          <div className="bg-bg-card border border-border rounded-2xl p-6 mx-4 max-w-sm" onClick={e => e.stopPropagation()}>
+            <p className="text-text text-center mb-5 text-[15px]">{t.generatorOverwriteConfirm}</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowOverwriteConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-border text-text-secondary text-[14px] font-medium bg-transparent cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
+                {t.cancel}
+              </button>
+              <button onClick={() => { setShowOverwriteConfirm(false); setShowGenerator(true); }} className="flex-1 py-2.5 rounded-xl bg-[#c9a96e] text-black text-[14px] font-semibold border-none cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
+                {t.generatorNext}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
