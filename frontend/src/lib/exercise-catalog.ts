@@ -30,6 +30,14 @@ export async function getCatalogDetails(catalogId: string): Promise<CatalogDetai
   return detailsCache[catalogId];
 }
 
+export async function getAllCatalogDetails(): Promise<Record<string, CatalogDetails>> {
+  if (!detailsCache) {
+    const resp = await import('./exercise-catalog-details.json');
+    detailsCache = resp.default as Record<string, CatalogDetails>;
+  }
+  return detailsCache;
+}
+
 export function getExerciseImageUrl(catalogId: string, imageIndex: number): string {
   const base = process.env.NEXT_PUBLIC_EXERCISE_IMAGE_URL;
   if (base) {
