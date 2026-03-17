@@ -1617,17 +1617,26 @@ function StrengthWorkoutForm() {
                         {t.muscleGroups[group] || group}
                       </div>
                       {groupExercises.map((ex) => {
-                        const hasCatalogInfo = !!(ex.fromCatalog || (ex.catalogId && getCatalogExercise(ex.catalogId)));
+                        const catalogEntry = ex.fromCatalog ? getCatalogExercise(ex.catalogId || ex.id) : (ex.catalogId ? getCatalogExercise(ex.catalogId) : null);
+                        const hasCatalogInfo = !!catalogEntry;
                         return (
-                          <button key={`${ex.id}-${ex.name}`} onClick={() => handlePickerSelect(ex)}
-                            className="flex items-center justify-between w-full text-left py-3 px-2 bg-transparent border-none border-b border-border/50 text-text text-sm font-inherit cursor-pointer transition-all duration-100 active:bg-bg-elevated">
-                            <span>{ex.name}</span>
+                          <div key={`${ex.id}-${ex.name}`} className="flex items-center border-b border-border/50">
+                            <button onClick={() => handlePickerSelect(ex)}
+                              className="flex-1 text-left py-3 px-2 bg-transparent border-none text-text text-sm font-inherit cursor-pointer transition-all duration-100 active:bg-bg-elevated min-w-0">
+                              <span className="truncate block">{ex.name}</span>
+                            </button>
                             {hasCatalogInfo && (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted/40 shrink-0 ml-2">
-                                <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-                              </svg>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setInfoExercise({ catalogId: catalogEntry!.id, name: ex.name, muscleGroup: ex.muscleGroup }); }}
+                                className="shrink-0 flex items-center justify-center w-11 h-11 bg-transparent border-none cursor-pointer -mr-2"
+                                aria-label="Info"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+                                </svg>
+                              </button>
                             )}
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
