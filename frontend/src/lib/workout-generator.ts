@@ -167,14 +167,16 @@ export function generateWorkout(
     return 0;
   });
 
-  // Post-sort: avoid consecutive same mechanic+force+muscle
+  // Post-sort: avoid consecutive same mechanic+force+muscle (only swap within same mechanic tier)
   for (let i = 1; i < selected.length; i++) {
     const prev = selected[i - 1];
     const curr = selected[i];
     if (prev.mechanic === curr.mechanic && prev.force === curr.force && prev.muscleGroup === curr.muscleGroup) {
       for (let j = i + 1; j < selected.length; j++) {
         const cand = selected[j];
-        if (cand.mechanic !== curr.mechanic || cand.force !== curr.force || cand.muscleGroup !== curr.muscleGroup) {
+        // Only swap with exercises of the same mechanic type to preserve compound-first ordering
+        if (cand.mechanic === curr.mechanic &&
+            (cand.force !== curr.force || cand.muscleGroup !== curr.muscleGroup)) {
           [selected[i], selected[j]] = [selected[j], selected[i]];
           break;
         }
