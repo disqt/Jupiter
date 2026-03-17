@@ -1617,7 +1617,7 @@ function StrengthWorkoutForm() {
                         {t.muscleGroups[group] || group}
                       </div>
                       {groupExercises.map((ex) => {
-                        const catalogEntry = ex.fromCatalog ? getCatalogExercise(ex.catalogId || ex.id) : (ex.catalogId ? getCatalogExercise(ex.catalogId) : null);
+                        const catalogEntry = ex.fromCatalog ? getCatalogExercise(ex.catalogId || String(ex.id)) : (ex.catalogId ? getCatalogExercise(ex.catalogId) : null);
                         const hasCatalogInfo = !!catalogEntry;
                         return (
                           <div key={`${ex.id}-${ex.name}`} className="flex items-center border-b border-border/50">
