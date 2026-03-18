@@ -510,7 +510,7 @@ function StrengthWorkoutForm() {
     setShowExercisePicker(false);
   };
 
-  const handleGeneratorResult = async (generated: GeneratedExercise[]) => {
+  const handleGeneratorResult = async (generated: GeneratedExercise[], input: GeneratorInput) => {
     const newEntries: ExerciseEntry[] = [];
     const newExercises = [...exercises];
 
@@ -542,7 +542,7 @@ function StrengthWorkoutForm() {
 
     setExercises(newExercises);
     setEntries(newEntries);
-    setGeneratorInput(generated.length > 0 ? { selectedMuscles: [], level: 'intermediate', equipment: [], weeklyFrequency: 3 } : null);
+    setGeneratorInput(generated.length > 0 ? input : null);
     setShowCoachTip(generated.length > 0);
     setShowGenerator(false);
   };

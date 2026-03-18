@@ -10,7 +10,7 @@ import { useI18n } from '@/lib/i18n';
 interface WorkoutGeneratorModalProps {
   open: boolean;
   onClose: () => void;
-  onGenerate: (exercises: GeneratedExercise[]) => void;
+  onGenerate: (exercises: GeneratedExercise[], input: GeneratorInput) => void;
   userLevel?: number;
 }
 
@@ -123,7 +123,7 @@ export default function WorkoutGeneratorModal({ open, onClose, onGenerate, userL
         return;
       }
 
-      onGenerate(result.exercises);
+      onGenerate(result.exercises, { selectedMuscles, level, equipment, weeklyFrequency });
     } catch {
       setWarnings([t.generatorWarnNoResults]);
     } finally {
