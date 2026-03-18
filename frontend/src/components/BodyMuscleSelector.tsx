@@ -13,8 +13,8 @@ const SPLITS: Record<string, string[]> = {
   'Full body': [...MUSCLE_GROUPS],
   'Haut du corps': [...UPPER_BODY_GROUPS],
   'Bas du corps': [...LOWER_BODY_GROUPS],
-  'Push': ['Pectoraux', 'Épaules', 'Triceps', 'Quadriceps'],
-  'Pull': ['Dos', 'Biceps', 'Ischios'],
+  'Push': ['Pectoraux', 'Épaules', 'Triceps'],
+  'Pull': ['Dos', 'Biceps'],
 };
 
 export default function BodyMuscleSelector({ selected, onSelectionChange }: BodyMuscleSelectorProps) {
