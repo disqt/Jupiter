@@ -2,6 +2,26 @@ import { type CatalogExercise } from './exercise-catalog-index';
 import { type CatalogDetails } from './exercise-catalog';
 import { UPPER_BODY_GROUPS } from './data';
 
+function inferMechanic(name: string): 'compound' | 'isolation' {
+  const n = name.toLowerCase();
+  const compoundPatterns = [
+    'bench press', 'squat', 'deadlift', 'row', 'pull-up', 'pull up', 'chin-up', 'chin up',
+    'overhead press', 'military press', 'shoulder press', 'dip', 'lunge', 'clean', 'snatch',
+    'thrust', 'push-up', 'push up', 'pulldown', 'pull down', 'press', 'step-up', 'step up',
+    'good morning', 'rack pull', 'power clean', 't-bar'
+  ];
+  if (compoundPatterns.some(p => n.includes(p))) return 'compound';
+  return 'isolation';
+}
+
+function inferForce(target: string): 'push' | 'pull' | 'static' {
+  const pushTargets = ['pectorals', 'delts', 'triceps', 'quads', 'abductors', 'adductors'];
+  const pullTargets = ['lats', 'upper back', 'traps', 'biceps', 'hamstrings', 'levator scapulae'];
+  if (pushTargets.includes(target)) return 'push';
+  if (pullTargets.includes(target)) return 'pull';
+  return 'static';
+}
+
 export interface GeneratorInput {
   selectedMuscles: string[];
   level: 'beginner' | 'intermediate' | 'expert';
@@ -69,57 +89,34 @@ function scoreExercise(exercise: EnrichedExercise, level: GeneratorInput['level'
 // Movement family detection — max 1 exercise per family to force variety
 function getMovementFamily(name: string): string {
   const n = name.toLowerCase();
-
-  // Chest press variations
-  if (n.includes('développé couché') || n.includes('développé décliné') || n.includes('développé incliné') || n.includes('développé poitrine')) return 'chest-press';
-  // Shoulder press variations
-  if (n.includes('développé militaire') || n.includes('développé épaules') || n.includes('développé arnold') || n.includes('développé haltères assis')) return 'shoulder-press';
-  // Flyes
-  if (n.includes('écarté') || n.includes('butterfly') || n.includes('crossover')) return 'fly';
-  // Lateral/front raises
-  if (n.includes('élévation latérale') || n.includes('élévations latérales')) return 'lateral-raise';
-  if (n.includes('élévation frontale') || n.includes('élévations frontales')) return 'front-raise';
-  // Rear delt
-  if (n.includes('oiseau') || n.includes('face pull') || n.includes('band pull apart')) return 'rear-delt';
-  // Curls
-  if (n.includes('curl') && n.includes('marteau')) return 'hammer-curl';
-  if (n.includes('curl') && n.includes('pupitre')) return 'preacher-curl';
+  if (n.includes('bench press') || n.includes('chest press')) return 'chest-press';
+  if (n.includes('fly') || n.includes('crossover') || n.includes('pec deck')) return 'fly';
+  if (n.includes('overhead press') || n.includes('military press') || n.includes('shoulder press') || n.includes('arnold press')) return 'shoulder-press';
+  if (n.includes('lateral raise')) return 'lateral-raise';
+  if (n.includes('front raise')) return 'front-raise';
+  if (n.includes('rear delt') || n.includes('face pull') || n.includes('reverse fly')) return 'rear-delt';
+  if (n.includes('hammer curl')) return 'hammer-curl';
+  if (n.includes('preacher curl') || n.includes('concentration curl')) return 'preacher-curl';
   if (n.includes('curl')) return 'curl';
-  // Triceps extensions
-  if (n.includes('extension triceps') || n.includes('barre au front') || n.includes('skull crusher')) return 'triceps-extension';
+  if (n.includes('tricep') && (n.includes('extension') || n.includes('pushdown') || n.includes('skull'))) return 'triceps-extension';
   if (n.includes('kickback')) return 'kickback';
-  if (n.includes('dips')) return 'dips';
-  // Rows
-  if (n.includes('rowing') && n.includes('vertical')) return 'upright-row';
-  if (n.includes('rowing')) return 'row';
-  // Vertical pulls
-  if (n.includes('tirage vertical') || n.includes('traction') || n.includes('chin-up')) return 'vertical-pull';
-  if (n.includes('tirage') && !n.includes('vertical')) return 'cable-pull';
-  // Squats
+  if (n.includes('dip')) return 'dips';
+  if (n.includes('upright row')) return 'upright-row';
+  if (n.includes('row')) return 'row';
+  if (n.includes('pull-up') || n.includes('pull up') || n.includes('pulldown') || n.includes('pull down') || n.includes('chin-up') || n.includes('chin up') || n.includes('lat pull')) return 'vertical-pull';
   if (n.includes('squat') || n.includes('goblet')) return 'squat';
-  // Lunges
-  if (n.includes('fente') || n.includes('split squat') || n.includes('step-up')) return 'lunge';
-  // Deadlifts
-  if (n.includes('soulevé de terre')) return 'deadlift';
-  // Hip thrust / glute bridge
-  if (n.includes('hip thrust') || n.includes('pont fessier')) return 'hip-thrust';
-  // Leg press
-  if (n.includes('presse à cuisses') || n.includes('hack squat')) return 'leg-press';
-  // Leg curl / extension
-  if (n.includes('leg curl')) return 'leg-curl';
+  if (n.includes('lunge') || n.includes('split squat') || n.includes('step-up') || n.includes('step up')) return 'lunge';
+  if (n.includes('deadlift') || n.includes('good morning')) return 'deadlift';
+  if (n.includes('hip thrust') || n.includes('glute bridge')) return 'hip-thrust';
+  if (n.includes('leg press') || n.includes('hack squat')) return 'leg-press';
+  if (n.includes('leg curl') || n.includes('hamstring curl')) return 'leg-curl';
   if (n.includes('leg extension')) return 'leg-extension';
-  // Calves
-  if (n.includes('mollet')) return 'calf-raise';
-  // Abs
-  if (n.includes('crunch')) return 'crunch';
-  if (n.includes('relevé de jambes')) return 'leg-raise';
-  if (n.includes('planche')) return 'plank';
-  // Pompes
-  if (n.includes('pompes')) return 'pushup';
-  // Shrugs
+  if (n.includes('calf raise') || n.includes('calf press') || n.includes('standing calf') || n.includes('seated calf')) return 'calf-raise';
+  if (n.includes('crunch') || n.includes('sit-up') || n.includes('sit up')) return 'crunch';
+  if (n.includes('plank')) return 'plank';
+  if (n.includes('push-up') || n.includes('push up')) return 'pushup';
   if (n.includes('shrug')) return 'shrug';
-
-  return `unique:${name}`; // no family detected → treated as unique
+  return `unique:${name}`;
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -156,7 +153,14 @@ export function generateWorkout(
 
   const enriched: EnrichedExercise[] = catalog
     .filter(c => allDetails[c.id])
-    .map(c => ({ catalog: c, details: allDetails[c.id] }));
+    .map(c => ({
+      catalog: c,
+      details: {
+        ...allDetails[c.id],
+        mechanic: inferMechanic(c.name_en),
+        force: inferForce(c.target),
+      },
+    }));
 
   const eligible = filterByLevel(filterByEquipment(enriched, equipment), level);
 
@@ -196,7 +200,7 @@ export function generateWorkout(
     // Pick 1 compound — skip if family already used
     for (const comp of sortedCompounds) {
       if (compoundCount >= maxCompounds) break;
-      const family = getMovementFamily(comp.catalog.name_fr);
+      const family = getMovementFamily(comp.catalog.name_en);
       if (usedFamilies.has(family)) continue;
       pickedForMuscle.push(comp);
       usedIds.add(comp.catalog.id);
@@ -217,7 +221,7 @@ export function generateWorkout(
       if (usedIds.has(candidate.catalog.id)) continue;
 
       // Movement family check — max 1 per family
-      const family = getMovementFamily(candidate.catalog.name_fr);
+      const family = getMovementFamily(candidate.catalog.name_en);
       if (usedFamilies.has(family)) continue;
 
       const isIsolation = candidate.details.mechanic !== 'compound';
@@ -303,7 +307,14 @@ export function swapExercise(
 ): GeneratedExercise | null {
   const enriched: EnrichedExercise[] = catalog
     .filter(c => allDetails[c.id])
-    .map(c => ({ catalog: c, details: allDetails[c.id] }));
+    .map(c => ({
+      catalog: c,
+      details: {
+        ...allDetails[c.id],
+        mechanic: inferMechanic(c.name_en),
+        force: inferForce(c.target),
+      },
+    }));
 
   const eligible = filterByLevel(filterByEquipment(enriched, input.equipment), input.level);
   const pool = filterByMuscle(eligible, current.muscleGroup);
