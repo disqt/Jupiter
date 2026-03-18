@@ -65,6 +65,62 @@ function scoreExercise(exercise: EnrichedExercise, level: GeneratorInput['level'
   return score;
 }
 
+// Movement family detection — max 1 exercise per family to force variety
+function getMovementFamily(name: string): string {
+  const n = name.toLowerCase();
+
+  // Chest press variations
+  if (n.includes('développé couché') || n.includes('développé décliné') || n.includes('développé incliné') || n.includes('développé poitrine')) return 'chest-press';
+  // Shoulder press variations
+  if (n.includes('développé militaire') || n.includes('développé épaules') || n.includes('développé arnold') || n.includes('développé haltères assis')) return 'shoulder-press';
+  // Flyes
+  if (n.includes('écarté') || n.includes('butterfly') || n.includes('crossover')) return 'fly';
+  // Lateral/front raises
+  if (n.includes('élévation latérale') || n.includes('élévations latérales')) return 'lateral-raise';
+  if (n.includes('élévation frontale') || n.includes('élévations frontales')) return 'front-raise';
+  // Rear delt
+  if (n.includes('oiseau') || n.includes('face pull') || n.includes('band pull apart')) return 'rear-delt';
+  // Curls
+  if (n.includes('curl') && n.includes('marteau')) return 'hammer-curl';
+  if (n.includes('curl') && n.includes('pupitre')) return 'preacher-curl';
+  if (n.includes('curl')) return 'curl';
+  // Triceps extensions
+  if (n.includes('extension triceps') || n.includes('barre au front') || n.includes('skull crusher')) return 'triceps-extension';
+  if (n.includes('kickback')) return 'kickback';
+  if (n.includes('dips')) return 'dips';
+  // Rows
+  if (n.includes('rowing') && n.includes('vertical')) return 'upright-row';
+  if (n.includes('rowing')) return 'row';
+  // Vertical pulls
+  if (n.includes('tirage vertical') || n.includes('traction') || n.includes('chin-up')) return 'vertical-pull';
+  if (n.includes('tirage') && !n.includes('vertical')) return 'cable-pull';
+  // Squats
+  if (n.includes('squat') || n.includes('goblet')) return 'squat';
+  // Lunges
+  if (n.includes('fente') || n.includes('split squat') || n.includes('step-up')) return 'lunge';
+  // Deadlifts
+  if (n.includes('soulevé de terre')) return 'deadlift';
+  // Hip thrust / glute bridge
+  if (n.includes('hip thrust') || n.includes('pont fessier')) return 'hip-thrust';
+  // Leg press
+  if (n.includes('presse à cuisses') || n.includes('hack squat')) return 'leg-press';
+  // Leg curl / extension
+  if (n.includes('leg curl')) return 'leg-curl';
+  if (n.includes('leg extension')) return 'leg-extension';
+  // Calves
+  if (n.includes('mollet')) return 'calf-raise';
+  // Abs
+  if (n.includes('crunch')) return 'crunch';
+  if (n.includes('relevé de jambes')) return 'leg-raise';
+  if (n.includes('planche')) return 'plank';
+  // Pompes
+  if (n.includes('pompes')) return 'pushup';
+  // Shrugs
+  if (n.includes('shrug')) return 'shrug';
+
+  return `unique:${name}`; // no family detected → treated as unique
+}
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -110,6 +166,7 @@ export function generateWorkout(
 
   const secondaryVolume: Record<string, number> = {};
   const usedIds = new Set<string>();
+  const usedFamilies = new Set<string>(); // max 1 exercise per movement family
   const selected: GeneratedExercise[] = [];
   const maxCompounds = nbMuscles <= 3 ? 2 : nbMuscles <= 5 ? 3 : 4;
   let compoundCount = 0;
@@ -127,10 +184,16 @@ export function generateWorkout(
     const sortedCompounds = shuffle(compounds).sort((a, b) => scoreExercise(b, level) - scoreExercise(a, level));
     const sortedIsolations = shuffle(isolations).sort((a, b) => scoreExercise(b, level) - scoreExercise(a, level));
 
-    if (sortedCompounds.length > 0 && compoundCount < maxCompounds) {
-      pickedForMuscle.push(sortedCompounds[0]);
-      usedIds.add(sortedCompounds[0].catalog.id);
+    // Pick 1 compound — skip if family already used
+    for (const comp of sortedCompounds) {
+      if (compoundCount >= maxCompounds) break;
+      const family = getMovementFamily(comp.catalog.name_fr);
+      if (usedFamilies.has(family)) continue;
+      pickedForMuscle.push(comp);
+      usedIds.add(comp.catalog.id);
+      usedFamilies.add(family);
       compoundCount++;
+      break;
     }
 
     const remaining = count - pickedForMuscle.length;
@@ -144,11 +207,16 @@ export function generateWorkout(
       if (filled >= remaining) break;
       if (usedIds.has(candidate.catalog.id)) continue;
 
+      // Movement family check — max 1 per family
+      const family = getMovementFamily(candidate.catalog.name_fr);
+      if (usedFamilies.has(family)) continue;
+
       const isIsolation = candidate.details.mechanic !== 'compound';
       if (isIsolation && (secondaryVolume[muscle] || 0) >= 6) continue;
 
       pickedForMuscle.push(candidate);
       usedIds.add(candidate.catalog.id);
+      usedFamilies.add(family);
       filled++;
     }
 
