@@ -45,7 +45,7 @@ export default function BodyMuscleSelector({ selected, onSelectionChange }: Body
 
   const isSplitActive = (splitName: string) => {
     const muscles = SPLITS[splitName];
-    return muscles.every(m => selected.includes(m));
+    return muscles.length === selected.length && muscles.every(m => selected.includes(m));
   };
 
   const groupProps = (muscle: string) => ({
