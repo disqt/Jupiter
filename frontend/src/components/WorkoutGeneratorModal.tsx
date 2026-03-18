@@ -216,6 +216,8 @@ export default function WorkoutGeneratorModal({ open, onClose, onGenerate, userL
 
           {/* Step 2: Frequency */}
           {step === 2 && (
+            <div>
+              <p className="text-[13px] text-text-muted leading-relaxed mb-5">{t.generatorFrequencyDesc}</p>
             <div className="grid grid-cols-2 gap-3">
               {frequencyOptions.map(opt => {
                 const active = weeklyFrequency === opt.value;
@@ -237,6 +239,7 @@ export default function WorkoutGeneratorModal({ open, onClose, onGenerate, userL
                   </button>
                 );
               })}
+            </div>
             </div>
           )}
 
