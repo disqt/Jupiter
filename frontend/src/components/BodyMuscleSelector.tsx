@@ -72,7 +72,7 @@ export default function BodyMuscleSelector({ selected, onSelectionChange }: Body
             onClick={() => handleSplitClick(name)}
             className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors duration-150 border-none cursor-pointer font-inherit ${
               isSplitActive(name)
-                ? 'bg-[#c9a96e] text-black'
+                ? 'bg-strength text-white'
                 : 'bg-zinc-800 text-zinc-400'
             }`}
           >
@@ -83,7 +83,7 @@ export default function BodyMuscleSelector({ selected, onSelectionChange }: Body
 
       {/* Tooltip */}
       {tooltip && (
-        <div className="text-center text-[13px] text-[#c9a96e] font-medium -mb-1">
+        <div className="text-center text-[13px] text-strength font-medium -mb-1">
           {t.muscleGroups[tooltip] || tooltip}
         </div>
       )}
@@ -98,7 +98,7 @@ export default function BodyMuscleSelector({ selected, onSelectionChange }: Body
             .st3 { fill: #6f6f6f; }
             .st4 { fill: #b9b9b9; }
             .muscle-selected path,
-            .muscle-selected { fill: #c9a96e !important; }
+            .muscle-selected { fill: #ff8a3b !important; }
           `}</style>
         </defs>
 
