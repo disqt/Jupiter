@@ -41,11 +41,28 @@ function filterByLevel(exercises: EnrichedExercise[], level: GeneratorInput['lev
   return exercises;
 }
 
-function scoreLevelMatch(exercise: EnrichedExercise, level: GeneratorInput['level']): number {
-  if (exercise.details.level === level) return 2;
-  if (level === 'expert' && exercise.details.level === 'intermediate') return 1;
-  if (level === 'intermediate' && exercise.details.level === 'beginner') return 1;
-  return 0;
+// Equipment hierarchy for hypertrophy — higher = more effective for progressive overload
+const EQUIPMENT_PRIORITY: Record<string, number> = {
+  barbell: 5,
+  dumbbell: 5,
+  machine: 4,
+  cable: 3,
+  kettlebells: 2,
+  bands: 1,
+  body_only: 1,
+};
+
+function scoreExercise(exercise: EnrichedExercise, level: GeneratorInput['level']): number {
+  // Level match score (0-2)
+  let score = 0;
+  if (exercise.details.level === level) score = 2;
+  else if (level === 'expert' && exercise.details.level === 'intermediate') score = 1;
+  else if (level === 'intermediate' && exercise.details.level === 'beginner') score = 1;
+
+  // Equipment priority score (1-5) — heavily weighted to favor barbell/dumbbell/machine
+  score += (EQUIPMENT_PRIORITY[exercise.catalog.equipment] || 1) * 2;
+
+  return score;
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -107,8 +124,8 @@ export function generateWorkout(
 
     const pickedForMuscle: EnrichedExercise[] = [];
 
-    const sortedCompounds = shuffle(compounds).sort((a, b) => scoreLevelMatch(b, level) - scoreLevelMatch(a, level));
-    const sortedIsolations = shuffle(isolations).sort((a, b) => scoreLevelMatch(b, level) - scoreLevelMatch(a, level));
+    const sortedCompounds = shuffle(compounds).sort((a, b) => scoreExercise(b, level) - scoreExercise(a, level));
+    const sortedIsolations = shuffle(isolations).sort((a, b) => scoreExercise(b, level) - scoreExercise(a, level));
 
     if (sortedCompounds.length > 0 && compoundCount < maxCompounds) {
       pickedForMuscle.push(sortedCompounds[0]);
@@ -212,7 +229,8 @@ export function swapExercise(
   const pool = filterByMuscle(eligible, current.muscleGroup);
 
   const usedIds = new Set(allSelected.map(e => e.catalogId));
-  const available = shuffle(pool.filter(e => !usedIds.has(e.catalog.id)));
+  const available = shuffle(pool.filter(e => !usedIds.has(e.catalog.id)))
+    .sort((a, b) => scoreExercise(b, input.level) - scoreExercise(a, input.level));
 
   const sameMechanic = available.filter(e => e.details.mechanic === current.mechanic);
   const pick = sameMechanic[0] || available[0];
