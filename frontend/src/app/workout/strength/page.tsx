@@ -1702,10 +1702,10 @@ function StrengthWorkoutForm() {
                   </div>
                   <button
                     onClick={async () => {
-                      // Lazy-load catalog details on first filter open
+                      // Load catalog details on first filter open
                       if (!catalogDetailsRef.current) {
-                        const resp = await import('@/lib/exercise-catalog-details.json');
-                        catalogDetailsRef.current = resp.default as Record<string, CatalogDetails>;
+                        const allDetails = await getAllCatalogDetails();
+                        catalogDetailsRef.current = allDetails;
                         setCatalogDetailsLoaded(true);
                       }
                       setShowFilterModal(true);

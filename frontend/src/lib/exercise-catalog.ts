@@ -20,31 +20,39 @@ export interface CatalogDetails {
   images: string[];
 }
 
-let detailsCache: Record<string, CatalogDetails> | null = null;
-
-export async function getCatalogDetails(catalogId: string): Promise<CatalogDetails | undefined> {
-  if (!detailsCache) {
-    const resp = await import('./exercise-catalog-details.json');
-    detailsCache = resp.default as Record<string, CatalogDetails>;
-  }
-  return detailsCache[catalogId];
+export function getCatalogDetails(catalogId: string): CatalogDetails | undefined {
+  const ex = catalogById.get(catalogId);
+  if (!ex) return undefined;
+  return {
+    level: ex.level,
+    force: null,
+    mechanic: null,
+    primaryMuscles: [ex.muscle_group],
+    secondaryMuscles: ex.secondaryMuscles,
+    instructions: ex.instructions,
+    images: [],
+  };
 }
 
 export async function getAllCatalogDetails(): Promise<Record<string, CatalogDetails>> {
-  if (!detailsCache) {
-    const resp = await import('./exercise-catalog-details.json');
-    detailsCache = resp.default as Record<string, CatalogDetails>;
+  const result: Record<string, CatalogDetails> = {};
+  for (const ex of EXERCISE_CATALOG) {
+    result[ex.id] = {
+      level: ex.level,
+      force: null,
+      mechanic: null,
+      primaryMuscles: [ex.muscle_group],
+      secondaryMuscles: ex.secondaryMuscles,
+      instructions: ex.instructions,
+      images: [],
+    };
   }
-  return detailsCache;
+  return result;
 }
 
-export function getExerciseImageUrl(catalogId: string, imageIndex: number): string {
-  const base = process.env.NEXT_PUBLIC_EXERCISE_IMAGE_URL;
-  if (base) {
-    return `${base}/${catalogId}/${imageIndex}.webp`;
-  }
-  // Dev fallback: use GitHub raw images (JPG)
-  return `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${catalogId}/${imageIndex}.jpg`;
+export function getExerciseImageUrl(catalogId: string): string {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  return `${basePath}/api/exercise-image?id=${catalogId}&res=360`;
 }
 
 export { EXERCISE_CATALOG, type CatalogExercise };

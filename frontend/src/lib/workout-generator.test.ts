@@ -1,9 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { generateWorkout, swapExercise, type GeneratorInput } from './workout-generator';
 import { EXERCISE_CATALOG } from './exercise-catalog-index';
-import allDetails from './exercise-catalog-details.json';
+import { getCatalogDetails } from './exercise-catalog';
 
-const details = allDetails as Record<string, any>;
+const details: Record<string, any> = {};
+for (const ex of EXERCISE_CATALOG) {
+  const d = getCatalogDetails(ex.id);
+  if (d) details[ex.id] = d;
+}
 
 describe('generateWorkout', () => {
   it('generates 3-8 exercises for any valid input', () => {

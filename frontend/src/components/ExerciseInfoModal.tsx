@@ -20,7 +20,7 @@ export default function ExerciseInfoModal({ catalogId, exerciseName, muscleGroup
 
   useEffect(() => {
     if (open && catalogId) {
-      getCatalogDetails(catalogId).then(d => setDetails(d || null));
+      setDetails(getCatalogDetails(catalogId) || null);
       setCurrentSlide(0);
     }
   }, [open, catalogId]);
@@ -82,7 +82,7 @@ export default function ExerciseInfoModal({ catalogId, exerciseName, muscleGroup
                 {images.map((_, idx) => (
                   <div key={idx} className="min-w-full h-full flex items-center justify-center">
                     <img
-                      src={getExerciseImageUrl(catalogId, idx)}
+                      src={getExerciseImageUrl(catalogId)}
                       alt={`${displayName} - ${idx + 1}`}
                       className="max-w-[85%] max-h-[85%] object-contain"
                       loading="lazy"
