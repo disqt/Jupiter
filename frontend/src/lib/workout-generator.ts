@@ -243,7 +243,10 @@ export function generateWorkout(
       const sets = nbMuscles === 1
         ? (isCompound ? Math.min(baseSets + 1, 5) : baseSets)
         : (isCompound ? baseSets : Math.max(baseSets - (weeklyFrequency >= 4 ? 1 : 0), 2));
-      const reps = isCompound ? 10 : 12;
+      // Reps adapt to frequency: low freq → heavier/fewer reps, high freq → lighter/more reps
+      const reps = isCompound
+        ? (weeklyFrequency <= 2 ? 8 : weeklyFrequency <= 3 ? 10 : 12)
+        : (weeklyFrequency <= 2 ? 10 : weeklyFrequency <= 3 ? 12 : 15);
 
       selected.push({
         catalogId: ex.catalog.id,
