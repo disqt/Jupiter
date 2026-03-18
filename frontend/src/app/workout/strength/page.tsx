@@ -1365,7 +1365,7 @@ function StrengthWorkoutForm() {
                 {/* Tertiary — From scratch */}
                 <button
                   onClick={() => setShowExercisePicker(true)}
-                  className="w-full py-2.5 text-text-muted text-[13px] font-medium font-inherit cursor-pointer bg-transparent border-none transition-colors duration-150 active:text-text"
+                  className="w-full py-3 border-2 border-dashed border-border rounded-xl text-text-muted text-[13px] font-medium font-inherit cursor-pointer bg-transparent transition-all duration-200 active:border-strength active:text-strength"
                 >
                   {t.addExercise}
                 </button>
