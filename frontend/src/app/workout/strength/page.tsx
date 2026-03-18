@@ -14,7 +14,9 @@ import { useAuth } from '@/lib/auth';
 import { getGuestWorkouts, getGuestTemplates, saveGuestTemplate } from '@/lib/guest-storage';
 import { DEFAULT_EXERCISES } from '@/lib/default-exercises';
 import ExerciseInfoModal from '@/components/ExerciseInfoModal';
-import { EXERCISE_CATALOG, getCatalogExercise, type CatalogDetails } from '@/lib/exercise-catalog';
+import { EXERCISE_CATALOG, getCatalogExercise, getAllCatalogDetails, type CatalogDetails } from '@/lib/exercise-catalog';
+import WorkoutGeneratorModal from '@/components/WorkoutGeneratorModal';
+import { swapExercise, type GeneratedExercise, type GeneratorInput } from '@/lib/workout-generator';
 
 const GUEST_EXERCISES_KEY = 'guest-exercises';
 
@@ -143,10 +145,6 @@ function StrengthWorkoutForm() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filterMuscles, setFilterMuscles] = useState<Set<string>>(new Set());
   const [filterLevel, setFilterLevel] = useState<string>('');
-  const [filterForce, setFilterForce] = useState<string>('');
-  const [filterMechanic, setFilterMechanic] = useState<string>('');
-  const catalogDetailsRef = useRef<Record<string, CatalogDetails> | null>(null);
-  const [catalogDetailsLoaded, setCatalogDetailsLoaded] = useState(false);
   const [showNewExercise, setShowNewExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseMuscle, setNewExerciseMuscle] = useState('');
@@ -185,6 +183,11 @@ function StrengthWorkoutForm() {
   const [showTemplateNameModal, setShowTemplateNameModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [generatorInput, setGeneratorInput] = useState<GeneratorInput | null>(null);
+  const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
+  const [showCoachTip, setShowCoachTip] = useState(false);
+  const [pendingSwapIdx, setPendingSwapIdx] = useState<number | null>(null);
   const headerMenuRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -502,6 +505,96 @@ function StrengthWorkoutForm() {
       note: pinnedNote, notePinned: !!pinnedNote, showNote: !!pinnedNote,
     }]);
     setShowExercisePicker(false);
+  };
+
+  const handleGeneratorResult = async (generated: GeneratedExercise[], input: GeneratorInput) => {
+    const newEntries: ExerciseEntry[] = [];
+    const newExercises = [...exercises];
+
+    for (const gen of generated) {
+      const newEx = isGuest
+        ? saveGuestExercise(gen.name, gen.muscleGroup, 'reps-weight', gen.catalogId)
+        : await createExercise(gen.name, gen.muscleGroup, 'reps-weight', gen.catalogId);
+
+      const mapped = { id: newEx.id, name: newEx.name, muscleGroup: newEx.muscle_group, defaultMode: newEx.default_mode, catalogId: gen.catalogId };
+      newExercises.push(mapped);
+
+      const sets: SetLog[] = Array.from({ length: gen.sets }, (_, i) => ({
+        setNumber: i + 1,
+        reps: String(gen.reps),
+        weight: '',
+        duration: '',
+      }));
+
+      newEntries.push({
+        exercise: mapped,
+        sets,
+        lastPerformance: [],
+        mode: 'reps-weight',
+        note: '',
+        notePinned: false,
+        showNote: false,
+      });
+    }
+
+    setExercises(newExercises);
+    setEntries(newEntries);
+    setGeneratorInput(generated.length > 0 ? input : null);
+    setShowCoachTip(generated.length > 0);
+    setShowGenerator(false);
+  };
+
+  const handleSwapExercise = async (idx: number) => {
+    if (!generatorInput) return;
+    const entry = entries[idx];
+    const catalogId = entry.exercise.catalogId;
+    if (!catalogId) return;
+
+    const allDetails = await getAllCatalogDetails();
+    const det = allDetails[catalogId];
+    const currentGen: GeneratedExercise = {
+      catalogId,
+      name: entry.exercise.name,
+      muscleGroup: entry.exercise.muscleGroup,
+      mechanic: (det?.mechanic as 'compound' | 'isolation' | null) || null,
+      force: (det?.force as 'push' | 'pull' | 'static' | null) || null,
+      sets: entry.sets.length,
+      reps: parseInt(entry.sets[0]?.reps || '10'),
+    };
+
+    const allGen: GeneratedExercise[] = entries.map(e => {
+      const cid = e.exercise.catalogId || '';
+      const d = cid ? allDetails[cid] : undefined;
+      return {
+        catalogId: cid,
+        name: e.exercise.name,
+        muscleGroup: e.exercise.muscleGroup,
+        mechanic: (d?.mechanic as 'compound' | 'isolation' | null) || null,
+        force: (d?.force as 'push' | 'pull' | 'static' | null) || null,
+        sets: e.sets.length,
+        reps: 10,
+      };
+    });
+
+    const swapped = swapExercise(currentGen, allGen, generatorInput, EXERCISE_CATALOG, allDetails);
+    if (!swapped) return;
+
+    const newEx = isGuest
+      ? saveGuestExercise(swapped.name, swapped.muscleGroup, 'reps-weight', swapped.catalogId)
+      : await createExercise(swapped.name, swapped.muscleGroup, 'reps-weight', swapped.catalogId);
+
+    const mapped = { id: newEx.id, name: newEx.name, muscleGroup: newEx.muscle_group, defaultMode: newEx.default_mode, catalogId: swapped.catalogId };
+    const newSets: SetLog[] = Array.from({ length: swapped.sets }, (_, i) => ({
+      setNumber: i + 1,
+      reps: String(swapped.reps),
+      weight: '',
+      duration: '',
+    }));
+
+    const newEntries = [...entries];
+    newEntries[idx] = { ...newEntries[idx], exercise: mapped, sets: newSets, lastPerformance: [] };
+    setEntries(newEntries);
+    setExercises(prev => [...prev, mapped]);
   };
 
   const createAndAddExercise = async () => {
@@ -845,6 +938,20 @@ function StrengthWorkoutForm() {
                 <button
                   onClick={() => {
                     setShowHeaderMenu(false);
+                    if (entries.length > 0) {
+                      setShowOverwriteConfirm(true);
+                    } else {
+                      setShowGenerator(true);
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-[14px] text-text cursor-pointer bg-transparent border-none font-inherit transition-colors hover:bg-bg-elevated active:bg-bg-elevated"
+                >
+                  <span className="shrink-0 text-[16px]">✨</span>
+                  {t.generatorTitle}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowHeaderMenu(false);
                     const params = new URLSearchParams({ type: 'musculation', date });
                     if (workoutId) params.set('from', workoutId);
                     router.push(`/workout/templates?${params.toString()}`);
@@ -893,6 +1000,27 @@ function StrengthWorkoutForm() {
         ) : undefined}
       />
 
+      {/* Coach tip — shown after generating a session */}
+      {showCoachTip && generatorInput && entries.length > 0 && (
+        <div className="relative mb-3 rounded-card overflow-hidden border border-strength/20 bg-strength/[0.06]">
+          <div className="px-4 py-3.5 pr-10">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[15px]">💬</span>
+              <span className="text-[13px] font-semibold text-strength uppercase tracking-wide">{t.coachTipTitle}</span>
+            </div>
+            <p className="text-[13px] text-text-secondary leading-relaxed">{t.coachTipText}</p>
+          </div>
+          <button
+            onClick={() => setShowCoachTip(false)}
+            className="absolute top-2.5 right-2.5 w-7 h-7 flex items-center justify-center rounded-full bg-transparent border-none cursor-pointer text-text-muted hover:text-text transition-colors duration-150"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Exercise cards — 2 columns on desktop */}
       {loadingWorkout ? (
         <div className="text-text-muted text-[13px] text-center py-8">{t.loadingWorkout}</div>
@@ -918,6 +1046,18 @@ function StrengthWorkoutForm() {
                   </div>
                 </div>
               </div>
+              {/* Swap button (only for generated sessions) */}
+              {generatorInput && (!workoutId || editing) && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPendingSwapIdx(entryIdx); }}
+                  className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-transparent border-none cursor-pointer transition-colors duration-150 active:bg-white/10 hover:bg-white/[0.06] text-text-muted hover:text-[#c9a96e]"
+                  title={t.replaceExercise}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" />
+                  </svg>
+                </button>
+              )}
               {/* Three-dot menu */}
               <div className="relative shrink-0" ref={openMenu === entryIdx ? menuRef : undefined}>
                 <button
@@ -1176,27 +1316,61 @@ function StrengthWorkoutForm() {
       {/* Add exercise */}
       {(!workoutId || editing) && (
         <>
-          <button onClick={() => setShowExercisePicker(true)}
-            className="w-full py-[18px] bg-transparent border-2 border-dashed border-border rounded-card text-text-muted text-sm font-medium font-inherit cursor-pointer mb-3 transition-all duration-200 active:border-strength active:text-strength mt-4">
-            {t.addExercise}
-          </button>
-          {entries.length === 0 && (
-            <button
-              onClick={() => {
-                const params = new URLSearchParams({ type: 'musculation', date });
-                if (workoutId) params.set('from', workoutId);
-                router.push(`/workout/templates?${params.toString()}`);
-              }}
-              className="w-full py-3.5 flex items-center justify-center gap-2 bg-strength/10 border border-strength/20 rounded-card text-strength text-[14px] font-semibold font-inherit cursor-pointer mb-4 transition-all duration-200 active:scale-[0.98]"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" />
-                <rect x="14" y="3" width="7" height="7" />
-                <rect x="3" y="14" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" />
-              </svg>
-              {t.applyTemplate}
+          {entries.length > 0 && (
+            <button onClick={() => setShowExercisePicker(true)}
+              className="w-full py-[18px] bg-transparent border-2 border-dashed border-border rounded-card text-text-muted text-sm font-medium font-inherit cursor-pointer mb-3 transition-all duration-200 active:border-strength active:text-strength mt-4">
+              {t.addExercise}
             </button>
+          )}
+          {entries.length === 0 && !loadingWorkout && (
+            <div className="flex flex-col items-center py-6 mb-4">
+              {/* Illustration + text */}
+              <div className="w-14 h-14 rounded-2xl bg-strength/10 flex items-center justify-center mb-4">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-strength">
+                  <path d="M6 2v6M18 2v6M6 16v6M18 16v6M2 10h4v4H2zM18 10h4v4h-4zM6 11h12" />
+                </svg>
+              </div>
+              <h3 className="text-[17px] font-semibold text-text mb-1">{t.generatorEmptyTitle}</h3>
+              <p className="text-text-muted text-[13px] text-center max-w-[280px] mb-6">{t.generatorEmptySubtitle}</p>
+
+              {/* 3 CTAs */}
+              <div className="w-full flex flex-col gap-2.5">
+                {/* Primary — Generate */}
+                <button
+                  onClick={() => setShowGenerator(true)}
+                  className="w-full py-3.5 rounded-xl bg-strength text-white font-semibold text-[15px] flex items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(255,138,59,0.25)] transition-all duration-200 active:scale-[0.98] font-inherit cursor-pointer border-none"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3v18M5 12l7-9 7 9M8 21h8" />
+                  </svg>
+                  {t.generatorEmptyCTA}
+                </button>
+                {/* Secondary — Templates */}
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams({ type: 'musculation', date });
+                    if (workoutId) params.set('from', workoutId);
+                    router.push(`/workout/templates?${params.toString()}`);
+                  }}
+                  className="w-full py-3 flex items-center justify-center gap-2.5 bg-bg-card border border-border rounded-xl text-text text-[14px] font-medium font-inherit cursor-pointer transition-all duration-200 active:scale-[0.98]"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                  </svg>
+                  {t.applyTemplate}
+                </button>
+                {/* Tertiary — From scratch */}
+                <button
+                  onClick={() => setShowExercisePicker(true)}
+                  className="w-full py-3 border-2 border-dashed border-border rounded-xl text-text-muted text-[13px] font-medium font-inherit cursor-pointer bg-transparent transition-all duration-200 active:border-strength active:text-strength"
+                >
+                  {t.addExercise}
+                </button>
+              </div>
+            </div>
           )}
         </>
       )}
@@ -1451,7 +1625,7 @@ function StrengthWorkoutForm() {
       {/* Exercise picker modal */}
       {showExercisePicker && (() => {
         const query = exerciseSearch.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        const activeFilterCount = (filterMuscles.size > 0 ? 1 : 0) + (filterLevel ? 1 : 0) + (filterForce ? 1 : 0) + (filterMechanic ? 1 : 0);
+        const activeFilterCount = (filterMuscles.size > 0 ? 1 : 0) + (filterLevel ? 1 : 0);
         const hasAdvancedFilters = activeFilterCount > 0;
 
         // Build list: user's existing exercises + catalog exercises not yet added
@@ -1475,14 +1649,11 @@ function StrengthWorkoutForm() {
         const filtered = allPickerExercises.filter((e) => {
           if (filterEquipment.size > 0 && !filterEquipment.has(e.equipment || '')) return false;
           if (filterMuscles.size > 0 && !filterMuscles.has(e.muscleGroup)) return false;
-          // Advanced filters (level, force, mechanic) require catalog details
-          if ((filterLevel || filterForce || filterMechanic) && catalogDetailsRef.current) {
+          // Advanced filter: level (read directly from catalog)
+          if (filterLevel) {
             const cid = e.fromCatalog ? e.catalogId : (e as { catalogId?: string }).catalogId;
-            const details = cid ? catalogDetailsRef.current[cid] : undefined;
-            if (!details) return false;
-            if (filterLevel && details.level !== filterLevel) return false;
-            if (filterForce && details.force !== filterForce) return false;
-            if (filterMechanic && details.mechanic !== filterMechanic) return false;
+            const catalogEx = cid ? getCatalogExercise(cid) : undefined;
+            if (!catalogEx || catalogEx.level !== filterLevel) return false;
           }
           if (!query) return true;
           return (
@@ -1546,15 +1717,7 @@ function StrengthWorkoutForm() {
                     />
                   </div>
                   <button
-                    onClick={async () => {
-                      // Lazy-load catalog details on first filter open
-                      if (!catalogDetailsRef.current) {
-                        const resp = await import('@/lib/exercise-catalog-details.json');
-                        catalogDetailsRef.current = resp.default as Record<string, CatalogDetails>;
-                        setCatalogDetailsLoaded(true);
-                      }
-                      setShowFilterModal(true);
-                    }}
+                    onClick={() => setShowFilterModal(true)}
                     className={`relative shrink-0 w-[46px] flex items-center justify-center rounded-xl border transition-colors duration-150 ${
                       hasAdvancedFilters
                         ? 'bg-strength/15 border-strength text-strength'
@@ -1750,8 +1913,6 @@ function StrengthWorkoutForm() {
                       onClick={() => {
                         setFilterMuscles(new Set());
                         setFilterLevel('');
-                        setFilterForce('');
-                        setFilterMechanic('');
                       }}
                       className="text-[13px] text-text-muted font-medium bg-transparent border-none cursor-pointer font-inherit hover:text-text-secondary transition-colors"
                     >
@@ -1788,19 +1949,6 @@ function StrengthWorkoutForm() {
                     { value: 'intermediate', label: t.levelLabels?.intermediate || 'Intermediate' },
                     { value: 'expert', label: t.levelLabels?.expert || 'Expert' },
                   ], filterLevel, setFilterLevel)}
-
-                  {/* Force */}
-                  {filterSection(t.force, [
-                    { value: 'push', label: t.forceLabels?.push || 'Push' },
-                    { value: 'pull', label: t.forceLabels?.pull || 'Pull' },
-                    { value: 'static', label: t.forceLabels?.static || 'Static' },
-                  ], filterForce, setFilterForce)}
-
-                  {/* Mechanic */}
-                  {filterSection(t.mechanic, [
-                    { value: 'compound', label: t.mechanicLabels?.compound || 'Compound' },
-                    { value: 'isolation', label: t.mechanicLabels?.isolation || 'Isolation' },
-                  ], filterMechanic, setFilterMechanic)}
                 </div>
 
                 {/* Apply button */}
@@ -1911,6 +2059,48 @@ function StrengthWorkoutForm() {
           </button>
         </div>
       </BottomSheet>
+
+      {/* Workout Generator Modal */}
+      <WorkoutGeneratorModal
+        open={showGenerator}
+        onClose={() => setShowGenerator(false)}
+        onGenerate={handleGeneratorResult}
+      />
+
+      {/* Swap confirmation */}
+      {pendingSwapIdx !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setPendingSwapIdx(null)}>
+          <div className="bg-bg-card border border-border rounded-2xl p-6 mx-4 max-w-sm" onClick={e => e.stopPropagation()}>
+            <p className="text-text text-center mb-2 text-[15px] font-semibold">{entries[pendingSwapIdx]?.exercise.name}</p>
+            <p className="text-text-secondary text-center mb-5 text-[13px]">{t.swapConfirm}</p>
+            <div className="flex gap-3">
+              <button onClick={() => setPendingSwapIdx(null)} className="flex-1 py-2.5 rounded-xl border border-border text-text-secondary text-[14px] font-medium bg-transparent cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
+                {t.cancel}
+              </button>
+              <button onClick={() => { const idx = pendingSwapIdx; setPendingSwapIdx(null); handleSwapExercise(idx); }} className="flex-1 py-2.5 rounded-xl bg-strength text-white text-[14px] font-semibold border-none cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
+                {t.replaceExercise}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overwrite confirmation */}
+      {showOverwriteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowOverwriteConfirm(false)}>
+          <div className="bg-bg-card border border-border rounded-2xl p-6 mx-4 max-w-sm" onClick={e => e.stopPropagation()}>
+            <p className="text-text text-center mb-5 text-[15px]">{t.generatorOverwriteConfirm}</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowOverwriteConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-border text-text-secondary text-[14px] font-medium bg-transparent cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
+                {t.cancel}
+              </button>
+              <button onClick={() => { setShowOverwriteConfirm(false); setShowGenerator(true); }} className="flex-1 py-2.5 rounded-xl bg-strength text-white text-[14px] font-semibold border-none cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
+                {t.generatorNext}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

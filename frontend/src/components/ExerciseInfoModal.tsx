@@ -15,13 +15,13 @@ interface ExerciseInfoModalProps {
 export default function ExerciseInfoModal({ catalogId, exerciseName, muscleGroup, open, onClose }: ExerciseInfoModalProps) {
   const { t, locale } = useI18n();
   const [details, setDetails] = useState<CatalogDetails | null>(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [gifLoaded, setGifLoaded] = useState(false);
   const catalogEntry = getCatalogExercise(catalogId);
 
   useEffect(() => {
     if (open && catalogId) {
-      getCatalogDetails(catalogId).then(d => setDetails(d || null));
-      setCurrentSlide(0);
+      setDetails(getCatalogDetails(catalogId) || null);
+      setGifLoaded(false);
     }
   }, [open, catalogId]);
 
@@ -30,16 +30,13 @@ export default function ExerciseInfoModal({ catalogId, exerciseName, muscleGroup
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') setCurrentSlide(s => Math.max(0, s - 1));
-      if (e.key === 'ArrowRight' && details) setCurrentSlide(s => Math.min(details.images.length - 1, s + 1));
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [open, onClose, details]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
-  const images = details?.images || [];
   const equipment = catalogEntry?.equipment;
   const displayName = locale === 'fr' ? (catalogEntry?.name_fr || exerciseName) : (catalogEntry?.name_en || exerciseName);
 
@@ -70,64 +67,26 @@ export default function ExerciseInfoModal({ catalogId, exerciseName, muscleGroup
             <div className="text-[12px] text-strength font-medium mt-1">
               {t.muscleGroups?.[muscleGroup] || muscleGroup}
             </div>
+            {catalogEntry?.description && (
+              <p className="text-[13px] text-text-secondary mt-2 leading-relaxed">{catalogEntry.description}</p>
+            )}
           </div>
 
-          {/* Image carousel */}
-          {images.length > 0 && (
-            <div className="relative mx-5 mt-4 bg-bg rounded-sm overflow-hidden" style={{ aspectRatio: '4/3' }}>
-              <div
-                className="flex h-full transition-transform duration-300 ease-out"
-                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-              >
-                {images.map((_, idx) => (
-                  <div key={idx} className="min-w-full h-full flex items-center justify-center">
-                    <img
-                      src={getExerciseImageUrl(catalogId, idx)}
-                      alt={`${displayName} - ${idx + 1}`}
-                      className="max-w-[85%] max-h-[85%] object-contain"
-                      loading="lazy"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              {/* Arrows */}
-              {images.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setCurrentSlide(s => Math.max(0, s - 1))}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-bg-card border border-border rounded-full text-text cursor-pointer shadow-lg transition-all duration-150 hover:bg-bg-elevated active:scale-[0.92]"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => setCurrentSlide(s => Math.min(images.length - 1, s + 1))}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-bg-card border border-border rounded-full text-text cursor-pointer shadow-lg transition-all duration-150 hover:bg-bg-elevated active:scale-[0.92]"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 6 15 12 9 18" />
-                    </svg>
-                  </button>
-                </>
+          {/* Animated GIF */}
+          {catalogId && (
+            <div className="relative mx-5 mt-4 bg-bg rounded-xl overflow-hidden" style={{ aspectRatio: '1/1' }}>
+              {!gifLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-8 h-8 border-2 border-border border-t-strength rounded-full animate-spin" />
+                </div>
               )}
-            </div>
-          )}
-
-          {/* Carousel dots */}
-          {images.length > 1 && (
-            <div className="flex justify-center gap-1.5 pt-2.5 pb-1">
-              {images.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentSlide(idx)}
-                  className={`h-1.5 rounded-full border-none cursor-pointer transition-all duration-200 p-0 ${
-                    idx === currentSlide ? 'w-[18px] bg-strength' : 'w-1.5 bg-text-muted'
-                  }`}
-                />
-              ))}
+              <img
+                src={getExerciseImageUrl(catalogId)}
+                alt={displayName}
+                className={`w-full h-full object-contain transition-opacity duration-300 ${gifLoaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setGifLoaded(true)}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
             </div>
           )}
 
@@ -153,16 +112,6 @@ export default function ExerciseInfoModal({ catalogId, exerciseName, muscleGroup
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                   </svg>
                   {t.levelLabels?.[details.level] || details.level}
-                </span>
-              )}
-              {details?.force && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium bg-running/10 text-running border border-running/20">
-                  {t.forceLabels?.[details.force] || details.force}
-                </span>
-              )}
-              {details?.mechanic && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium bg-swimming/10 text-swimming border border-swimming/20">
-                  {t.mechanicLabels?.[details.mechanic] || details.mechanic}
                 </span>
               )}
             </div>

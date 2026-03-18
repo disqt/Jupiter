@@ -4,6 +4,7 @@ const PUBLIC_API_ROUTES = [
   '/api/auth/login',
   '/api/auth/register',
   '/api/health',
+  '/api/exercise-image',
 ];
 
 export function middleware(request: NextRequest) {
