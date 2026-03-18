@@ -541,7 +541,7 @@ function StrengthWorkoutForm() {
 
     setExercises(newExercises);
     setEntries(newEntries);
-    setGeneratorInput(generated.length > 0 ? { selectedMuscles: [], level: 'intermediate', equipment: [] } : null);
+    setGeneratorInput(generated.length > 0 ? { selectedMuscles: [], level: 'intermediate', equipment: [], weeklyFrequency: 3 } : null);
     setShowGenerator(false);
   };
 

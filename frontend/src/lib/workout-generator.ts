@@ -6,6 +6,7 @@ export interface GeneratorInput {
   selectedMuscles: string[];
   level: 'beginner' | 'intermediate' | 'expert';
   equipment: string[];
+  weeklyFrequency: 2 | 3 | 4 | 5; // sessions per week
 }
 
 export interface GeneratedExercise {
@@ -159,8 +160,16 @@ export function generateWorkout(
 
   const eligible = filterByLevel(filterByEquipment(enriched, equipment), level);
 
-  const targetExercises = Math.min(Math.max(nbMuscles === 1 ? 4 : nbMuscles * 2, 3), 8);
-  const baseSets = nbMuscles >= 5 ? 4 : 3;
+  const { weeklyFrequency } = input;
+
+  // Target ~10-12 sets/muscle/week. Fewer sessions → more volume per session.
+  // frequency 2 → base 4 sets, frequency 3 → base 3, frequency 4-5 → base 2-3
+  const baseSetsFromFreq = weeklyFrequency <= 2 ? 4 : weeklyFrequency <= 3 ? 3 : 3;
+  // More exercises for low frequency to cover volume
+  const freqBonus = weeklyFrequency <= 2 ? 1 : 0;
+
+  const targetExercises = Math.min(Math.max(nbMuscles === 1 ? 4 : nbMuscles * 2 + freqBonus, 3), 8);
+  const baseSets = nbMuscles >= 5 ? baseSetsFromFreq : baseSetsFromFreq;
 
   const exercisesPerMuscle = allocateExercisesPerMuscle(selectedMuscles, targetExercises);
 
@@ -226,7 +235,10 @@ export function generateWorkout(
 
     for (const ex of pickedForMuscle) {
       const isCompound = ex.details.mechanic === 'compound';
-      const sets = nbMuscles === 1 ? (isCompound ? 3 : 2) : (isCompound ? baseSets : Math.max(baseSets - 1, 2));
+      // Single muscle: more sets per exercise. High frequency (4-5x): fewer sets per session.
+      const sets = nbMuscles === 1
+        ? (isCompound ? Math.min(baseSets + 1, 5) : baseSets)
+        : (isCompound ? baseSets : Math.max(baseSets - (weeklyFrequency >= 4 ? 1 : 0), 2));
       const reps = isCompound ? 10 : 12;
 
       selected.push({

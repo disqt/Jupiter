@@ -397,6 +397,8 @@ const translations = {
     // Workout generator
     generatorTitle: 'Générer une séance',
     generatorMusclesStep: 'Quels muscles travailler ?',
+    generatorFrequencyStep: 'Combien de séances par semaine ?',
+    generatorPerWeek: 'par semaine',
     generatorLevelStep: 'Quel est votre niveau ?',
     generatorEquipmentStep: 'Équipement disponible',
     generatorSummaryStep: 'Résumé',
@@ -803,6 +805,8 @@ const translations = {
     // Workout generator
     generatorTitle: 'Generate a workout',
     generatorMusclesStep: 'Which muscles to work?',
+    generatorFrequencyStep: 'How many sessions per week?',
+    generatorPerWeek: 'per week',
     generatorLevelStep: 'What is your level?',
     generatorEquipmentStep: 'Available equipment',
     generatorSummaryStep: 'Summary',

@@ -11,6 +11,7 @@ describe('generateWorkout', () => {
       selectedMuscles: ['Pectoraux', 'Dos', 'Biceps', 'Triceps'],
       level: 'intermediate',
       equipment: ['barbell', 'dumbbell', 'body_only'],
+      weeklyFrequency: 3,
     };
     const result = generateWorkout(input, EXERCISE_CATALOG, details);
     expect(result.exercises.length).toBeGreaterThanOrEqual(3);
@@ -22,6 +23,7 @@ describe('generateWorkout', () => {
       selectedMuscles: ['Pectoraux'],
       level: 'beginner',
       equipment: ['body_only'],
+      weeklyFrequency: 3,
     };
     const result = generateWorkout(input, EXERCISE_CATALOG, details);
     for (const ex of result.exercises) {
@@ -35,6 +37,7 @@ describe('generateWorkout', () => {
       selectedMuscles: ['Pectoraux', 'Dos'],
       level: 'beginner',
       equipment: ['barbell', 'dumbbell', 'cable', 'machine', 'body_only'],
+      weeklyFrequency: 3,
     };
     const result = generateWorkout(input, EXERCISE_CATALOG, details);
     for (const ex of result.exercises) {
@@ -47,6 +50,7 @@ describe('generateWorkout', () => {
       selectedMuscles: ['Pectoraux', 'Dos', 'Biceps'],
       level: 'intermediate',
       equipment: ['barbell', 'dumbbell', 'cable', 'machine', 'body_only'],
+      weeklyFrequency: 3,
     };
     const result = generateWorkout(input, EXERCISE_CATALOG, details);
     const lastCompoundIdx = result.exercises.reduce(
@@ -63,11 +67,12 @@ describe('generateWorkout', () => {
       selectedMuscles: ['Biceps'],
       level: 'intermediate',
       equipment: ['barbell', 'dumbbell', 'cable', 'body_only'],
+      weeklyFrequency: 3,
     };
     const result = generateWorkout(input, EXERCISE_CATALOG, details);
     for (const ex of result.exercises) {
       expect(ex.sets).toBeGreaterThanOrEqual(2);
-      expect(ex.sets).toBeLessThanOrEqual(4);
+      expect(ex.sets).toBeLessThanOrEqual(5);
     }
   });
 
@@ -76,6 +81,7 @@ describe('generateWorkout', () => {
       selectedMuscles: ['Pectoraux', 'Dos', 'Biceps', 'Triceps', 'Épaules'],
       level: 'beginner',
       equipment: ['kettlebells'],
+      weeklyFrequency: 3,
     };
     const result = generateWorkout(input, EXERCISE_CATALOG, details);
     expect(result.warnings.length).toBeGreaterThan(0);
@@ -86,22 +92,38 @@ describe('generateWorkout', () => {
       selectedMuscles: ['Pectoraux', 'Dos', 'Épaules'],
       level: 'intermediate',
       equipment: ['barbell', 'dumbbell', 'cable', 'machine', 'body_only'],
+      weeklyFrequency: 3,
     };
     const result = generateWorkout(input, EXERCISE_CATALOG, details);
     const ids = result.exercises.map(e => e.catalogId);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('generates 4 sets for compound in full-body sessions', () => {
+  it('generates more sets for low frequency (2x/week)', () => {
     const input: GeneratorInput = {
-      selectedMuscles: ['Pectoraux', 'Dos', 'Épaules', 'Biceps', 'Quadriceps'],
+      selectedMuscles: ['Pectoraux', 'Dos'],
       level: 'intermediate',
       equipment: ['barbell', 'dumbbell', 'cable', 'machine', 'body_only'],
+      weeklyFrequency: 2,
     };
     const result = generateWorkout(input, EXERCISE_CATALOG, details);
     const compounds = result.exercises.filter(e => e.mechanic === 'compound');
     for (const ex of compounds) {
       expect(ex.sets).toBe(4);
+    }
+  });
+
+  it('generates fewer sets for high frequency (5x/week)', () => {
+    const input: GeneratorInput = {
+      selectedMuscles: ['Pectoraux', 'Dos'],
+      level: 'intermediate',
+      equipment: ['barbell', 'dumbbell', 'cable', 'machine', 'body_only'],
+      weeklyFrequency: 5,
+    };
+    const result = generateWorkout(input, EXERCISE_CATALOG, details);
+    const isolations = result.exercises.filter(e => e.mechanic !== 'compound');
+    for (const ex of isolations) {
+      expect(ex.sets).toBeLessThanOrEqual(3);
     }
   });
 });
@@ -112,6 +134,7 @@ describe('swapExercise', () => {
       selectedMuscles: ['Pectoraux'],
       level: 'intermediate',
       equipment: ['barbell', 'dumbbell', 'cable', 'machine', 'body_only'],
+      weeklyFrequency: 3,
     };
     const result = generateWorkout(input, EXERCISE_CATALOG, details);
     const first = result.exercises[0];
