@@ -521,7 +521,7 @@ function StrengthWorkoutForm() {
 
       const sets: SetLog[] = Array.from({ length: gen.sets }, (_, i) => ({
         setNumber: i + 1,
-        reps: '',
+        reps: String(gen.reps),
         weight: '',
         duration: '',
       }));
@@ -586,7 +586,7 @@ function StrengthWorkoutForm() {
     const mapped = { id: newEx.id, name: newEx.name, muscleGroup: newEx.muscle_group, defaultMode: newEx.default_mode, catalogId: swapped.catalogId };
     const newSets: SetLog[] = Array.from({ length: swapped.sets }, (_, i) => ({
       setNumber: i + 1,
-      reps: '',
+      reps: String(swapped.reps),
       weight: '',
       duration: '',
     }));
