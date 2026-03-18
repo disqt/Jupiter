@@ -1002,11 +1002,11 @@ function StrengthWorkoutForm() {
 
       {/* Coach tip — shown after generating a session */}
       {showCoachTip && generatorInput && entries.length > 0 && (
-        <div className="relative mb-3 rounded-card overflow-hidden border border-[#c9a96e]/20 bg-gradient-to-br from-[#c9a96e]/[0.08] to-[#a0833a]/[0.04]">
+        <div className="relative mb-3 rounded-card overflow-hidden border border-strength/20 bg-strength/[0.06]">
           <div className="px-4 py-3.5 pr-10">
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-[15px]">💬</span>
-              <span className="text-[13px] font-semibold text-[#c9a96e] uppercase tracking-wide">{t.coachTipTitle}</span>
+              <span className="text-[13px] font-semibold text-strength uppercase tracking-wide">{t.coachTipTitle}</span>
             </div>
             <p className="text-[13px] text-text-secondary leading-relaxed">{t.coachTipText}</p>
           </div>
@@ -1316,37 +1316,60 @@ function StrengthWorkoutForm() {
       {/* Add exercise */}
       {(!workoutId || editing) && (
         <>
-          <button onClick={() => setShowExercisePicker(true)}
-            className="w-full py-[18px] bg-transparent border-2 border-dashed border-border rounded-card text-text-muted text-sm font-medium font-inherit cursor-pointer mb-3 transition-all duration-200 active:border-strength active:text-strength mt-4">
-            {t.addExercise}
-          </button>
-          {entries.length === 0 && (
-            <div className="flex flex-col items-center gap-3 mt-2 mb-4">
-              <p className="text-text-muted text-[13px] mb-1">{t.generatorEmptySubtitle}</p>
-              {/* Primary — Generate */}
-              <button
-                onClick={() => setShowGenerator(true)}
-                className="w-full py-4 rounded-card bg-[#c9a96e] text-black font-semibold text-[15px] flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(201,169,110,0.25)] transition-all duration-200 active:scale-[0.98] font-inherit cursor-pointer border-none"
-              >
-                <span>✨</span> {t.generatorEmptyCTA}
-              </button>
-              {/* Secondary — Templates */}
-              <button
-                onClick={() => {
-                  const params = new URLSearchParams({ type: 'musculation', date });
-                  if (workoutId) params.set('from', workoutId);
-                  router.push(`/workout/templates?${params.toString()}`);
-                }}
-                className="w-full py-3.5 flex items-center justify-center gap-2 bg-transparent border border-border rounded-card text-text-secondary text-[14px] font-medium font-inherit cursor-pointer transition-all duration-200 active:scale-[0.98]"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="7" height="7" />
-                  <rect x="14" y="3" width="7" height="7" />
-                  <rect x="3" y="14" width="7" height="7" />
-                  <rect x="14" y="14" width="7" height="7" />
+          {entries.length > 0 && (
+            <button onClick={() => setShowExercisePicker(true)}
+              className="w-full py-[18px] bg-transparent border-2 border-dashed border-border rounded-card text-text-muted text-sm font-medium font-inherit cursor-pointer mb-3 transition-all duration-200 active:border-strength active:text-strength mt-4">
+              {t.addExercise}
+            </button>
+          )}
+          {entries.length === 0 && !loadingWorkout && (
+            <div className="flex flex-col items-center py-6 mb-4">
+              {/* Illustration + text */}
+              <div className="w-14 h-14 rounded-2xl bg-strength/10 flex items-center justify-center mb-4">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-strength">
+                  <path d="M6 2v6M18 2v6M6 16v6M18 16v6M2 10h4v4H2zM18 10h4v4h-4zM6 11h12" />
                 </svg>
-                {t.applyTemplate}
-              </button>
+              </div>
+              <h3 className="text-[17px] font-semibold text-text mb-1">{t.generatorEmptyTitle}</h3>
+              <p className="text-text-muted text-[13px] text-center max-w-[280px] mb-6">{t.generatorEmptySubtitle}</p>
+
+              {/* 3 CTAs */}
+              <div className="w-full flex flex-col gap-2.5">
+                {/* Primary — Generate */}
+                <button
+                  onClick={() => setShowGenerator(true)}
+                  className="w-full py-3.5 rounded-xl bg-strength text-white font-semibold text-[15px] flex items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(255,138,59,0.25)] transition-all duration-200 active:scale-[0.98] font-inherit cursor-pointer border-none"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3v18M5 12l7-9 7 9M8 21h8" />
+                  </svg>
+                  {t.generatorEmptyCTA}
+                </button>
+                {/* Secondary — Templates */}
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams({ type: 'musculation', date });
+                    if (workoutId) params.set('from', workoutId);
+                    router.push(`/workout/templates?${params.toString()}`);
+                  }}
+                  className="w-full py-3 flex items-center justify-center gap-2.5 bg-bg-card border border-border rounded-xl text-text text-[14px] font-medium font-inherit cursor-pointer transition-all duration-200 active:scale-[0.98]"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                  </svg>
+                  {t.applyTemplate}
+                </button>
+                {/* Tertiary — From scratch */}
+                <button
+                  onClick={() => setShowExercisePicker(true)}
+                  className="w-full py-2.5 text-text-muted text-[13px] font-medium font-inherit cursor-pointer bg-transparent border-none transition-colors duration-150 active:text-text"
+                >
+                  {t.addExercise}
+                </button>
+              </div>
             </div>
           )}
         </>
@@ -2054,7 +2077,7 @@ function StrengthWorkoutForm() {
               <button onClick={() => setPendingSwapIdx(null)} className="flex-1 py-2.5 rounded-xl border border-border text-text-secondary text-[14px] font-medium bg-transparent cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
                 {t.cancel}
               </button>
-              <button onClick={() => { const idx = pendingSwapIdx; setPendingSwapIdx(null); handleSwapExercise(idx); }} className="flex-1 py-2.5 rounded-xl bg-[#c9a96e] text-black text-[14px] font-semibold border-none cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
+              <button onClick={() => { const idx = pendingSwapIdx; setPendingSwapIdx(null); handleSwapExercise(idx); }} className="flex-1 py-2.5 rounded-xl bg-strength text-white text-[14px] font-semibold border-none cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
                 {t.replaceExercise}
               </button>
             </div>
@@ -2071,7 +2094,7 @@ function StrengthWorkoutForm() {
               <button onClick={() => setShowOverwriteConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-border text-text-secondary text-[14px] font-medium bg-transparent cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
                 {t.cancel}
               </button>
-              <button onClick={() => { setShowOverwriteConfirm(false); setShowGenerator(true); }} className="flex-1 py-2.5 rounded-xl bg-[#c9a96e] text-black text-[14px] font-semibold border-none cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
+              <button onClick={() => { setShowOverwriteConfirm(false); setShowGenerator(true); }} className="flex-1 py-2.5 rounded-xl bg-strength text-white text-[14px] font-semibold border-none cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
                 {t.generatorNext}
               </button>
             </div>
