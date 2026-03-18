@@ -215,6 +215,7 @@ const translations = {
       'Ischios': 'Ischios',
       'Fessiers': 'Fessiers',
       'Mollets': 'Mollets',
+      'Avant-bras': 'Avant-bras',
     } as Record<string, string>,
 
     // Ride types
@@ -627,6 +628,7 @@ const translations = {
       'Ischios': 'Hamstrings',
       'Fessiers': 'Glutes',
       'Mollets': 'Calves',
+      'Avant-bras': 'Forearms',
     } as Record<string, string>,
 
     rideTypes: {
