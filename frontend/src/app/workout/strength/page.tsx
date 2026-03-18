@@ -190,6 +190,7 @@ function StrengthWorkoutForm() {
   const [showGenerator, setShowGenerator] = useState(false);
   const [generatorInput, setGeneratorInput] = useState<GeneratorInput | null>(null);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
+  const [showCoachTip, setShowCoachTip] = useState(false);
   const headerMenuRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -542,6 +543,7 @@ function StrengthWorkoutForm() {
     setExercises(newExercises);
     setEntries(newEntries);
     setGeneratorInput(generated.length > 0 ? { selectedMuscles: [], level: 'intermediate', equipment: [], weeklyFrequency: 3 } : null);
+    setShowCoachTip(generated.length > 0);
     setShowGenerator(false);
   };
 
@@ -1000,6 +1002,27 @@ function StrengthWorkoutForm() {
           </div>
         ) : undefined}
       />
+
+      {/* Coach tip — shown after generating a session */}
+      {showCoachTip && generatorInput && entries.length > 0 && (
+        <div className="relative mb-3 rounded-card overflow-hidden border border-[#c9a96e]/20 bg-gradient-to-br from-[#c9a96e]/[0.08] to-[#a0833a]/[0.04]">
+          <div className="px-4 py-3.5 pr-10">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[15px]">💬</span>
+              <span className="text-[13px] font-semibold text-[#c9a96e] uppercase tracking-wide">{t.coachTipTitle}</span>
+            </div>
+            <p className="text-[13px] text-text-secondary leading-relaxed">{t.coachTipText}</p>
+          </div>
+          <button
+            onClick={() => setShowCoachTip(false)}
+            className="absolute top-2.5 right-2.5 w-7 h-7 flex items-center justify-center rounded-full bg-transparent border-none cursor-pointer text-text-muted hover:text-text transition-colors duration-150"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Exercise cards — 2 columns on desktop */}
       {loadingWorkout ? (
