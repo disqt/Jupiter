@@ -35,10 +35,11 @@ export default function BodyMuscleSelector({ selected, onSelectionChange }: Body
     const muscles = SPLITS[splitName];
     const allSelected = muscles.every(m => selected.includes(m));
     if (allSelected) {
-      onSelectionChange(selected.filter(m => !muscles.includes(m)));
+      // Toggle off — deselect all
+      onSelectionChange([]);
     } else {
-      const merged = Array.from(new Set([...selected, ...muscles]));
-      onSelectionChange(merged);
+      // Exclusive — replace selection with this split's muscles
+      onSelectionChange([...muscles]);
     }
   };
 
