@@ -191,6 +191,7 @@ function StrengthWorkoutForm() {
   const [generatorInput, setGeneratorInput] = useState<GeneratorInput | null>(null);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [showCoachTip, setShowCoachTip] = useState(false);
+  const [pendingSwapIdx, setPendingSwapIdx] = useState<number | null>(null);
   const headerMenuRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -1052,7 +1053,7 @@ function StrengthWorkoutForm() {
               {/* Swap button (only for generated sessions) */}
               {generatorInput && (!workoutId || editing) && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleSwapExercise(entryIdx); }}
+                  onClick={(e) => { e.stopPropagation(); setPendingSwapIdx(entryIdx); }}
                   className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-transparent border-none cursor-pointer transition-colors duration-150 active:bg-white/10 hover:bg-white/[0.06] text-text-muted hover:text-[#c9a96e]"
                   title={t.replaceExercise}
                 >
@@ -2072,6 +2073,24 @@ function StrengthWorkoutForm() {
         onClose={() => setShowGenerator(false)}
         onGenerate={handleGeneratorResult}
       />
+
+      {/* Swap confirmation */}
+      {pendingSwapIdx !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setPendingSwapIdx(null)}>
+          <div className="bg-bg-card border border-border rounded-2xl p-6 mx-4 max-w-sm" onClick={e => e.stopPropagation()}>
+            <p className="text-text text-center mb-2 text-[15px] font-semibold">{entries[pendingSwapIdx]?.exercise.name}</p>
+            <p className="text-text-secondary text-center mb-5 text-[13px]">{t.swapConfirm}</p>
+            <div className="flex gap-3">
+              <button onClick={() => setPendingSwapIdx(null)} className="flex-1 py-2.5 rounded-xl border border-border text-text-secondary text-[14px] font-medium bg-transparent cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
+                {t.cancel}
+              </button>
+              <button onClick={() => { const idx = pendingSwapIdx; setPendingSwapIdx(null); handleSwapExercise(idx); }} className="flex-1 py-2.5 rounded-xl bg-[#c9a96e] text-black text-[14px] font-semibold border-none cursor-pointer font-inherit transition-all duration-150 active:scale-[0.98]">
+                {t.replaceExercise}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Overwrite confirmation */}
       {showOverwriteConfirm && (
