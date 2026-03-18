@@ -145,10 +145,6 @@ function StrengthWorkoutForm() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filterMuscles, setFilterMuscles] = useState<Set<string>>(new Set());
   const [filterLevel, setFilterLevel] = useState<string>('');
-  const [filterForce, setFilterForce] = useState<string>('');
-  const [filterMechanic, setFilterMechanic] = useState<string>('');
-  const catalogDetailsRef = useRef<Record<string, CatalogDetails> | null>(null);
-  const [catalogDetailsLoaded, setCatalogDetailsLoaded] = useState(false);
   const [showNewExercise, setShowNewExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
   const [newExerciseMuscle, setNewExerciseMuscle] = useState('');
@@ -1606,7 +1602,7 @@ function StrengthWorkoutForm() {
       {/* Exercise picker modal */}
       {showExercisePicker && (() => {
         const query = exerciseSearch.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        const activeFilterCount = (filterMuscles.size > 0 ? 1 : 0) + (filterLevel ? 1 : 0) + (filterForce ? 1 : 0) + (filterMechanic ? 1 : 0);
+        const activeFilterCount = (filterMuscles.size > 0 ? 1 : 0) + (filterLevel ? 1 : 0);
         const hasAdvancedFilters = activeFilterCount > 0;
 
         // Build list: user's existing exercises + catalog exercises not yet added
@@ -1630,14 +1626,11 @@ function StrengthWorkoutForm() {
         const filtered = allPickerExercises.filter((e) => {
           if (filterEquipment.size > 0 && !filterEquipment.has(e.equipment || '')) return false;
           if (filterMuscles.size > 0 && !filterMuscles.has(e.muscleGroup)) return false;
-          // Advanced filters (level, force, mechanic) require catalog details
-          if ((filterLevel || filterForce || filterMechanic) && catalogDetailsRef.current) {
+          // Advanced filter: level (read directly from catalog)
+          if (filterLevel) {
             const cid = e.fromCatalog ? e.catalogId : (e as { catalogId?: string }).catalogId;
-            const details = cid ? catalogDetailsRef.current[cid] : undefined;
-            if (!details) return false;
-            if (filterLevel && details.level !== filterLevel) return false;
-            if (filterForce && details.force !== filterForce) return false;
-            if (filterMechanic && details.mechanic !== filterMechanic) return false;
+            const catalogEx = cid ? getCatalogExercise(cid) : undefined;
+            if (!catalogEx || catalogEx.level !== filterLevel) return false;
           }
           if (!query) return true;
           return (
@@ -1701,15 +1694,7 @@ function StrengthWorkoutForm() {
                     />
                   </div>
                   <button
-                    onClick={async () => {
-                      // Load catalog details on first filter open
-                      if (!catalogDetailsRef.current) {
-                        const allDetails = await getAllCatalogDetails();
-                        catalogDetailsRef.current = allDetails;
-                        setCatalogDetailsLoaded(true);
-                      }
-                      setShowFilterModal(true);
-                    }}
+                    onClick={() => setShowFilterModal(true)}
                     className={`relative shrink-0 w-[46px] flex items-center justify-center rounded-xl border transition-colors duration-150 ${
                       hasAdvancedFilters
                         ? 'bg-strength/15 border-strength text-strength'
@@ -1905,8 +1890,6 @@ function StrengthWorkoutForm() {
                       onClick={() => {
                         setFilterMuscles(new Set());
                         setFilterLevel('');
-                        setFilterForce('');
-                        setFilterMechanic('');
                       }}
                       className="text-[13px] text-text-muted font-medium bg-transparent border-none cursor-pointer font-inherit hover:text-text-secondary transition-colors"
                     >
@@ -1943,19 +1926,6 @@ function StrengthWorkoutForm() {
                     { value: 'intermediate', label: t.levelLabels?.intermediate || 'Intermediate' },
                     { value: 'expert', label: t.levelLabels?.expert || 'Expert' },
                   ], filterLevel, setFilterLevel)}
-
-                  {/* Force */}
-                  {filterSection(t.force, [
-                    { value: 'push', label: t.forceLabels?.push || 'Push' },
-                    { value: 'pull', label: t.forceLabels?.pull || 'Pull' },
-                    { value: 'static', label: t.forceLabels?.static || 'Static' },
-                  ], filterForce, setFilterForce)}
-
-                  {/* Mechanic */}
-                  {filterSection(t.mechanic, [
-                    { value: 'compound', label: t.mechanicLabels?.compound || 'Compound' },
-                    { value: 'isolation', label: t.mechanicLabels?.isolation || 'Isolation' },
-                  ], filterMechanic, setFilterMechanic)}
                 </div>
 
                 {/* Apply button */}
