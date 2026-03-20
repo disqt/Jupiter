@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Exercise Triage</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #111; color: #fff;
+    height: 100dvh; display: flex; flex-direction: column;
+    overflow: hidden; user-select: none;
+  }
+
+  /* Top bar */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: #1a1a1a; border-bottom: 1px solid #333;
+    flex-shrink: 0;
+  }
+  .topbar .counter { font-size: 14px; color: #888; }
+  .topbar .progress-bar { flex: 1; margin: 0 12px; height: 4px; background: #333; border-radius: 2px; }
+  .topbar .progress-fill { height: 100%; background: #c9a96e; border-radius: 2px; transition: width 0.3s; }
+  .topbar .stats { font-size: 12px; color: #666; display: flex; gap: 10px; }
+  .topbar .stats .kept { color: #4ade80; }
+  .topbar .stats .skipped { color: #f87171; }
+
+  /* Filter bar */
+  .filterbar {
+    display: flex; gap: 6px; padding: 10px 16px; background: #1a1a1a;
+    overflow-x: auto; flex-shrink: 0; border-bottom: 1px solid #222;
+  }
+  .filterbar button {
+    padding: 5px 12px; border-radius: 20px; border: 1px solid #444;
+    background: transparent; color: #aaa; font-size: 12px; cursor: pointer;
+    white-space: nowrap; font-family: inherit;
+  }
+  .filterbar button.active { background: #c9a96e; color: #111; border-color: #c9a96e; }
+
+  /* Card area */
+  .card-area {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 16px; overflow-y: auto; gap: 12px;
+  }
+
+  .exercise-card {
+    width: 100%; max-width: 400px; display: flex; flex-direction: column;
+    align-items: center; gap: 12px;
+  }
+
+  .gif-container {
+    width: 280px; height: 280px; border-radius: 20px; overflow: hidden;
+    background: #222; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .gif-container img { width: 100%; height: 100%; object-fit: cover; }
+  .gif-container .no-gif { color: #555; font-size: 14px; }
+
+  .exercise-name { font-size: 20px; font-weight: 700; text-align: center; }
+  .exercise-name-en { font-size: 14px; color: #888; text-align: center; }
+
+  .exercise-meta {
+    display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  }
+  .tag {
+    padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+    background: #222; color: #aaa; border: 1px solid #333;
+  }
+  .tag.muscle { background: #c9a96e22; color: #c9a96e; border-color: #c9a96e44; }
+  .tag.equipment { background: #3b82f622; color: #60a5fa; border-color: #3b82f644; }
+  .tag.level { background: #a78bfa22; color: #a78bfa; border-color: #a78bfa44; }
+
+  .instructions {
+    font-size: 12px; color: #777; max-height: 80px; overflow-y: auto;
+    text-align: left; width: 100%; padding: 0 8px; line-height: 1.5;
+  }
+
+  /* Buttons */
+  .buttons {
+    display: flex; gap: 12px; padding: 16px; flex-shrink: 0;
+    max-width: 400px; width: 100%; margin: 0 auto;
+  }
+  .btn {
+    flex: 1; padding: 18px; border: none; border-radius: 16px;
+    font-size: 18px; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: transform 0.1s, opacity 0.1s;
+  }
+  .btn:active { transform: scale(0.96); opacity: 0.8; }
+  .btn-skip { background: #2a2a2a; color: #f87171; border: 2px solid #f8717133; }
+  .btn-keep { background: #4ade8022; color: #4ade80; border: 2px solid #4ade8044; }
+  .btn-undo {
+    position: fixed; bottom: 100px; right: 16px;
+    width: 44px; height: 44px; border-radius: 50%; border: 1px solid #444;
+    background: #222; color: #aaa; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Done screen */
+  .done { text-align: center; }
+  .done h2 { font-size: 24px; margin-bottom: 12px; }
+  .done p { color: #888; margin-bottom: 20px; }
+  .done button {
+    padding: 12px 24px; background: #c9a96e; color: #111; border: none;
+    border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* Keyboard hints */
+  .kbd-hints {
+    display: flex; gap: 16px; justify-content: center; padding: 6px;
+    font-size: 11px; color: #555; flex-shrink: 0;
+  }
+  kbd { padding: 2px 6px; background: #222; border-radius: 4px; border: 1px solid #444; color: #888; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="counter" id="counter">0/386</span>
+  <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+  <div class="stats">
+    <span class="kept" id="kept-count">0 gardés</span>
+    <span class="skipped" id="skipped-count">0 retirés</span>
+    <button onclick="exportResults()" style="padding:3px 8px;border-radius:8px;border:1px solid #444;background:#222;color:#c9a96e;font-size:11px;cursor:pointer;font-family:inherit">Export</button>
+  </div>
+</div>
+
+<div class="filterbar" id="filterbar"></div>
+
+<div class="card-area" id="card-area">
+  <div class="exercise-card" id="card"></div>
+</div>
+
+<div class="kbd-hints">
+  <span><kbd>←</kbd> Retire</span>
+  <span><kbd>→</kbd> Garde</span>
+  <span><kbd>Z</kbd> Annuler</span>
+</div>
+
+<div class="buttons">
+  <button class="btn btn-skip" id="btn-skip" onclick="decide(false)">✕ Retire</button>
+  <button class="btn btn-keep" id="btn-keep" onclick="decide(true)">✓ Garde</button>
+</div>
+
+<button class="btn-undo" id="btn-undo" onclick="undo()" title="Annuler" style="display:none">↩</button>
+
+<script>
+let catalog = [];
+let currentIndex = 0;
+let decisions = {}; // id -> true (keep) | false (skip)
+let history = []; // for undo
+let muscleFilter = null;
+
+const STORAGE_KEY = 'exercise-triage-full';
+const GIF_BASE = 'https://exercisedb.p.rapidapi.com/image';
+const PROXY_BASE = 'http://localhost:3000/api/exercise-image';
+
+// Map ExerciseDB raw format to display format
+const TARGET_TO_GROUP = {
+  pectorals: 'Pectoraux', lats: 'Dos', 'upper back': 'Dos', traps: 'Dos',
+  'levator scapulae': 'Dos', spine: 'Dos', delts: 'Épaules', biceps: 'Biceps',
+  triceps: 'Triceps', abs: 'Abdominaux', 'serratus anterior': 'Abdominaux',
+  quads: 'Quadriceps', abductors: 'Quadriceps', adductors: 'Quadriceps',
+  hamstrings: 'Ischios', glutes: 'Fessiers', calves: 'Mollets',
+  forearms: 'Avant-bras', 'cardiovascular system': 'Cardio',
+};
+
+function mapExercise(raw) {
+  return {
+    id: raw.id,
+    name_en: raw.name,
+    name_fr: raw.name.charAt(0).toUpperCase() + raw.name.slice(1),
+    muscle_group: TARGET_TO_GROUP[raw.target] || raw.target,
+    equipment: raw.equipment,
+    level: raw.difficulty || 'intermediate',
+    bodyPart: raw.bodyPart,
+    target: raw.target,
+    secondaryMuscles: raw.secondaryMuscles || [],
+    instructions: raw.instructions || [],
+    description: raw.description || '',
+  };
+}
+
+// Load catalog — full ExerciseDB dump
+fetch('exercisedb-full.json')
+  .then(r => r.json())
+  .then(data => {
+    catalog = data.map(mapExercise);
+    loadProgress();
+    buildFilters();
+    showCurrent();
+  });
+
+function loadProgress() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      decisions = parsed.decisions || {};
+      // Resume from first undecided
+      currentIndex = getFilteredList().findIndex(e => !(e.id in decisions));
+      if (currentIndex === -1) currentIndex = getFilteredList().length;
+    }
+  } catch {}
+}
+
+function saveProgress() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ decisions, timestamp: Date.now() }));
+}
+
+function getFilteredList() {
+  if (!muscleFilter) return catalog;
+  return catalog.filter(e => e.muscle_group === muscleFilter);
+}
+
+function buildFilters() {
+  const muscles = [...new Set(catalog.map(e => e.muscle_group))].sort();
+  const bar = document.getElementById('filterbar');
+  const allBtn = document.createElement('button');
+  allBtn.textContent = `Tous (${catalog.length})`;
+  allBtn.className = !muscleFilter ? 'active' : '';
+  allBtn.onclick = () => { muscleFilter = null; resetView(); };
+  bar.appendChild(allBtn);
+
+  for (const m of muscles) {
+    const count = catalog.filter(e => e.muscle_group === m).length;
+    const btn = document.createElement('button');
+    btn.textContent = `${m} (${count})`;
+    btn.className = muscleFilter === m ? 'active' : '';
+    btn.onclick = () => { muscleFilter = m; resetView(); };
+    bar.appendChild(btn);
+  }
+}
+
+function resetView() {
+  const list = getFilteredList();
+  currentIndex = list.findIndex(e => !(e.id in decisions));
+  if (currentIndex === -1) currentIndex = list.length;
+  // Rebuild filter active states
+  const btns = document.getElementById('filterbar').querySelectorAll('button');
+  btns[0].className = !muscleFilter ? 'active' : '';
+  let i = 1;
+  const muscles = [...new Set(catalog.map(e => e.muscle_group))].sort();
+  for (const m of muscles) {
+    if (btns[i]) btns[i].className = muscleFilter === m ? 'active' : '';
+    i++;
+  }
+  showCurrent();
+}
+
+function showCurrent() {
+  const list = getFilteredList();
+  const total = list.length;
+  const decided = list.filter(e => e.id in decisions).length;
+  const kept = list.filter(e => decisions[e.id] === true).length;
+  const skipped = list.filter(e => decisions[e.id] === false).length;
+
+  document.getElementById('counter').textContent = `${decided}/${total}`;
+  document.getElementById('progress').style.width = `${(decided / total) * 100}%`;
+  document.getElementById('kept-count').textContent = `${kept} gardés`;
+  document.getElementById('skipped-count').textContent = `${skipped} retirés`;
+  document.getElementById('btn-undo').style.display = history.length > 0 ? 'flex' : 'none';
+
+  const card = document.getElementById('card');
+
+  if (currentIndex >= total) {
+    card.innerHTML = `
+      <div class="done">
+        <h2>Triage terminé !</h2>
+        <p>${kept} exercices gardés sur ${total}</p>
+        <button onclick="exportResults()">Exporter JSON</button>
+      </div>`;
+    document.getElementById('btn-skip').disabled = true;
+    document.getElementById('btn-keep').disabled = true;
+    return;
+  }
+
+  // Skip already decided
+  const ex = list[currentIndex];
+  if (ex.id in decisions) {
+    currentIndex++;
+    showCurrent();
+    return;
+  }
+
+  document.getElementById('btn-skip').disabled = false;
+  document.getElementById('btn-keep').disabled = false;
+
+  const gifUrl = `${PROXY_BASE}?id=${ex.id}&res=360`;
+
+  card.innerHTML = `
+    <div class="gif-container">
+      <img src="${gifUrl}" alt="${ex.name_fr}" onerror="this.parentElement.innerHTML='<span class=no-gif>Pas de GIF</span>'" loading="eager">
+    </div>
+    <div class="exercise-name">${ex.name_en}</div>
+    <div class="exercise-meta">
+      <span class="tag muscle">${ex.muscle_group}</span>
+      <span class="tag equipment">${ex.equipment}</span>
+      <span class="tag level">${ex.level}</span>
+      ${ex.target ? `<span class="tag">${ex.target}</span>` : ''}
+    </div>
+    ${ex.instructions.length ? `<div class="instructions">${ex.instructions.slice(0, 3).map((s, i) => `${i + 1}. ${s}`).join('<br>')}</div>` : ''}
+  `;
+}
+
+function decide(keep) {
+  const list = getFilteredList();
+  if (currentIndex >= list.length) return;
+  const ex = list[currentIndex];
+  decisions[ex.id] = keep;
+  history.push({ id: ex.id, index: currentIndex });
+  saveProgress();
+  currentIndex++;
+  // Skip already decided
+  while (currentIndex < list.length && list[currentIndex].id in decisions) currentIndex++;
+  showCurrent();
+}
+
+function undo() {
+  if (history.length === 0) return;
+  const last = history.pop();
+  delete decisions[last.id];
+  currentIndex = last.index;
+  saveProgress();
+  showCurrent();
+}
+
+function exportResults() {
+  const kept = catalog.filter(e => decisions[e.id] === true).map(e => e.id);
+  const removed = catalog.filter(e => decisions[e.id] === false).map(e => e.id);
+  const result = { kept, removed, keptCount: kept.length, removedCount: removed.length, timestamp: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'exercise-triage-results.json';
+  a.click();
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') decide(false);
+  else if (e.key === 'ArrowRight') decide(true);
+  else if (e.key === 'z' || e.key === 'Z') undo();
+});
+</script>
+</body>
+</html>

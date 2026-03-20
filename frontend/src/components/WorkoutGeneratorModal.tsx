@@ -11,10 +11,7 @@ interface WorkoutGeneratorModalProps {
   open: boolean;
   onClose: () => void;
   onGenerate: (exercises: GeneratedExercise[], input: GeneratorInput) => void;
-  userLevel?: number;
 }
-
-type Level = GeneratorInput['level'];
 
 const EQUIPMENT_OPTIONS = [
   'body_only',
@@ -46,18 +43,11 @@ const EQUIPMENT_ICONS: Record<string, string> = {
   bands: '🎗️',
 };
 
-const TOTAL_STEPS = 5;
-
-function levelFromUserLevel(userLevel?: number): Level {
-  if (userLevel === undefined || userLevel === 0) return 'beginner';
-  if (userLevel <= 3) return 'intermediate';
-  return 'expert';
-}
+const TOTAL_STEPS = 4;
 
 interface SavedPrefs {
   muscles: string[];
   weeklyFrequency?: 2 | 3 | 4 | 5;
-  level: Level;
   equipment: string[];
 }
 
@@ -71,12 +61,11 @@ function loadPrefs(): SavedPrefs | null {
   }
 }
 
-export default function WorkoutGeneratorModal({ open, onClose, onGenerate, userLevel }: WorkoutGeneratorModalProps) {
+export default function WorkoutGeneratorModal({ open, onClose, onGenerate }: WorkoutGeneratorModalProps) {
   const { t } = useI18n();
   const [step, setStep] = useState(1);
   const [selectedMuscles, setSelectedMuscles] = useState<string[]>([]);
   const [weeklyFrequency, setWeeklyFrequency] = useState<2 | 3 | 4 | 5>(3);
-  const [level, setLevel] = useState<Level>(() => levelFromUserLevel(userLevel));
   const [equipment, setEquipment] = useState<string[]>(['body_only']);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -87,16 +76,14 @@ export default function WorkoutGeneratorModal({ open, onClose, onGenerate, userL
     if (prefs) {
       if (prefs.muscles.length > 0) setSelectedMuscles(prefs.muscles);
       if (prefs.weeklyFrequency) setWeeklyFrequency(prefs.weeklyFrequency);
-      if (prefs.level) setLevel(prefs.level);
       if (prefs.equipment.length > 0) setEquipment(prefs.equipment);
     } else {
       setWeeklyFrequency(3);
-      setLevel(levelFromUserLevel(userLevel));
       setEquipment(['body_only']);
     }
     setStep(1);
     setWarnings([]);
-  }, [open, userLevel]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -111,8 +98,8 @@ export default function WorkoutGeneratorModal({ open, onClose, onGenerate, userL
     setWarnings([]);
     try {
       const allDetails = await getAllCatalogDetails();
-      const result = generateWorkout({ selectedMuscles, level, equipment, weeklyFrequency }, EXERCISE_CATALOG, allDetails);
-      localStorage.setItem('generator-prefs', JSON.stringify({ muscles: selectedMuscles, weeklyFrequency, level, equipment }));
+      const result = generateWorkout({ selectedMuscles, equipment, weeklyFrequency }, EXERCISE_CATALOG, allDetails);
+      localStorage.setItem('generator-prefs', JSON.stringify({ muscles: selectedMuscles, weeklyFrequency, equipment }));
 
       if (result.warnings.length > 0) {
         const translated = result.warnings.map(w => {
@@ -133,7 +120,7 @@ export default function WorkoutGeneratorModal({ open, onClose, onGenerate, userL
         return;
       }
 
-      onGenerate(result.exercises, { selectedMuscles, level, equipment, weeklyFrequency });
+      onGenerate(result.exercises, { selectedMuscles, equipment, weeklyFrequency });
     } catch {
       setWarnings([t.generatorWarnNoResults]);
     } finally {
@@ -141,28 +128,21 @@ export default function WorkoutGeneratorModal({ open, onClose, onGenerate, userL
     }
   };
 
-  const levelOptions: { value: Level; labelKey: 'generatorBeginner' | 'generatorIntermediate' | 'generatorExpert'; icon: string; desc: string }[] = [
-    { value: 'beginner', labelKey: 'generatorBeginner', icon: '🌱', desc: 'Exercices simples et accessibles' },
-    { value: 'intermediate', labelKey: 'generatorIntermediate', icon: '🔥', desc: 'Mouvements variés et techniques' },
-    { value: 'expert', labelKey: 'generatorExpert', icon: '⚡', desc: 'Exercices avancés et complexes' },
-  ];
-
   const frequencyOptions: { value: 2 | 3 | 4 | 5; label: string; desc: string }[] = [
-    { value: 2, label: '2x', desc: 'Volume élevé par séance' },
-    { value: 3, label: '3x', desc: 'Équilibre idéal' },
-    { value: 4, label: '4x', desc: 'Séances plus courtes' },
-    { value: 5, label: '5-6x', desc: 'Haute fréquence' },
+    { value: 2, label: '1-2x', desc: t.generatorFreq2Desc },
+    { value: 3, label: '3x', desc: t.generatorFreq3Desc },
+    { value: 4, label: '4x', desc: t.generatorFreq4Desc },
+    { value: 5, label: '5-6x', desc: t.generatorFreq5Desc },
   ];
 
   const stepTitles = [
     t.generatorMusclesStep,
     t.generatorFrequencyStep,
-    t.generatorLevelStep,
     t.generatorEquipmentStep,
     t.generatorSummaryStep,
   ];
 
-  const canNext = step === 1 ? selectedMuscles.length > 0 : step === 4 ? equipment.length > 0 : true;
+  const canNext = step === 1 ? selectedMuscles.length > 0 : step === 3 ? equipment.length > 0 : true;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
@@ -243,43 +223,8 @@ export default function WorkoutGeneratorModal({ open, onClose, onGenerate, userL
             </div>
           )}
 
-          {/* Step 3: Level */}
+          {/* Step 3: Equipment */}
           {step === 3 && (
-            <div className="flex flex-col gap-3">
-              {levelOptions.map(opt => {
-                const active = level === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    onClick={() => setLevel(opt.value)}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-200 active:scale-[0.98] cursor-pointer bg-transparent font-inherit text-left ${
-                      active
-                        ? 'border-strength bg-strength/8'
-                        : 'border-border bg-bg-card'
-                    }`}
-                  >
-                    <span className="text-[28px] shrink-0">{opt.icon}</span>
-                    <div>
-                      <div className={`text-[16px] font-semibold ${active ? 'text-strength' : 'text-text'}`}>
-                        {t[opt.labelKey]}
-                      </div>
-                      <div className="text-[12px] text-text-muted mt-0.5">{opt.desc}</div>
-                    </div>
-                    {active && (
-                      <div className="ml-auto shrink-0 w-5 h-5 rounded-full bg-strength flex items-center justify-center">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Step 4: Equipment */}
-          {step === 4 && (
             <div className="grid grid-cols-2 gap-2.5">
               {EQUIPMENT_OPTIONS.map(eq => {
                 const active = equipment.includes(eq);
@@ -312,8 +257,8 @@ export default function WorkoutGeneratorModal({ open, onClose, onGenerate, userL
             </div>
           )}
 
-          {/* Step 5: Summary */}
-          {step === 5 && (
+          {/* Step 4: Summary */}
+          {step === 4 && (
             <div className="space-y-4">
               {/* Summary card */}
               <div className="bg-bg-card border border-border rounded-2xl overflow-hidden">
@@ -330,18 +275,10 @@ export default function WorkoutGeneratorModal({ open, onClose, onGenerate, userL
                   </div>
                 </div>
 
-                {/* Frequency + Level row */}
-                <div className="flex border-b border-border">
-                  <div className="flex-1 px-4 py-3.5 border-r border-border">
-                    <div className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1">{t.generatorFrequencyStep}</div>
-                    <div className="text-[15px] text-text font-semibold">{weeklyFrequency === 5 ? '5-6' : weeklyFrequency}x <span className="text-text-muted font-normal text-[12px]">/ {t.generatorPerWeek}</span></div>
-                  </div>
-                  <div className="flex-1 px-4 py-3.5">
-                    <div className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1">{t.generatorLevelStep}</div>
-                    <div className="text-[15px] text-text font-semibold">
-                      {t[`generator${level.charAt(0).toUpperCase() + level.slice(1)}` as keyof typeof t] as string}
-                    </div>
-                  </div>
+                {/* Frequency */}
+                <div className="px-4 py-3.5 border-b border-border">
+                  <div className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1">{t.generatorFrequencyStep}</div>
+                  <div className="text-[15px] text-text font-semibold">{weeklyFrequency === 5 ? '5-6' : weeklyFrequency}x <span className="text-text-muted font-normal text-[12px]">/ {t.generatorPerWeek}</span></div>
                 </div>
 
                 {/* Equipment */}

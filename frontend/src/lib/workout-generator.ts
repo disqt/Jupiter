@@ -24,7 +24,6 @@ function inferForce(target: string): 'push' | 'pull' | 'static' {
 
 export interface GeneratorInput {
   selectedMuscles: string[];
-  level: 'beginner' | 'intermediate' | 'expert';
   equipment: string[];
   weeklyFrequency: 2 | 3 | 4 | 5; // sessions per week
 }
@@ -57,11 +56,6 @@ function filterByMuscle(exercises: EnrichedExercise[], muscle: string): Enriched
   return exercises.filter(e => e.details.primaryMuscles.includes(muscle));
 }
 
-function filterByLevel(exercises: EnrichedExercise[], level: GeneratorInput['level']): EnrichedExercise[] {
-  if (level === 'beginner') return exercises.filter(e => e.details.level !== 'expert');
-  return exercises;
-}
-
 // Equipment hierarchy for hypertrophy — higher = more effective for progressive overload
 const EQUIPMENT_PRIORITY: Record<string, number> = {
   barbell: 5,
@@ -73,12 +67,11 @@ const EQUIPMENT_PRIORITY: Record<string, number> = {
   body_only: 1,
 };
 
-function scoreExercise(exercise: EnrichedExercise, level: GeneratorInput['level']): number {
-  // Level match score (0-2)
-  let score = 0;
-  if (exercise.details.level === level) score = 2;
-  else if (level === 'expert' && exercise.details.level === 'intermediate') score = 1;
-  else if (level === 'intermediate' && exercise.details.level === 'beginner') score = 1;
+function scoreExercise(exercise: EnrichedExercise): number {
+  // Favor classic/proven exercises: beginner = 3, intermediate = 2, expert = 1
+  // This ensures compound staples (bench, squat, curl) always rank highest
+  const LEVEL_SCORE: Record<string, number> = { beginner: 3, intermediate: 2, expert: 1 };
+  let score = LEVEL_SCORE[exercise.details.level] || 1;
 
   // Equipment priority score (1-5) — heavily weighted to favor barbell/dumbbell/machine
   score += (EQUIPMENT_PRIORITY[exercise.catalog.equipment] || 1) * 2;
@@ -142,13 +135,69 @@ function allocateExercisesPerMuscle(muscles: string[], total: number): Record<st
   return result;
 }
 
+// ─── Volume programming based on frequency and muscle count ───
+// Based on hypertrophy science: 10-20 sets/muscle/week (Schoenfeld et al.)
+// Frequency determines session length; muscle count determines exercises per session
+
+function getSessionConfig(nbMuscles: number, weeklyFrequency: 2 | 3 | 4 | 5) {
+  // Target exercises per session based on frequency + muscle count
+  //
+  // Frequency 1-2x: longer sessions, more exercises, heavier loads (fewer reps)
+  // Frequency 3x:   balanced sessions
+  // Frequency 4x:   shorter sessions, moderate exercises
+  // Frequency 5-6x: short sessions, fewer exercises, lighter loads (more reps)
+  //
+  // nbMuscles 1:   specialized session (e.g. chest day)
+  // nbMuscles 2-3: typical split (e.g. push, pull)
+  // nbMuscles 4-5: upper/lower
+  // nbMuscles 6+:  full body
+
+  let targetExercises: number;
+  let setsPerCompound: number;
+  let setsPerIsolation: number;
+  let repsCompound: number;
+  let repsIsolation: number;
+
+  if (weeklyFrequency <= 2) {
+    // Low frequency → long sessions, high volume per exercise
+    if (nbMuscles === 1) { targetExercises = 5; setsPerCompound = 4; setsPerIsolation = 3; }
+    else if (nbMuscles <= 3) { targetExercises = 6; setsPerCompound = 4; setsPerIsolation = 3; }
+    else if (nbMuscles <= 5) { targetExercises = 7; setsPerCompound = 3; setsPerIsolation = 3; }
+    else { targetExercises = 7; setsPerCompound = 3; setsPerIsolation = 2; }
+    repsCompound = 8; repsIsolation = 10;
+  } else if (weeklyFrequency === 3) {
+    // Medium frequency → balanced
+    if (nbMuscles === 1) { targetExercises = 4; setsPerCompound = 4; setsPerIsolation = 3; }
+    else if (nbMuscles <= 3) { targetExercises = 5; setsPerCompound = 3; setsPerIsolation = 3; }
+    else if (nbMuscles <= 5) { targetExercises = 6; setsPerCompound = 3; setsPerIsolation = 3; }
+    else { targetExercises = 6; setsPerCompound = 3; setsPerIsolation = 2; }
+    repsCompound = 10; repsIsolation = 12;
+  } else if (weeklyFrequency === 4) {
+    // Higher frequency → shorter sessions
+    if (nbMuscles === 1) { targetExercises = 4; setsPerCompound = 3; setsPerIsolation = 3; }
+    else if (nbMuscles <= 3) { targetExercises = 5; setsPerCompound = 3; setsPerIsolation = 3; }
+    else if (nbMuscles <= 5) { targetExercises = 5; setsPerCompound = 3; setsPerIsolation = 2; }
+    else { targetExercises = 5; setsPerCompound = 3; setsPerIsolation = 2; }
+    repsCompound = 10; repsIsolation = 12;
+  } else {
+    // High frequency (5-6x) → short sessions, lighter loads
+    if (nbMuscles === 1) { targetExercises = 3; setsPerCompound = 3; setsPerIsolation = 3; }
+    else if (nbMuscles <= 3) { targetExercises = 4; setsPerCompound = 3; setsPerIsolation = 2; }
+    else if (nbMuscles <= 5) { targetExercises = 4; setsPerCompound = 3; setsPerIsolation = 2; }
+    else { targetExercises = 4; setsPerCompound = 2; setsPerIsolation = 2; }
+    repsCompound = 12; repsIsolation = 15;
+  }
+
+  return { targetExercises, setsPerCompound, setsPerIsolation, repsCompound, repsIsolation };
+}
+
 export function generateWorkout(
   input: GeneratorInput,
   catalog: CatalogExercise[],
   allDetails: Record<string, CatalogDetails>
 ): GeneratorResult {
   const warnings: string[] = [];
-  const { selectedMuscles, level, equipment } = input;
+  const { selectedMuscles, equipment } = input;
   const nbMuscles = selectedMuscles.length;
 
   const enriched: EnrichedExercise[] = catalog
@@ -162,40 +211,34 @@ export function generateWorkout(
       },
     }));
 
-  const eligible = filterByLevel(filterByEquipment(enriched, equipment), level);
+  const eligible = filterByEquipment(enriched, equipment);
 
   const { weeklyFrequency } = input;
+  const config = getSessionConfig(nbMuscles, weeklyFrequency);
 
-  // Target ~10-12 sets/muscle/week. Fewer sessions → more volume per session.
-  // frequency 2 → base 4 sets, frequency 3 → base 3, frequency 4-5 → base 2-3
-  const baseSetsFromFreq = weeklyFrequency <= 2 ? 4 : weeklyFrequency <= 3 ? 3 : 3;
-  // More exercises for low frequency to cover volume
-  const freqBonus = weeklyFrequency <= 2 ? 1 : 0;
-
-  const targetExercises = Math.min(Math.max(nbMuscles === 1 ? 4 : nbMuscles * 2 + freqBonus, 3), 8);
-  const baseSets = nbMuscles >= 5 ? baseSetsFromFreq : baseSetsFromFreq;
-
-  const exercisesPerMuscle = allocateExercisesPerMuscle(selectedMuscles, targetExercises);
+  const exercisesPerMuscle = allocateExercisesPerMuscle(selectedMuscles, config.targetExercises);
 
   const secondaryVolume: Record<string, number> = {};
   const usedIds = new Set<string>();
   const usedFamilies = new Set<string>(); // max 1 exercise per movement family
   const selected: GeneratedExercise[] = [];
-  const maxCompounds = nbMuscles <= 3 ? 2 : nbMuscles <= 5 ? 3 : 4;
+  const maxCompounds = nbMuscles <= 3 ? 3 : nbMuscles <= 5 ? 4 : 5;
   let compoundCount = 0;
 
   for (const muscle of selectedMuscles) {
     const count = exercisesPerMuscle[muscle];
     const pool = filterByMuscle(eligible, muscle)
-      .filter(e => !usedIds.has(e.catalog.id));
+      .filter(e => !usedIds.has(e.catalog.id))
+      // For shoulders, only propose side delt isolation exercises (lateral raises)
+      .filter(e => muscle !== 'Épaules' || !e.catalog.deltPortion || e.catalog.deltPortion === 'side' || e.catalog.deltPortion === 'compound');
 
     const compounds = pool.filter(e => e.details.mechanic === 'compound');
     const isolations = pool.filter(e => e.details.mechanic === 'isolation' || e.details.mechanic === null);
 
     const pickedForMuscle: EnrichedExercise[] = [];
 
-    const sortedCompounds = shuffle(compounds).sort((a, b) => scoreExercise(b, level) - scoreExercise(a, level));
-    const sortedIsolations = shuffle(isolations).sort((a, b) => scoreExercise(b, level) - scoreExercise(a, level));
+    const sortedCompounds = shuffle(compounds).sort((a, b) => scoreExercise(b) - scoreExercise(a));
+    const sortedIsolations = shuffle(isolations).sort((a, b) => scoreExercise(b) - scoreExercise(a));
 
     // Pick 1 compound — skip if family already used
     for (const comp of sortedCompounds) {
@@ -239,14 +282,8 @@ export function generateWorkout(
 
     for (const ex of pickedForMuscle) {
       const isCompound = ex.details.mechanic === 'compound';
-      // Single muscle: more sets per exercise. High frequency (4-5x): fewer sets per session.
-      const sets = nbMuscles === 1
-        ? (isCompound ? Math.min(baseSets + 1, 5) : baseSets)
-        : (isCompound ? baseSets : Math.max(baseSets - (weeklyFrequency >= 4 ? 1 : 0), 2));
-      // Reps adapt to frequency: low freq → heavier/fewer reps, high freq → lighter/more reps
-      const reps = isCompound
-        ? (weeklyFrequency <= 2 ? 8 : weeklyFrequency <= 3 ? 10 : 12)
-        : (weeklyFrequency <= 2 ? 10 : weeklyFrequency <= 3 ? 12 : 15);
+      const sets = isCompound ? config.setsPerCompound : config.setsPerIsolation;
+      const reps = isCompound ? config.repsCompound : config.repsIsolation;
 
       selected.push({
         catalogId: ex.catalog.id,
@@ -319,12 +356,13 @@ export function swapExercise(
       },
     }));
 
-  const eligible = filterByLevel(filterByEquipment(enriched, input.equipment), input.level);
-  const pool = filterByMuscle(eligible, current.muscleGroup);
+  const eligible = filterByEquipment(enriched, input.equipment);
+  const pool = filterByMuscle(eligible, current.muscleGroup)
+    .filter(e => current.muscleGroup !== 'Épaules' || !e.catalog.deltPortion || e.catalog.deltPortion === 'side' || e.catalog.deltPortion === 'compound');
 
   const usedIds = new Set(allSelected.map(e => e.catalogId));
   const available = shuffle(pool.filter(e => !usedIds.has(e.catalog.id)))
-    .sort((a, b) => scoreExercise(b, input.level) - scoreExercise(a, input.level));
+    .sort((a, b) => scoreExercise(b) - scoreExercise(a));
 
   const sameMechanic = available.filter(e => e.details.mechanic === current.mechanic);
   const pick = sameMechanic[0] || available[0];
