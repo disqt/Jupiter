@@ -13,6 +13,7 @@ export interface CatalogExercise {
   secondaryMuscles: string[];
   instructions: string[];
   description: string;
+  deltPortion?: 'front' | 'side' | 'rear' | 'compound';
 }
 
 export const EXERCISE_CATALOG: CatalogExercise[] = catalogData as CatalogExercise[];

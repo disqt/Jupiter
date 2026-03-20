@@ -702,6 +702,19 @@ function StrengthWorkoutForm() {
     }
   };
 
+  const openPickerForReplace = (entryIdx: number) => {
+    const entry = entries[entryIdx];
+    if (entry) {
+      setFilterMuscles(new Set([entry.exercise.muscleGroup]));
+      // Pre-apply equipment filter from the exercise's catalog entry
+      const catalogEx = getCatalogExercise(entry.exercise.catalogId || '');
+      if (catalogEx) {
+        setFilterEquipment(new Set([catalogEx.equipment]));
+      }
+    }
+    setShowExercisePicker(true);
+  };
+
   const replaceExercise = async (entryIdx: number, exercise: { id: number; name: string; muscleGroup: string; defaultMode?: string; catalogId?: string | null }) => {
     let lastPerf: { setNumber: number; reps: number; weight: number; mode?: string; duration?: number }[] = [];
     let pinnedNote = '';
@@ -1103,7 +1116,7 @@ function StrengthWorkoutForm() {
                             setReplacingExerciseIdx(entryIdx);
                           } else {
                             setReplacingExerciseIdx(entryIdx);
-                            setShowExercisePicker(true);
+                            openPickerForReplace(entryIdx);
                           }
                         }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 bg-transparent border-none text-text text-[13px] font-medium font-inherit cursor-pointer transition-colors duration-150 hover:bg-white/[0.06] active:bg-white/10 text-left"
@@ -1325,10 +1338,8 @@ function StrengthWorkoutForm() {
           {entries.length === 0 && !loadingWorkout && (
             <div className="flex flex-col items-center py-6 mb-4">
               {/* Illustration + text */}
-              <div className="w-14 h-14 rounded-2xl bg-strength/10 flex items-center justify-center mb-4">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-strength">
-                  <path d="M6 2v6M18 2v6M6 16v6M18 16v6M2 10h4v4H2zM18 10h4v4h-4zM6 11h12" />
-                </svg>
+              <div className="w-14 h-14 rounded-2xl bg-strength/10 flex items-center justify-center mb-4 cursor-pointer active:scale-[0.95] transition-transform" onClick={() => setShowExercisePicker(true)}>
+                <span className="text-[28px] font-light text-strength leading-none">+</span>
               </div>
               <h3 className="text-[17px] font-semibold text-text mb-1">{t.generatorEmptyTitle}</h3>
               <p className="text-text-muted text-[13px] text-center max-w-[280px] mb-6">{t.generatorEmptySubtitle}</p>
@@ -1469,7 +1480,7 @@ function StrengthWorkoutForm() {
                   className="flex-1 py-2.5 bg-bg-elevated border border-border rounded-sm text-text text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
                   {t.cancel}
                 </button>
-                <button onClick={() => setShowExercisePicker(true)}
+                <button onClick={() => openPickerForReplace(replacingExerciseIdx!)}
                   className="flex-1 py-2.5 bg-strength/15 border border-strength/30 rounded-sm text-strength text-[13px] font-medium font-inherit cursor-pointer transition-all duration-150 active:scale-[0.98]">
                   {t.replace}
                 </button>
