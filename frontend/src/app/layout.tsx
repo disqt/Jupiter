@@ -51,6 +51,33 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr">
       <body className={`${dmSans.variable} ${instrumentSerif.variable} font-sans bg-bg text-text min-h-dvh overflow-x-hidden`}>
+        {/* Splash screen — pure inline CSS, renders before any JS */}
+        <div id="splash" aria-hidden="true" style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: '#0e0f11',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'opacity 0.4s ease, visibility 0.4s ease',
+        }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`${basePath}/logo-horizontal-light.svg`}
+            alt=""
+            width={220}
+            height={99}
+            style={{ position: 'relative' }}
+          />
+        </div>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            var s=document.getElementById('splash');
+            if(!s)return;
+            window.__splashReady=function(){
+              s.style.opacity='0';
+              s.style.visibility='hidden';
+              setTimeout(function(){s.remove()},400);
+            };
+          })();
+        `}} />
         <Providers>
           <div className="flex min-h-dvh">
             <BottomNav />
