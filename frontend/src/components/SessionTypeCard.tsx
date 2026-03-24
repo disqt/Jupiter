@@ -48,7 +48,7 @@ export default function SessionTypeCard({ sportType, value, onChange, disabled, 
         {/* Label row */}
         <div className="flex items-center justify-between mb-2.5">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8b8a94]">
-            {t.sessionType}
+            {t.sessionType} <span className="normal-case tracking-normal font-normal">{t.optionalField}</span>
           </span>
           <button
             type="button"
