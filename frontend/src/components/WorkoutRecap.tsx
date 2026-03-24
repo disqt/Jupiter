@@ -51,6 +51,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
   const [revealedCount, setRevealedCount] = useState(0);
   const [levelBarWidth, setLevelBarWidth] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const blockRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const allRevealed = revealedCount >= totalBlocks;
 
   const clearTimer = useCallback(() => {
@@ -104,6 +105,28 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
     }
   }, [revealedCount, revealableBlocks, data]);
 
+  // Auto-scroll to newly revealed block
+  useEffect(() => {
+    if (revealedCount > 0 && revealedCount <= revealableBlocks.length) {
+      const blockName = revealableBlocks[revealedCount - 1];
+      const el = blockRefs.current[blockName];
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    }
+    // Also scroll to CTA when all revealed
+    if (allRevealed) {
+      const ctaEl = blockRefs.current['cta'];
+      if (ctaEl) {
+        setTimeout(() => {
+          ctaEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    }
+  }, [revealedCount, allRevealed, revealableBlocks]);
+
   // Back button interception
   useEffect(() => {
     window.history.pushState(null, '', window.location.href);
@@ -145,6 +168,10 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
 
   const revealClass = (blockName: string) =>
     `transition-all duration-[600ms] ${isRevealed(blockName) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`;
+
+  const blockRef = (blockName: string) => (el: HTMLDivElement | null) => {
+    blockRefs.current[blockName] = el;
+  };
 
   const isCardio = ['velo', 'course', 'natation', 'marche'].includes(data.workoutType);
   const isMuscu = data.workoutType === 'musculation';
@@ -216,7 +243,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
           </div>
 
           {/* Block: stats */}
-          <div className={revealClass('stats')} style={{ width: '100%', maxWidth: 320 }}>
+          <div ref={blockRef('stats')} className={revealClass('stats')} style={{ width: '100%', maxWidth: 320 }}>
             <div className="flex flex-col items-center gap-4 mb-2">
               {/* Primary metric */}
               {data.duration != null && (
@@ -297,7 +324,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
 
           {/* Block: details */}
           {data.details.length > 0 && (
-            <div className={revealClass('details')} style={{ width: '100%', maxWidth: 320 }}>
+            <div ref={blockRef('details')} className={revealClass('details')} style={{ width: '100%', maxWidth: 320 }}>
               <GoldDivider />
               <p className="text-center uppercase text-xs tracking-widest mb-4" style={{ color: '#555' }}>
                 {t.recapDetails}
@@ -324,7 +351,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
 
           {/* Block: records */}
           {data.records.length > 0 && (
-            <div className={revealClass('records')} style={{ width: '100%', maxWidth: 320 }}>
+            <div ref={blockRef('records')} className={revealClass('records')} style={{ width: '100%', maxWidth: 320 }}>
               <GoldDivider />
               {data.records.map((pr, i) => (
                 <div
@@ -360,7 +387,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
 
           {/* Block: streak */}
           {!isGuest && (
-            <div className={revealClass('streak')} style={{ width: '100%', maxWidth: 320 }}>
+            <div ref={blockRef('streak')} className={revealClass('streak')} style={{ width: '100%', maxWidth: 320 }}>
               <GoldDivider />
               <div className="flex flex-col items-center gap-1">
                 <span
@@ -387,7 +414,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
 
           {/* Block: medal */}
           {!isGuest && data.medalsEarned > 0 && (
-            <div className={revealClass('medal')} style={{ width: '100%', maxWidth: 320 }}>
+            <div ref={blockRef('medal')} className={revealClass('medal')} style={{ width: '100%', maxWidth: 320 }}>
               <GoldDivider />
               <div className="flex flex-col items-center gap-1">
                 <span className="text-3xl">🏅</span>
@@ -400,7 +427,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
 
           {/* Block: level */}
           {!isGuest && (
-            <div className={revealClass('level')} style={{ width: '100%', maxWidth: 320 }}>
+            <div ref={blockRef('level')} className={revealClass('level')} style={{ width: '100%', maxWidth: 320 }}>
               <GoldDivider />
               <div className="flex flex-col items-center gap-3">
                 {data.leveledUp ? (
