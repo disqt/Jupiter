@@ -49,6 +49,46 @@ export default function BottomSheet({
     };
   }, [open]);
 
+  // Keep focused input visible when virtual keyboard opens
+  useEffect(() => {
+    if (!open || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const handleResize = () => {
+      const sheet = sheetRef.current;
+      if (!sheet) return;
+      const focused = sheet.querySelector(':focus') as HTMLElement | null;
+      if (focused && (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA')) {
+        // Offset the sheet upward by the keyboard height
+        const keyboardHeight = window.innerHeight - viewport.height;
+        sheet.style.transition = 'transform 0.2s ease-out';
+        if (keyboardHeight > 50) {
+          sheet.style.transform = `translateY(-${keyboardHeight}px)`;
+        } else {
+          sheet.style.transform = '';
+        }
+      }
+    };
+    viewport.addEventListener('resize', handleResize);
+    // Reset when focus leaves inputs
+    const handleBlur = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        setTimeout(() => {
+          if (sheetRef.current) {
+            sheetRef.current.style.transition = 'transform 0.2s ease-out';
+            sheetRef.current.style.transform = '';
+          }
+        }, 100);
+      }
+    };
+    const sheet = sheetRef.current;
+    sheet?.addEventListener('focusout', handleBlur);
+    return () => {
+      viewport.removeEventListener('resize', handleResize);
+      sheet?.removeEventListener('focusout', handleBlur);
+    };
+  }, [open]);
+
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     // If the touch target is inside a scrollable area that has scrolled, let native scroll work
     const target = e.target as HTMLElement;
