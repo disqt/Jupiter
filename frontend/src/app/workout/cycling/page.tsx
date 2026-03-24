@@ -25,7 +25,7 @@ function CyclingWorkoutForm() {
       },
     }),
     validate: (f) => {
-      if (f.duration && parseDuration(f.duration) === null) return { message: t.errorInvalidDuration, fields: ['duration'] };
+      if (!f.duration || parseDuration(f.duration) === null) return { message: t.errorInvalidDuration, fields: ['duration'] };
       if (f.distance && (isNaN(parseFloat(f.distance)) || parseFloat(f.distance) < 0)) return { message: t.errorInvalidDistance, fields: ['distance'] };
       if (f.elevation && (isNaN(parseInt(f.elevation)) || parseInt(f.elevation) < 0)) return { message: t.errorInvalidElevation, fields: ['elevation'] };
       return null;
