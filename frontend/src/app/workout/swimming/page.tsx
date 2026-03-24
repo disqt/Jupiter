@@ -55,7 +55,7 @@ function SwimmingWorkoutForm() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.laps}</label>
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.laps} <span className="normal-case tracking-normal font-normal">{t.optionalField}</span></label>
           <TextInput inputMode="numeric" value={form.fields.laps}
             onChange={(e) => { if (/^[0-9]*$/.test(e.target.value)) form.setField('laps', e.target.value); }}
             placeholder={t.lapsPlaceholder}

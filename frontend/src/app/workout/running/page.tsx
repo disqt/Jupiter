@@ -55,7 +55,7 @@ function RunningWorkoutForm() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.distance}</label>
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.distance} <span className="normal-case tracking-normal font-normal">{t.optionalField}</span></label>
           <TextInput inputMode="decimal" value={form.fields.distance}
             onChange={(e) => { const v = e.target.value.replace(',', '.'); if (/^[0-9]*\.?[0-9]{0,2}$/.test(v)) form.setField('distance', v); }}
             placeholder="10.5"

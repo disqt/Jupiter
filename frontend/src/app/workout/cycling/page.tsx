@@ -73,7 +73,7 @@ function CyclingWorkoutForm() {
 
         {/* Distance */}
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.distance}</label>
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.distance} <span className="normal-case tracking-normal font-normal">{t.optionalField}</span></label>
           <TextInput inputMode="decimal" value={form.fields.distance}
             onChange={(e) => { const v = e.target.value.replace(',', '.'); if (/^[0-9]*\.?[0-9]{0,2}$/.test(v)) form.setField('distance', v); }}
             placeholder="42.5"
@@ -83,7 +83,7 @@ function CyclingWorkoutForm() {
 
         {/* Elevation */}
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.elevation}</label>
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.elevation} <span className="normal-case tracking-normal font-normal">{t.optionalField}</span></label>
           <TextInput inputMode="numeric" value={form.fields.elevation}
             onChange={(e) => { if (/^[0-9]*$/.test(e.target.value)) form.setField('elevation', e.target.value); }}
             placeholder="680"
