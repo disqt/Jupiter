@@ -21,7 +21,7 @@ function SwimmingWorkoutForm() {
       },
     }),
     validate: (f) => {
-      if (f.duration && parseDuration(f.duration) === null) return { message: t.errorInvalidDuration, fields: ['duration'] };
+      if (!f.duration || parseDuration(f.duration) === null) return { message: t.errorInvalidDuration, fields: ['duration'] };
       if (f.laps && (isNaN(parseInt(f.laps)) || parseInt(f.laps) < 0)) return { message: t.errorInvalidLaps, fields: ['laps'] };
       return null;
     },

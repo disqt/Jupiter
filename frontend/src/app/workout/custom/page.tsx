@@ -25,7 +25,7 @@ function CustomWorkoutForm() {
       };
     },
     validate: (f) => {
-      if (f.duration && parseDuration(f.duration) === null) return { message: t.errorInvalidDuration, fields: ['duration'] };
+      if (!f.duration || parseDuration(f.duration) === null) return { message: t.errorInvalidDuration, fields: ['duration'] };
       const active = new Set(f._activeFields ? f._activeFields.split(',') : []);
       if (active.has('distance') && f.distance && (isNaN(parseFloat(f.distance)) || parseFloat(f.distance) < 0)) return { message: t.errorInvalidDistance, fields: ['distance'] };
       if (active.has('elevation') && f.elevation && (isNaN(parseInt(f.elevation)) || parseInt(f.elevation) < 0)) return { message: t.errorInvalidElevation, fields: ['elevation'] };
