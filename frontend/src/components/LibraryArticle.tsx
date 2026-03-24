@@ -56,7 +56,8 @@ function HeroBlock({ block, article, sportType }: { block: Extract<ArticleBlock,
   const libraryPath = `${BASE_PATH}${WORKOUT_CONFIG[sportType].route}/library`;
 
   return (
-    <div className="relative pb-8 pt-14 px-5" style={{ background: `linear-gradient(180deg, ${colors.bg} 0%, transparent 100%)` }}>
+    <div className="relative pb-8" style={{ background: `linear-gradient(180deg, ${colors.bg} 0%, transparent 100%)` }}>
+      <div className="page-container px-5 pt-14">
       <button
         onClick={() => router.push(libraryPath)}
         className="flex items-center gap-2 text-[13px] text-[#8b8a94] mb-6 active:opacity-70 transition-opacity"
@@ -74,6 +75,7 @@ function HeroBlock({ block, article, sportType }: { block: Extract<ArticleBlock,
       </span>
       <h1 className="font-serif text-[28px] leading-tight text-white mb-3">{block.title}</h1>
       <p className="text-[13px] text-[#8b8a94] leading-relaxed">{block.subtitle}</p>
+      </div>
     </div>
   );
 }
