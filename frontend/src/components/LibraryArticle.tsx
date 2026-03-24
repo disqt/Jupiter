@@ -56,7 +56,7 @@ function HeroBlock({ block, article, sportType }: { block: Extract<ArticleBlock,
   const libraryPath = `${BASE_PATH}${WORKOUT_CONFIG[sportType].route}/library`;
 
   return (
-    <div className="relative pb-8 pt-4 px-5" style={{ background: `linear-gradient(180deg, ${colors.bg} 0%, #0a0a0f 100%)` }}>
+    <div className="relative pb-8 pt-14" style={{ background: `linear-gradient(180deg, ${colors.bg} 0%, transparent 100%)` }}>
       <button
         onClick={() => router.push(libraryPath)}
         className="flex items-center gap-2 text-[13px] text-[#8b8a94] mb-6 active:opacity-70 transition-opacity"
@@ -81,7 +81,7 @@ function HeroBlock({ block, article, sportType }: { block: Extract<ArticleBlock,
 function BigNumbersBlock({ block, sessionType }: { block: Extract<ArticleBlock, { type: 'big-numbers' }>; sessionType: string }) {
   const colors = SESSION_TYPE_COLORS[sessionType] || { text: '#c9a96e' };
   return (
-    <div className="flex gap-[1px] mx-5 rounded-xl overflow-hidden">
+    <div className="flex gap-[1px] rounded-xl overflow-hidden">
       {block.items.map((item, i) => (
         <div key={i} className="flex-1 bg-[#1a1b22] py-5 flex flex-col items-center">
           <span className="font-serif text-[28px] font-bold" style={{ color: colors.text }}>{item.value}</span>
@@ -94,7 +94,7 @@ function BigNumbersBlock({ block, sessionType }: { block: Extract<ArticleBlock, 
 
 function IntroBlock({ block }: { block: Extract<ArticleBlock, { type: 'intro' }> }) {
   return (
-    <div className="px-5">
+    <div>
       <h2 className="text-[16px] font-bold text-white mb-3">{block.title}</h2>
       <p className="text-[13px] text-[#c0bfc8] leading-[1.7]">{block.text}</p>
     </div>
@@ -103,7 +103,7 @@ function IntroBlock({ block }: { block: Extract<ArticleBlock, { type: 'intro' }>
 
 function BenefitsGridBlock({ block }: { block: Extract<ArticleBlock, { type: 'benefits-grid' }> }) {
   return (
-    <div className="px-5">
+    <div>
       <h2 className="text-[16px] font-bold text-white mb-4">{block.title}</h2>
       <div className="grid grid-cols-2 gap-3">
         {block.items.map((item, i) => (
@@ -122,7 +122,7 @@ function CautionBlock({ block }: { block: Extract<ArticleBlock, { type: 'caution
   const { locale } = useI18n();
   return (
     <div
-      className="mx-5 rounded-xl p-5 border border-[#3a3500]"
+      className="rounded-xl p-5 border border-[#3a3500]"
       style={{ background: 'linear-gradient(135deg, #2a2000, #1a1b00)' }}
     >
       <div className="flex items-center gap-2 mb-3">
@@ -148,7 +148,7 @@ function ExamplesBlock({ block }: { block: Extract<ArticleBlock, { type: 'exampl
     : { beginner: 'Débutant', intermediate: 'Inter.', advanced: 'Avancé' };
 
   return (
-    <div className="px-5">
+    <div>
       <h2 className="text-[16px] font-bold text-white mb-4">{block.title}</h2>
       <div className="space-y-3">
         {block.items.map((item, i) => {
@@ -185,7 +185,7 @@ function TipBlock({ block, sessionType }: { block: Extract<ArticleBlock, { type:
   const colors = SESSION_TYPE_COLORS[sessionType] || { text: '#c9a96e', bg: '#1a1b22' };
   return (
     <div
-      className="mx-5 rounded-xl p-5"
+      className="rounded-xl p-5"
       style={{ borderLeft: `3px solid ${colors.text}`, backgroundColor: colors.bg }}
     >
       <div className="flex gap-2">
@@ -200,7 +200,7 @@ export default function LibraryArticleComponent({ article, sportType }: Props) {
   const setRef = useScrollReveal();
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] pb-24">
+    <div className="page-container px-5 pb-36 lg:pb-20">
       {article.blocks.map((block, i) => {
         if (block.type === 'hero') {
           return <HeroBlock key={i} block={block} article={article} sportType={sportType} />;
