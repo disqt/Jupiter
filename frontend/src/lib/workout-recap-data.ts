@@ -1,5 +1,5 @@
 import { WorkoutType, computeLevel } from './data';
-import { PersonalRecord, WorkoutSaveResponse } from './api';
+import { PersonalRecord } from './api';
 
 export const REVEAL_TIMING = {
   AUTO_DELAY: 1500,
@@ -51,7 +51,7 @@ interface WeeklyProgress {
 }
 
 export function buildRecapData(
-  saveResponse: WorkoutSaveResponse,
+  saveResponse: { records: PersonalRecord[] },
   weeklyProgress: WeeklyProgress | null,
   formData: FormData,
   workoutType: WorkoutType,

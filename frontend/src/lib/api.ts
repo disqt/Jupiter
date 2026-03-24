@@ -284,6 +284,7 @@ export async function fetchMonthlyStats(month: string): Promise<MonthlyStats> {
 export interface WeeklyProgress {
   week_count: string;
   total_medals: string;
+  consecutive_weeks: number;
 }
 
 export async function fetchWeeklyProgress(): Promise<WeeklyProgress> {

@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { WORKOUT_CONFIG, type WorkoutType } from '@/lib/data';
 import { useDataSource } from '@/lib/useDataSource';
 import { useI18n } from '@/lib/i18n';
+import { RecapData, buildRecapData } from './workout-recap-data';
+import { fetchWeeklyProgress } from './api';
 
 export interface ValidationError<F> {
   message: string;
@@ -33,7 +35,7 @@ export interface UseWorkoutFormReturn<F extends Record<string, string>> {
   saveError: string;
   fieldErrors: Set<keyof F>;
   loadingWorkout: boolean;
-  showSaveAnimation: boolean;
+  recapData: RecapData | null;
   showDeleteConfirm: boolean;
   setShowDeleteConfirm: (v: boolean) => void;
   confirmDelete: () => Promise<void>;
@@ -94,7 +96,7 @@ export function useWorkoutForm<F extends Record<string, string>>(
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [hasDraft, setHasDraft] = useState(!!loadedDraft);
-  const [showSaveAnimation, setShowSaveAnimation] = useState(false);
+  const [recapData, setRecapData] = useState<RecapData | null>(null);
   const [saveError, setSaveError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Set<keyof F>>(new Set());
 
@@ -184,11 +186,51 @@ export function useWorkoutForm<F extends Record<string, string>>(
       localStorage.removeItem(storageKey);
       if (workoutId && editing) {
         const parsedId = workoutId.startsWith('guest-') ? workoutId : parseInt(workoutId);
-        await dataSource.updateWorkout(parsedId, payload);
-        router.push('/calendar');
+        const result = await dataSource.updateWorkout(parsedId, payload);
+        let weeklyProgress = null;
+        if (!dataSource.isGuest) {
+          try {
+            weeklyProgress = await fetchWeeklyProgress();
+          } catch {}
+        }
+        const recap = buildRecapData(
+          { records: result.records },
+          weeklyProgress ? {
+            week_count: parseInt(String(weeklyProgress.week_count)),
+            total_medals: parseInt(String(weeklyProgress.total_medals)),
+            consecutive_weeks: weeklyProgress.consecutive_weeks,
+          } : null,
+          payload as Parameters<typeof buildRecapData>[2],
+          options.type,
+          date,
+          customEmoji || null,
+          customName || null,
+          weeklyProgress ? parseInt(String(weeklyProgress.total_medals)) - Math.max(parseInt(String(weeklyProgress.week_count)) - 2, 0) : 0,
+        );
+        setRecapData(recap);
       } else {
-        await dataSource.saveWorkout(payload);
-        setShowSaveAnimation(true);
+        const result = await dataSource.saveWorkout(payload);
+        let weeklyProgress = null;
+        if (!dataSource.isGuest) {
+          try {
+            weeklyProgress = await fetchWeeklyProgress();
+          } catch {}
+        }
+        const recap = buildRecapData(
+          { records: result.records },
+          weeklyProgress ? {
+            week_count: parseInt(String(weeklyProgress.week_count)),
+            total_medals: parseInt(String(weeklyProgress.total_medals)),
+            consecutive_weeks: weeklyProgress.consecutive_weeks,
+          } : null,
+          payload as Parameters<typeof buildRecapData>[2],
+          options.type,
+          date,
+          customEmoji || null,
+          customName || null,
+          weeklyProgress ? parseInt(String(weeklyProgress.total_medals)) - Math.max(parseInt(String(weeklyProgress.week_count)) - 2, 0) : 0,
+        );
+        setRecapData(recap);
       }
     } catch (err) {
       console.error('Save failed:', err);
@@ -269,7 +311,7 @@ export function useWorkoutForm<F extends Record<string, string>>(
     saveError,
     fieldErrors,
     loadingWorkout,
-    showSaveAnimation,
+    recapData,
     showDeleteConfirm,
     setShowDeleteConfirm,
     confirmDelete,
