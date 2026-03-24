@@ -1,12 +1,11 @@
 'use client';
 
 import { Suspense } from 'react';
-import { SESSION_TYPES } from '@/lib/data';
 import { parseDuration, formatDuration } from '@/lib/duration';
 import { useWorkoutForm } from '@/lib/useWorkoutForm';
 import WorkoutFormShell from '@/components/WorkoutFormShell';
 import CardioHeaderMenu from '@/components/CardioHeaderMenu';
-import InspirationCard from '@/components/InspirationCard';
+import SessionTypeCard from '@/components/SessionTypeCard';
 import TextInput from '@/components/TextInput';
 import { useI18n } from '@/lib/i18n';
 
@@ -16,54 +15,32 @@ function WalkingWorkoutForm() {
   const form = useWorkoutForm({
     type: 'marche',
     storagePrefix: 'walking',
-    defaultFields: { duration: '', distance: '', sessionType: '', _activeFields: '' },
+    defaultFields: { duration: '', distance: '', sessionType: '' },
     hasData: (f) => !!(f.duration || f.distance),
-    buildPayload: (f) => {
-      const active = new Set(f._activeFields ? f._activeFields.split(',') : []);
-      return {
-        workout_details: {
-          duration: f.duration ? parseDuration(f.duration) ?? undefined : undefined,
-          distance: f.distance ? parseFloat(f.distance) : undefined,
-          session_type: active.has('sessionType') && f.sessionType ? f.sessionType : undefined,
-        },
-      };
-    },
+    buildPayload: (f) => ({
+      workout_details: {
+        duration: f.duration ? parseDuration(f.duration) ?? undefined : undefined,
+        distance: f.distance ? parseFloat(f.distance) : undefined,
+        session_type: f.sessionType || undefined,
+      },
+    }),
     validate: (f) => {
       if (!f.duration || parseDuration(f.duration) === null) return { message: t.errorInvalidDuration, fields: ['duration'] };
       if (f.distance && (isNaN(parseFloat(f.distance)) || parseFloat(f.distance) < 0)) return { message: t.errorInvalidDistance, fields: ['distance'] };
       return null;
     },
-    loadFromApi: (wd) => {
-      const activeList: string[] = [];
-      if (wd.session_type) activeList.push('sessionType');
-      return {
-        duration: wd.duration ? formatDuration(Number(wd.duration)) : '',
-        distance: wd.distance ? String(wd.distance) : '',
-        sessionType: wd.session_type ? String(wd.session_type) : '',
-        _activeFields: activeList.join(','),
-      };
-    },
+    loadFromApi: (wd) => ({
+      duration: wd.duration ? formatDuration(Number(wd.duration)) : '',
+      distance: wd.distance ? String(wd.distance) : '',
+      sessionType: wd.session_type ? String(wd.session_type) : '',
+    }),
   });
-
-  const activeFields = new Set(form.fields._activeFields ? form.fields._activeFields.split(',') : []);
-
-  const toggleField = (field: string) => {
-    const next = new Set(activeFields);
-    if (next.has(field)) {
-      next.delete(field);
-      if (field === 'sessionType') form.setField('sessionType', '');
-    } else {
-      next.add(field);
-    }
-    form.setField('_activeFields', Array.from(next).join(','));
-  };
-
-  const hasFormData = form.fields.duration !== '' || form.fields.distance !== '';
 
   return (
     <WorkoutFormShell form={form} color="walking" shadowColor="rgba(245,158,11,0.3)"
       headerRight={!form.loadingWorkout && (!form.workoutId || form.editing) ? <CardioHeaderMenu sportType="marche" /> : undefined}>
-      <InspirationCard sportType="marche" accentColor="text-walking" hasData={hasFormData} workoutId={form.workoutId} />
+      <SessionTypeCard sportType="marche" value={form.fields.sessionType}
+        onChange={(v) => form.setField('sessionType', v)} disabled={form.readOnly} accentColorClass="text-walking" />
       <div className="md:grid md:grid-cols-2 md:gap-4">
         <div className="mb-4">
           <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.duration}</label>
@@ -86,38 +63,6 @@ function WalkingWorkoutForm() {
             error={form.fieldErrors.has('distance')} />
         </div>
       </div>
-
-      {/* Session type (optional toggle) */}
-      {activeFields.has('sessionType') && (
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs text-text-muted uppercase tracking-wide">{t.sessionType}</label>
-            {!form.readOnly && (
-              <button type="button" onClick={() => toggleField('sessionType')}
-                className="text-xs text-text-muted">{t.removeField}</button>
-            )}
-          </div>
-          <select value={form.fields.sessionType}
-            onChange={(e) => form.setField('sessionType', e.target.value)}
-            disabled={form.readOnly}
-            className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-[15px] text-text disabled:opacity-50">
-            <option value="">{t.sessionType}</option>
-            {SESSION_TYPES.marche.map((st) => (
-              <option key={st} value={st}>{t.sessionTypes[st]}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* + Type de séance button */}
-      {!form.readOnly && !activeFields.has('sessionType') && (
-        <div className="mb-4">
-          <button type="button" onClick={() => toggleField('sessionType')}
-            className="py-2 px-3 bg-bg-card border border-border rounded-sm text-text-secondary text-[13px] font-medium transition-all duration-150 active:scale-[0.96]">
-            {t.addSessionType}
-          </button>
-        </div>
-      )}
     </WorkoutFormShell>
   );
 }
