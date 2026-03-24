@@ -25,16 +25,10 @@ function formatDistance(km: number): string {
   return `${km.toFixed(1)} km`;
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-}
-
-function formatPRValue(type: 'distance' | 'duration' | 'weight', value: number, exerciseName?: string): string {
-  if (type === 'distance') return `${formatDistance(value)} — Plus longue distance`;
-  if (type === 'duration') return `${formatDuration(value)} — Plus longue durée`;
-  if (type === 'weight') return `${value} kg — Poids le plus lourd${exerciseName ? ` — ${exerciseName}` : ''}`;
-  return String(value);
+  const jsLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
+  return d.toLocaleDateString(jsLocale, { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 // --- Divider component ---
@@ -48,7 +42,7 @@ function GoldDivider() {
 
 // --- Main component ---
 export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecapProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const blocks = getVisibleBlocks(data, isGuest);
   // header is always visible — it's index 0, not counted in reveal countdown
   const revealableBlocks = blocks.filter((b) => b !== 'header' && b !== 'cta');
@@ -140,15 +134,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
 
   const workoutLabel = (() => {
     if (data.workoutType === 'custom' && data.customName) return data.customName;
-    const labels: Record<string, string> = {
-      velo: 'Cyclisme',
-      musculation: 'Musculation',
-      course: 'Course à pied',
-      natation: 'Natation',
-      marche: 'Marche',
-      custom: 'Personnalisé',
-    };
-    return labels[data.workoutType] ?? data.workoutType;
+    return t.workoutTypeLabels[data.workoutType] ?? data.workoutType;
   })();
 
   // Helper: is block visible at given index in revealableBlocks?
@@ -162,6 +148,22 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
 
   const isCardio = ['velo', 'course', 'natation', 'marche'].includes(data.workoutType);
   const isMuscu = data.workoutType === 'musculation';
+
+  const formatPRValue = (type: 'distance' | 'duration' | 'weight', value: number, exerciseName?: string): string => {
+    if (type === 'distance') return `${formatDistance(value)} — ${t.recapLongestDistance}`;
+    if (type === 'duration') return `${formatDuration(value)} — ${t.recapLongestDuration}`;
+    if (type === 'weight') return `${value} kg — ${t.recapHeaviestWeight}${exerciseName ? ` — ${exerciseName}` : ''}`;
+    return String(value);
+  };
+
+  const formatPRPrevious = (type: 'distance' | 'duration' | 'weight', previous: number): string => {
+    const formatted = type === 'distance'
+      ? formatDistance(previous)
+      : type === 'duration'
+      ? formatDuration(previous)
+      : `${previous} kg`;
+    return t.recapPrevious(formatted);
+  };
 
   return (
     <div
@@ -197,19 +199,19 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
               </svg>
             </div>
 
-            {/* "Séance terminée" */}
+            {/* Session complete label */}
             <p
               className="uppercase tracking-widest text-xs mb-3"
               style={{ color: '#555', letterSpacing: '0.15em' }}
             >
-              Séance terminée
+              {t.recapSessionComplete}
             </p>
 
             {/* Sport emoji + type + date */}
             <div className="flex flex-col items-center gap-1">
               <span className="text-2xl">{sportEmoji}</span>
               <span className="text-white font-medium text-base">{workoutLabel}</span>
-              <span className="text-sm capitalize" style={{ color: '#666' }}>{formatDate(data.date)}</span>
+              <span className="text-sm capitalize" style={{ color: '#666' }}>{formatDate(data.date, locale)}</span>
             </div>
           </div>
 
@@ -225,7 +227,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
                     {formatDuration(data.duration)}
                   </span>
                   <span className="uppercase text-xs tracking-widest mt-1" style={{ color: '#555' }}>
-                    Durée
+                    {t.durationLabel}
                   </span>
                 </div>
               )}
@@ -241,7 +243,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
                         {formatDistance(data.distance)}
                       </span>
                       <span className="uppercase text-xs tracking-widest mt-0.5" style={{ color: '#555' }}>
-                        Distance
+                        {t.recapDistanceLabel}
                       </span>
                     </div>
                   )}
@@ -253,7 +255,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
                         +{data.elevation} m
                       </span>
                       <span className="uppercase text-xs tracking-widest mt-0.5" style={{ color: '#555' }}>
-                        Dénivelé
+                        {t.recapElevationLabel}
                       </span>
                     </div>
                   )}
@@ -270,7 +272,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
                         {data.exerciseCount}
                       </span>
                       <span className="uppercase text-xs tracking-widest mt-0.5" style={{ color: '#555' }}>
-                        Exercices
+                        {t.recapExercisesLabel}
                       </span>
                     </div>
                   )}
@@ -284,7 +286,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
                           : `${data.totalVolume} kg`}
                       </span>
                       <span className="uppercase text-xs tracking-widest mt-0.5" style={{ color: '#555' }}>
-                        Volume
+                        {t.recapVolumeLabel}
                       </span>
                     </div>
                   )}
@@ -298,7 +300,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
             <div className={revealClass('details')} style={{ width: '100%', maxWidth: 320 }}>
               <GoldDivider />
               <p className="text-center uppercase text-xs tracking-widest mb-4" style={{ color: '#555' }}>
-                Détails
+                {t.recapDetails}
               </p>
               <div className="flex flex-wrap justify-center gap-2">
                 {data.details.map((chip, i) => (
@@ -340,7 +342,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
                       className="uppercase text-xs tracking-widest font-bold"
                       style={{ color: '#c9a96e' }}
                     >
-                      Nouveau record !
+                      {t.recapNewRecord}
                     </span>
                   </div>
                   <p className="text-white text-sm font-medium">
@@ -348,12 +350,8 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
                   </p>
                   <p className="text-xs mt-1" style={{ color: '#555' }}>
                     {pr.previous != null
-                      ? `Précédent : ${pr.type === 'distance'
-                          ? formatDistance(pr.previous)
-                          : pr.type === 'duration'
-                          ? formatDuration(pr.previous)
-                          : `${pr.previous} kg`}`
-                      : 'Premier entraînement !'}
+                      ? formatPRPrevious(pr.type, pr.previous)
+                      : t.recapFirstWorkout}
                   </p>
                 </div>
               ))}
@@ -376,13 +374,11 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
                   {data.weekCount}
                 </span>
                 <p className="text-white text-sm">
-                  {data.weekCount === 1
-                    ? '1ère séance cette semaine'
-                    : `${data.weekCount}${data.weekCount === 2 ? 'ème' : 'ème'} séance cette semaine`}
+                  {t.recapWeekCount(data.weekCount)}
                 </p>
                 {data.consecutiveWeeks > 1 && (
                   <p className="text-sm mt-1" style={{ color: '#c9a96e' }}>
-                    🔥 {data.consecutiveWeeks} semaines consécutives
+                    🔥 {t.recapConsecutiveWeeks(data.consecutiveWeeks)}
                   </p>
                 )}
               </div>
@@ -396,7 +392,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
               <div className="flex flex-col items-center gap-1">
                 <span className="text-3xl">🏅</span>
                 <p className="text-white text-sm mt-1">
-                  +{data.medalsEarned} médaille{data.medalsEarned > 1 ? 's' : ''} gagnée{data.medalsEarned > 1 ? 's' : ''} cette semaine
+                  {t.recapMedalsEarned(data.medalsEarned)}
                 </p>
               </div>
             </div>
@@ -409,11 +405,11 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
               <div className="flex flex-col items-center gap-3">
                 {data.leveledUp ? (
                   <p className="font-bold text-base" style={{ color: '#c9a96e' }}>
-                    Niveau {data.level} atteint !
+                    {t.recapLevelUp(data.level)}
                   </p>
                 ) : (
                   <p className="uppercase text-xs tracking-widest" style={{ color: '#555' }}>
-                    {data.level === 0 ? 'Débutant' : `Niveau ${data.level}`}
+                    {t.recapLevel(data.level)}
                   </p>
                 )}
 
@@ -433,7 +429,7 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
                 </div>
 
                 <p className="text-xs" style={{ color: '#555' }}>
-                  {data.medalsInLevel} / {data.nextThreshold - data.currentThreshold} médailles pour le prochain niveau
+                  {t.recapMedalsToNext(data.medalsInLevel, data.nextThreshold - data.currentThreshold)}
                 </p>
               </div>
             </div>
@@ -465,14 +461,14 @@ export default function WorkoutRecap({ data, onComplete, isGuest }: WorkoutRecap
             if (allRevealed) onComplete();
           }}
         >
-          Continuer
+          {t.recapContinue}
         </button>
         {!allRevealed && (
           <p
             className="mt-3 text-xs pointer-events-none"
             style={{ color: '#444' }}
           >
-            tap pour accélérer
+            {t.recapTapToSkip}
           </p>
         )}
       </div>

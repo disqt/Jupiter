@@ -205,7 +205,13 @@ export function useWorkoutForm<F extends Record<string, string>>(
           date,
           customEmoji || null,
           customName || null,
-          weeklyProgress ? parseInt(String(weeklyProgress.total_medals)) - Math.max(parseInt(String(weeklyProgress.week_count)) - 2, 0) : 0,
+          weeklyProgress ? (() => {
+            const wc = parseInt(String(weeklyProgress.week_count));
+            const tm = parseInt(String(weeklyProgress.total_medals));
+            const currentWeekMedals = Math.max(wc - 2, 0);
+            const previousWeekMedals = Math.max(wc - 1 - 2, 0);
+            return tm - currentWeekMedals + previousWeekMedals;
+          })() : 0,
         );
         setRecapData(recap);
       } else {
@@ -228,7 +234,13 @@ export function useWorkoutForm<F extends Record<string, string>>(
           date,
           customEmoji || null,
           customName || null,
-          weeklyProgress ? parseInt(String(weeklyProgress.total_medals)) - Math.max(parseInt(String(weeklyProgress.week_count)) - 2, 0) : 0,
+          weeklyProgress ? (() => {
+            const wc = parseInt(String(weeklyProgress.week_count));
+            const tm = parseInt(String(weeklyProgress.total_medals));
+            const currentWeekMedals = Math.max(wc - 2, 0);
+            const previousWeekMedals = Math.max(wc - 1 - 2, 0);
+            return tm - currentWeekMedals + previousWeekMedals;
+          })() : 0,
         );
         setRecapData(recap);
       }

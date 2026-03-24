@@ -859,28 +859,30 @@ function StrengthWorkoutForm() {
       localStorage.removeItem(storageKey + '-meta');
       if (workoutId && editing) {
         const wId = isGuest ? workoutId : parseInt(workoutId);
-        const result = await dataSource.updateWorkout(wId as any, payload);
+        const result = await dataSource.updateWorkout(wId, payload);
         let weeklyProgress = null;
         if (!isGuest) {
           try { weeklyProgress = await fetchWeeklyProgress(); } catch {}
         }
-        const previousTotalMedals = weeklyProgress
-          ? parseInt(String(weeklyProgress.total_medals)) - Math.max(parseInt(String(weeklyProgress.week_count)) - 2, 0)
-          : 0;
+        const previousTotalMedals1 = weeklyProgress ? (() => {
+          const wc = parseInt(String(weeklyProgress.week_count));
+          const tm = parseInt(String(weeklyProgress.total_medals));
+          return tm - Math.max(wc - 2, 0) + Math.max(wc - 1 - 2, 0);
+        })() : 0;
         const normalizedProgress1 = weeklyProgress ? {
           week_count: parseInt(String(weeklyProgress.week_count)),
           total_medals: parseInt(String(weeklyProgress.total_medals)),
           consecutive_weeks: weeklyProgress.consecutive_weeks,
         } : null;
         const recap = buildRecapData(
-          { records: (result as any)?.records ?? [] },
+          { records: result.records },
           normalizedProgress1,
           payload,
           'musculation' as const,
           date,
           customEmoji || null,
           customName || null,
-          previousTotalMedals,
+          previousTotalMedals1,
         );
         setRecapData(recap);
       } else {
@@ -889,23 +891,25 @@ function StrengthWorkoutForm() {
         if (!isGuest) {
           try { weeklyProgress = await fetchWeeklyProgress(); } catch {}
         }
-        const previousTotalMedals = weeklyProgress
-          ? parseInt(String(weeklyProgress.total_medals)) - Math.max(parseInt(String(weeklyProgress.week_count)) - 2, 0)
-          : 0;
+        const previousTotalMedals2 = weeklyProgress ? (() => {
+          const wc = parseInt(String(weeklyProgress.week_count));
+          const tm = parseInt(String(weeklyProgress.total_medals));
+          return tm - Math.max(wc - 2, 0) + Math.max(wc - 1 - 2, 0);
+        })() : 0;
         const normalizedProgress2 = weeklyProgress ? {
           week_count: parseInt(String(weeklyProgress.week_count)),
           total_medals: parseInt(String(weeklyProgress.total_medals)),
           consecutive_weeks: weeklyProgress.consecutive_weeks,
         } : null;
         const recap = buildRecapData(
-          { records: (result as any)?.records ?? [] },
+          { records: result.records },
           normalizedProgress2,
           payload,
           'musculation' as const,
           date,
           customEmoji || null,
           customName || null,
-          previousTotalMedals,
+          previousTotalMedals2,
         );
         setRecapData(recap);
       }
