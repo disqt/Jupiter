@@ -26,6 +26,7 @@ export const cyclingDetails = pgTable('cycling_details', {
   distance: decimal('distance', { precision: 6, scale: 2 }),
   elevation: integer('elevation'),
   rideType: varchar('ride_type', { length: 50 }),
+  sessionType: varchar('session_type', { length: 30 }),
 });
 
 export const workoutDetails = pgTable('workout_details', {
@@ -35,6 +36,7 @@ export const workoutDetails = pgTable('workout_details', {
   distance: decimal('distance', { precision: 10, scale: 2 }),
   elevation: integer('elevation'),
   laps: integer('laps'),
+  sessionType: varchar('session_type', { length: 30 }),
 });
 
 export const exercises = pgTable('exercises', {

@@ -43,6 +43,7 @@ export const cyclingDetailsSchema = z.object({
   distance: z.number().nonnegative(),
   elevation: z.number().int().nonnegative().optional(),
   ride_type: z.enum(RIDE_TYPES).optional(),
+  session_type: z.string().max(30).optional().nullable(),
 });
 
 export const exerciseLogSchema = z.object({
@@ -65,6 +66,7 @@ export const workoutDetailsSchema = z.object({
   distance: z.number().nonnegative().optional().nullable(),
   elevation: z.number().int().nonnegative().optional().nullable(),
   laps: z.number().int().nonnegative().optional().nullable(),
+  session_type: z.string().max(30).optional().nullable(),
 });
 
 // Workouts
