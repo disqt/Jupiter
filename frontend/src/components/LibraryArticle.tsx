@@ -56,7 +56,7 @@ function HeroBlock({ block, article, sportType }: { block: Extract<ArticleBlock,
   const libraryPath = `${BASE_PATH}${WORKOUT_CONFIG[sportType].route}/library`;
 
   return (
-    <div className="relative pb-8 pt-14" style={{ background: `linear-gradient(180deg, ${colors.bg} 0%, transparent 100%)` }}>
+    <div className="relative pb-8 pt-14 px-5" style={{ background: `linear-gradient(180deg, ${colors.bg} 0%, transparent 100%)` }}>
       <button
         onClick={() => router.push(libraryPath)}
         className="flex items-center gap-2 text-[13px] text-[#8b8a94] mb-6 active:opacity-70 transition-opacity"
@@ -199,14 +199,14 @@ function TipBlock({ block, sessionType }: { block: Extract<ArticleBlock, { type:
 export default function LibraryArticleComponent({ article, sportType }: Props) {
   const setRef = useScrollReveal();
 
-  return (
-    <div className="page-container px-5 pb-36 lg:pb-20">
-      {article.blocks.map((block, i) => {
-        if (block.type === 'hero') {
-          return <HeroBlock key={i} block={block} article={article} sportType={sportType} />;
-        }
+  const heroBlock = article.blocks.find((b) => b.type === 'hero') as Extract<ArticleBlock, { type: 'hero' }> | undefined;
+  const contentBlocks = article.blocks.filter((b) => b.type !== 'hero');
 
-        return (
+  return (
+    <div>
+      {heroBlock && <HeroBlock block={heroBlock} article={article} sportType={sportType} />}
+      <div className="page-container px-5 pb-36 lg:pb-20">
+        {contentBlocks.map((block, i) => (
           <div
             key={i}
             ref={setRef(i)}
@@ -220,8 +220,8 @@ export default function LibraryArticleComponent({ article, sportType }: Props) {
             {block.type === 'examples' && <ExamplesBlock block={block} />}
             {block.type === 'tip' && <TipBlock block={block} sessionType={article.sessionType} />}
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
