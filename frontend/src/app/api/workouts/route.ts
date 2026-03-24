@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db-server';
 import { authenticate, handleApiError } from '@/lib/auth-api';
 import { monthParamSchema, createWorkoutSchema } from '@/lib/validations';
+import { computePersonalRecords } from '@/lib/pr-computation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,6 +89,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const records = await computePersonalRecords(client, userId, workout.id, type, {
+      cycling_details: cycling_details ?? null,
+      workout_details: workout_details ?? null,
+    });
+
     await client.query('COMMIT');
 
     // Clean up unused exercises (no history, no template refs) — fire and forget
@@ -101,7 +107,7 @@ export async function POST(request: NextRequest) {
       [userId]
     ).catch(() => {});
 
-    return NextResponse.json(workout, { status: 201 });
+    return NextResponse.json({ ...workout, records }, { status: 201 });
   } catch (err) {
     await client.query('ROLLBACK');
     return handleApiError(err);

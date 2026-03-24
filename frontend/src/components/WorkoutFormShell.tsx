@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
+import { useAuth } from '@/lib/auth';
 import WorkoutFormHeader from '@/components/WorkoutFormHeader';
-import SaveAnimation from '@/components/SaveAnimation';
+import WorkoutRecap from '@/components/WorkoutRecap';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import type { UseWorkoutFormReturn } from '@/lib/useWorkoutForm';
 
@@ -29,6 +30,7 @@ const colorClasses: Record<string, string> = {
 export default function WorkoutFormShell({ form, color, shadowColor, deleteMessage, children }: WorkoutFormShellProps) {
   const { t } = useI18n();
   const router = useRouter();
+  const { isGuest } = useAuth();
 
   return (
     <div className="page-container px-5 pb-36 lg:pb-20">
@@ -40,7 +42,7 @@ export default function WorkoutFormShell({ form, color, shadowColor, deleteMessa
         <div className="text-text-muted text-[13px] text-center py-8">{t.loadingWorkout}</div>
       )}
 
-      {form.showSaveAnimation && <SaveAnimation onComplete={() => router.push('/calendar?saved=1')} />}
+      {form.recapData && <WorkoutRecap data={form.recapData} onComplete={() => router.push('/calendar')} isGuest={isGuest} />}
 
       {form.saveError && (
         <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-[13px] text-center">

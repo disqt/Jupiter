@@ -3,8 +3,9 @@
 import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { MUSCLE_GROUPS, WORKOUT_CONFIG } from '@/lib/data';
-import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, createExercise, createTemplate, deleteExercise, fetchTemplates, type Exercise, type HistorySet } from '@/lib/api';
-import SaveAnimation from '@/components/SaveAnimation';
+import { fetchExercises, fetchLastPerformance, fetchExerciseHistory, createExercise, createTemplate, deleteExercise, fetchTemplates, fetchWeeklyProgress, type Exercise, type HistorySet } from '@/lib/api';
+import WorkoutRecap from '@/components/WorkoutRecap';
+import { buildRecapData, type RecapData } from '@/lib/workout-recap-data';
 import WorkoutFormHeader from '@/components/WorkoutFormHeader';
 import BottomSheet from '@/components/BottomSheet';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
@@ -782,7 +783,7 @@ function StrengthWorkoutForm() {
     setEntries(updated);
   };
 
-  const [showSaveAnimation, setShowSaveAnimation] = useState(false);
+  const [recapData, setRecapData] = useState<RecapData | null>(null);
   const [saveError, setSaveError] = useState('');
 
   const handleSave = async () => {
@@ -858,11 +859,59 @@ function StrengthWorkoutForm() {
       localStorage.removeItem(storageKey + '-meta');
       if (workoutId && editing) {
         const wId = isGuest ? workoutId : parseInt(workoutId);
-        await dataSource.updateWorkout(wId, payload);
-        router.push('/calendar');
+        const result = await dataSource.updateWorkout(wId, payload);
+        let weeklyProgress = null;
+        if (!isGuest) {
+          try { weeklyProgress = await fetchWeeklyProgress(); } catch {}
+        }
+        const previousTotalMedals1 = weeklyProgress ? (() => {
+          const wc = parseInt(String(weeklyProgress.week_count));
+          const tm = parseInt(String(weeklyProgress.total_medals));
+          return tm - Math.max(wc - 2, 0) + Math.max(wc - 1 - 2, 0);
+        })() : 0;
+        const normalizedProgress1 = weeklyProgress ? {
+          week_count: parseInt(String(weeklyProgress.week_count)),
+          total_medals: parseInt(String(weeklyProgress.total_medals)),
+          consecutive_weeks: weeklyProgress.consecutive_weeks,
+        } : null;
+        const recap = buildRecapData(
+          { records: result.records },
+          normalizedProgress1,
+          payload,
+          'musculation' as const,
+          date,
+          customEmoji || null,
+          customName || null,
+          previousTotalMedals1,
+        );
+        setRecapData(recap);
       } else {
-        await dataSource.saveWorkout(payload);
-        setShowSaveAnimation(true);
+        const result = await dataSource.saveWorkout(payload);
+        let weeklyProgress = null;
+        if (!isGuest) {
+          try { weeklyProgress = await fetchWeeklyProgress(); } catch {}
+        }
+        const previousTotalMedals2 = weeklyProgress ? (() => {
+          const wc = parseInt(String(weeklyProgress.week_count));
+          const tm = parseInt(String(weeklyProgress.total_medals));
+          return tm - Math.max(wc - 2, 0) + Math.max(wc - 1 - 2, 0);
+        })() : 0;
+        const normalizedProgress2 = weeklyProgress ? {
+          week_count: parseInt(String(weeklyProgress.week_count)),
+          total_medals: parseInt(String(weeklyProgress.total_medals)),
+          consecutive_weeks: weeklyProgress.consecutive_weeks,
+        } : null;
+        const recap = buildRecapData(
+          { records: result.records },
+          normalizedProgress2,
+          payload,
+          'musculation' as const,
+          date,
+          customEmoji || null,
+          customName || null,
+          previousTotalMedals2,
+        );
+        setRecapData(recap);
       }
     } catch (err) {
       console.error('Save failed:', err);
@@ -1977,8 +2026,8 @@ function StrengthWorkoutForm() {
         );
       })()}
 
-      {/* Save animation */}
-      {showSaveAnimation && <SaveAnimation onComplete={() => router.push('/calendar?saved=1')} />}
+      {/* Workout recap */}
+      {recapData && <WorkoutRecap data={recapData} onComplete={() => router.push('/calendar')} isGuest={isGuest} />}
 
       {/* Exercise info modal */}
       {infoExercise && (
