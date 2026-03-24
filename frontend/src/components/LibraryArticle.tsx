@@ -38,7 +38,7 @@ function useScrollReveal() {
       if (el) observer.observe(el);
     });
     return () => observer.disconnect();
-  });
+  }, []);
 
   return setRef;
 }
