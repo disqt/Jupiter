@@ -153,6 +153,17 @@ export async function fetchWorkout(id: number) {
   }>(`/api/workouts/${id}`);
 }
 
+export interface PersonalRecord {
+  type: 'distance' | 'duration' | 'weight';
+  value: number;
+  previous: number | null;
+  exerciseName?: string;
+}
+
+export interface WorkoutSaveResponse extends ApiWorkout {
+  records: PersonalRecord[];
+}
+
 export async function createWorkout(data: {
   date: string;
   type: WorkoutType;
@@ -163,8 +174,8 @@ export async function createWorkout(data: {
   workout_details?: { duration?: number; distance?: number; elevation?: number; laps?: number };
   custom_emoji?: string;
   custom_name?: string;
-}) {
-  return request<ApiWorkout>('/api/workouts', {
+}): Promise<WorkoutSaveResponse> {
+  return request<WorkoutSaveResponse>('/api/workouts', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -180,8 +191,8 @@ export async function updateWorkout(id: number, data: {
   workout_details?: { duration?: number; distance?: number; elevation?: number; laps?: number };
   custom_emoji?: string;
   custom_name?: string;
-}) {
-  return request<ApiWorkout>(`/api/workouts/${id}`, {
+}): Promise<WorkoutSaveResponse> {
+  return request<WorkoutSaveResponse>(`/api/workouts/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });

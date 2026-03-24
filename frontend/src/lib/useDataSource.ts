@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useAuth } from '@/lib/auth';
 import * as api from '@/lib/api';
+import { type PersonalRecord } from '@/lib/api';
 import * as guestStorage from '@/lib/guest-storage';
 import { type GuestWorkout } from '@/lib/guest-storage';
 import { type WorkoutType } from '@/lib/data';
@@ -177,21 +178,22 @@ export function useDataSource() {
     }
   }, [isGuest]);
 
-  const saveWorkout = useCallback(async (payload: Record<string, unknown>): Promise<{ id: number | string }> => {
+  const saveWorkout = useCallback(async (payload: Record<string, unknown>): Promise<{ id: number | string; records: PersonalRecord[] }> => {
     if (isGuest) {
       const gw = guestStorage.saveGuestWorkout(payload as Omit<GuestWorkout, 'id' | 'created_at'>);
-      return { id: gw.id };
+      return { id: gw.id, records: [] };
     }
     const result = await api.createWorkout(payload as Parameters<typeof api.createWorkout>[0]);
-    return { id: result.id };
+    return { id: result.id, records: result.records };
   }, [isGuest]);
 
-  const updateWorkout = useCallback(async (id: number | string, payload: Record<string, unknown>): Promise<void> => {
+  const updateWorkout = useCallback(async (id: number | string, payload: Record<string, unknown>): Promise<{ records: PersonalRecord[] }> => {
     if (isGuest) {
       guestStorage.updateGuestWorkout(String(id), payload as Partial<Omit<GuestWorkout, 'id' | 'created_at'>>);
-      return;
+      return { records: [] };
     }
-    await api.updateWorkout(Number(id), payload as Parameters<typeof api.updateWorkout>[1]);
+    const result = await api.updateWorkout(Number(id), payload as Parameters<typeof api.updateWorkout>[1]);
+    return { records: result.records };
   }, [isGuest]);
 
   const deleteWorkout = useCallback(async (id: number | string): Promise<void> => {
