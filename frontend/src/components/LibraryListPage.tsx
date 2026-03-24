@@ -69,7 +69,7 @@ export default function LibraryListPage({ sportType }: Props) {
                     >
                       {t.sessionTypes[article.sessionType] || article.sessionType}
                     </span>
-                    <div className="font-serif text-[17px] leading-snug text-white mb-1.5 group-hover:text-white/90 transition-colors">
+                    <div className="font-serif text-[20px] leading-snug text-white mb-1.5 group-hover:text-white/90 transition-colors">
                       {article.title}
                     </div>
                     <div className="text-[12px] text-[#8b8a94] leading-relaxed line-clamp-2">
