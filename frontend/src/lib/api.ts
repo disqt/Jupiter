@@ -334,6 +334,17 @@ export async function fetchStrengthVolume(params: { month?: string; year?: strin
   return request<StrengthVolume>(`/api/stats/strength-volume?${query}`);
 }
 
+export interface MuscleVolume {
+  muscle_group: string;
+  sets: number;
+  reps: number;
+}
+
+export async function fetchMuscleVolume(params: { month?: string; year?: string }): Promise<MuscleVolume[]> {
+  const query = params.month ? `month=${params.month}` : `year=${params.year}`;
+  return request<MuscleVolume[]>(`/api/stats/muscle-volume?${query}`);
+}
+
 export async function fetchYearlyStats(year: string): Promise<MonthlyStats> {
   return request<MonthlyStats>(`/api/stats/monthly?year=${year}`);
 }
