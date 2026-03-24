@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import { RIDE_TYPES } from '@/lib/data';
+import { RIDE_TYPES, SESSION_TYPES } from '@/lib/data';
 import { parseDuration, formatDuration } from '@/lib/duration';
 import { useWorkoutForm } from '@/lib/useWorkoutForm';
 import WorkoutFormShell from '@/components/WorkoutFormShell';
@@ -14,29 +14,52 @@ function CyclingWorkoutForm() {
   const form = useWorkoutForm({
     type: 'velo',
     storagePrefix: 'cycling',
-    defaultFields: { duration: '', distance: '', elevation: '', rideType: RIDE_TYPES[0] },
+    defaultFields: { duration: '', distance: '', elevation: '', rideType: RIDE_TYPES[0], sessionType: '', _activeFields: '' },
     hasData: (f) => !!(f.duration || f.distance || f.elevation),
-    buildPayload: (f) => ({
-      cycling_details: {
-        duration: f.duration ? parseDuration(f.duration) ?? undefined : undefined,
-        distance: f.distance ? parseFloat(f.distance) : undefined,
-        elevation: f.elevation ? parseInt(f.elevation) : undefined,
-        ride_type: f.rideType,
-      },
-    }),
+    buildPayload: (f) => {
+      const active = new Set(f._activeFields ? f._activeFields.split(',') : []);
+      return {
+        cycling_details: {
+          duration: f.duration ? parseDuration(f.duration) ?? undefined : undefined,
+          distance: f.distance ? parseFloat(f.distance) : undefined,
+          elevation: f.elevation ? parseInt(f.elevation) : undefined,
+          ride_type: f.rideType,
+          session_type: active.has('sessionType') && f.sessionType ? f.sessionType : undefined,
+        },
+      };
+    },
     validate: (f) => {
       if (!f.duration || parseDuration(f.duration) === null) return { message: t.errorInvalidDuration, fields: ['duration'] };
       if (f.distance && (isNaN(parseFloat(f.distance)) || parseFloat(f.distance) < 0)) return { message: t.errorInvalidDistance, fields: ['distance'] };
       if (f.elevation && (isNaN(parseInt(f.elevation)) || parseInt(f.elevation) < 0)) return { message: t.errorInvalidElevation, fields: ['elevation'] };
       return null;
     },
-    loadFromApi: (cd) => ({
-      duration: cd.duration ? formatDuration(Number(cd.duration)) : '',
-      distance: cd.distance ? String(cd.distance) : '',
-      elevation: cd.elevation ? String(cd.elevation) : '',
-      rideType: cd.ride_type ? String(cd.ride_type) : RIDE_TYPES[0],
-    }),
+    loadFromApi: (cd) => {
+      const activeList: string[] = [];
+      if (cd.session_type) activeList.push('sessionType');
+      return {
+        duration: cd.duration ? formatDuration(Number(cd.duration)) : '',
+        distance: cd.distance ? String(cd.distance) : '',
+        elevation: cd.elevation ? String(cd.elevation) : '',
+        rideType: cd.ride_type ? String(cd.ride_type) : RIDE_TYPES[0],
+        sessionType: cd.session_type ? String(cd.session_type) : '',
+        _activeFields: activeList.join(','),
+      };
+    },
   });
+
+  const activeFields = new Set(form.fields._activeFields ? form.fields._activeFields.split(',') : []);
+
+  const toggleField = (field: string) => {
+    const next = new Set(activeFields);
+    if (next.has(field)) {
+      next.delete(field);
+      if (field === 'sessionType') form.setField('sessionType', '');
+    } else {
+      next.add(field);
+    }
+    form.setField('_activeFields', Array.from(next).join(','));
+  };
 
   return (
     <WorkoutFormShell form={form} color="cycling" shadowColor="rgba(59,158,255,0.3)" deleteMessage={t.deleteConfirmCycling}>
@@ -84,6 +107,38 @@ function CyclingWorkoutForm() {
             error={form.fieldErrors.has('elevation')} />
         </div>
       </div>
+
+      {/* Session type (optional toggle) */}
+      {activeFields.has('sessionType') && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs text-text-muted uppercase tracking-wide">{t.sessionType}</label>
+            {!form.readOnly && (
+              <button type="button" onClick={() => toggleField('sessionType')}
+                className="text-xs text-text-muted">{t.removeField}</button>
+            )}
+          </div>
+          <select value={form.fields.sessionType}
+            onChange={(e) => form.setField('sessionType', e.target.value)}
+            disabled={form.readOnly}
+            className="w-full py-3.5 px-4 bg-bg-card border border-border rounded-sm text-[15px] text-text disabled:opacity-50">
+            <option value="">{t.sessionType}</option>
+            {SESSION_TYPES.velo.map((st) => (
+              <option key={st} value={st}>{t.sessionTypes[st]}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* + Type de séance button */}
+      {!form.readOnly && !activeFields.has('sessionType') && (
+        <div className="mb-4">
+          <button type="button" onClick={() => toggleField('sessionType')}
+            className="py-2 px-3 bg-bg-card border border-border rounded-sm text-text-secondary text-[13px] font-medium transition-all duration-150 active:scale-[0.96]">
+            {t.addSessionType}
+          </button>
+        </div>
+      )}
     </WorkoutFormShell>
   );
 }
