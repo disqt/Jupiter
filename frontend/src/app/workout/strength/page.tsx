@@ -1293,7 +1293,7 @@ function StrengthWorkoutForm() {
                     placeholder={lastPerf ? String(lastPerf.reps) : '0'}
                     className={`w-full min-w-0 text-center text-sm font-medium text-text bg-bg border border-border rounded-md h-10 leading-10 font-inherit outline-none transition-colors duration-200 focus:border-strength p-0 box-border placeholder:text-text-muted ${workoutId && !editing ? 'opacity-50 cursor-not-allowed' : ''}`} />
                   <input type="text" inputMode="decimal" value={set.weight}
-                    onChange={(e) => { if (/^[0-9]*\.?[0-9]*$/.test(e.target.value)) updateSet(entryIdx, setIdx, 'weight', e.target.value); }}
+                    onChange={(e) => { const v = e.target.value.replace(',', '.'); if (/^[0-9]*\.?[0-9]*$/.test(v)) updateSet(entryIdx, setIdx, 'weight', v); }}
                     onBlur={() => autoFillWeight(entryIdx, setIdx)}
                     disabled={!!workoutId && !editing}
                     placeholder={lastPerf ? String(lastPerf.weight) : '0'}
