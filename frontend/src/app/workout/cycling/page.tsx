@@ -6,6 +6,7 @@ import { parseDuration, formatDuration } from '@/lib/duration';
 import { useWorkoutForm } from '@/lib/useWorkoutForm';
 import WorkoutFormShell from '@/components/WorkoutFormShell';
 import CardioHeaderMenu from '@/components/CardioHeaderMenu';
+import InspirationCard from '@/components/InspirationCard';
 import TextInput from '@/components/TextInput';
 import { useI18n } from '@/lib/i18n';
 
@@ -62,9 +63,12 @@ function CyclingWorkoutForm() {
     form.setField('_activeFields', Array.from(next).join(','));
   };
 
+  const hasFormData = form.fields.duration !== '' || form.fields.distance !== '' || form.fields.elevation !== '';
+
   return (
     <WorkoutFormShell form={form} color="cycling" shadowColor="rgba(59,158,255,0.3)" deleteMessage={t.deleteConfirmCycling}
       headerRight={!form.loadingWorkout && (!form.workoutId || form.editing) ? <CardioHeaderMenu sportType="velo" /> : undefined}>
+      <InspirationCard sportType="velo" accentColor="text-cycling" hasData={hasFormData} workoutId={form.workoutId} />
       <div className="md:grid md:grid-cols-2 md:gap-4">
         {/* Ride Type */}
         <div className="mb-4">

@@ -6,6 +6,7 @@ import { parseDuration, formatDuration } from '@/lib/duration';
 import { useWorkoutForm } from '@/lib/useWorkoutForm';
 import WorkoutFormShell from '@/components/WorkoutFormShell';
 import CardioHeaderMenu from '@/components/CardioHeaderMenu';
+import InspirationCard from '@/components/InspirationCard';
 import TextInput from '@/components/TextInput';
 import { useI18n } from '@/lib/i18n';
 
@@ -57,9 +58,12 @@ function RunningWorkoutForm() {
     form.setField('_activeFields', Array.from(next).join(','));
   };
 
+  const hasFormData = form.fields.duration !== '' || form.fields.distance !== '';
+
   return (
     <WorkoutFormShell form={form} color="running" shadowColor="rgba(52,211,153,0.3)"
       headerRight={!form.loadingWorkout && (!form.workoutId || form.editing) ? <CardioHeaderMenu sportType="course" /> : undefined}>
+      <InspirationCard sportType="course" accentColor="text-running" hasData={hasFormData} workoutId={form.workoutId} />
       <div className="md:grid md:grid-cols-2 md:gap-4">
         <div className="mb-4">
           <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.duration}</label>
