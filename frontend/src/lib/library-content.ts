@@ -33,7 +33,7 @@ export const LIBRARY_ARTICLES_FR: LibraryArticle[] = [
       { type: 'hero', tag: 'Endurance', title: 'La sortie longue, pilier de votre progression', subtitle: "Comprendre l'endurance fondamentale et pourquoi elle devrait représenter la majorité de votre entraînement." },
       { type: 'big-numbers', items: [
         { value: '80%', label: 'du volume' },
-        { value: 'Z2', label: 'zone cible' },
+        { value: 'Zone 2', label: 'zone cible' },
         { value: '1h30+', label: 'durée idéale' },
       ]},
       { type: 'intro', title: "C'est quoi une sortie endurance ?", text: "L'endurance fondamentale, c'est rouler à une intensité où vous pouvez tenir une conversation. Votre cœur travaille en zone 2 (entre 60 et 75% de votre fréquence cardiaque maximale, c'est-à-dire le rythme où vous respirez un peu plus fort sans être essoufflé). C'est le rythme qui ne paie pas de mine mais qui construit toute votre base aérobie (la capacité de votre corps à utiliser l'oxygène pour produire de l'énergie)." },
@@ -234,7 +234,7 @@ export const LIBRARY_ARTICLES_EN: LibraryArticle[] = [
       { type: 'hero', tag: 'Endurance', title: 'The long ride, foundation of your progress', subtitle: 'Understanding base endurance and why it should make up most of your training.' },
       { type: 'big-numbers', items: [
         { value: '80%', label: 'of volume' },
-        { value: 'Z2', label: 'target zone' },
+        { value: 'Zone 2', label: 'target zone' },
         { value: '1h30+', label: 'ideal duration' },
       ]},
       { type: 'intro', title: 'What is an endurance ride?', text: "Base endurance means riding at an intensity where you can hold a conversation. Your heart works in zone 2 (between 60 and 75% of your maximum heart rate — the pace where you breathe a bit harder without being out of breath). It doesn't look impressive but it builds your entire aerobic base (your body's ability to use oxygen to produce energy)." },
