@@ -116,6 +116,10 @@ const translations = {
     totalTonnage: 'Tonnage total',
     totalExercises: 'Exercices',
     totalSets: 'Séries',
+    statsMuscleVolume: 'Volume par muscle',
+    statsSets: 'Séries',
+    statsReps: 'Reps',
+    statsMuscleSessions: (n: number) => `${n} séance${n > 1 ? 's' : ''} de musculation`,
     noData: 'Aucune donnée',
 
     // Save animation
@@ -238,6 +242,12 @@ const translations = {
       'Fessiers': 'Fessiers',
       'Mollets': 'Mollets',
       'Avant-bras': 'Avant-bras',
+    } as Record<string, string>,
+
+    muscleGroupsShort: {
+      'Pectoraux': 'Pecs', 'Dos': 'Dos', 'Épaules': 'Épaules', 'Biceps': 'Biceps',
+      'Triceps': 'Triceps', 'Abdominaux': 'Abdos', 'Quadriceps': 'Quads',
+      'Ischios': 'Ischios', 'Fessiers': 'Fessiers', 'Mollets': 'Mollets', 'Avant-bras': 'Av-bras',
     } as Record<string, string>,
 
     // Ride types
@@ -562,6 +572,10 @@ const translations = {
     totalTonnage: 'Total tonnage',
     totalExercises: 'Exercises',
     totalSets: 'Sets',
+    statsMuscleVolume: 'Volume per muscle',
+    statsSets: 'Sets',
+    statsReps: 'Reps',
+    statsMuscleSessions: (n: number) => `${n} strength session${n > 1 ? 's' : ''}`,
     noData: 'No data',
 
     workoutSaved: 'Workout saved',
@@ -678,6 +692,12 @@ const translations = {
       'Fessiers': 'Glutes',
       'Mollets': 'Calves',
       'Avant-bras': 'Forearms',
+    } as Record<string, string>,
+
+    muscleGroupsShort: {
+      'Pectoraux': 'Chest', 'Dos': 'Back', 'Épaules': 'Shoulders', 'Biceps': 'Biceps',
+      'Triceps': 'Triceps', 'Abdominaux': 'Abs', 'Quadriceps': 'Quads',
+      'Ischios': 'Hams', 'Fessiers': 'Glutes', 'Mollets': 'Calves', 'Avant-bras': 'Forearms',
     } as Record<string, string>,
 
     rideTypes: {

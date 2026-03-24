@@ -21,15 +21,18 @@ import {
   fetchMedalsHistory,
   fetchDistanceByType,
   fetchStrengthVolume,
+  fetchMuscleVolume,
   type MedalHistory,
   type DistanceByType,
   type StrengthVolume,
+  type MuscleVolume,
 } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
 import { WORKOUT_TYPES, WORKOUT_CONFIG, type WorkoutType, computeLevel } from '@/lib/data';
 import { getGuestWorkouts, getGuestMedals, getGuestWeeklyMedalsForMonth } from '@/lib/guest-storage';
 import BlurredOverlay from '@/components/BlurredOverlay';
+import MuscleVolumeChart from '@/components/MuscleVolumeChart';
 
 // --- Constants ---
 
@@ -93,6 +96,7 @@ export default function StatsPage() {
   const [medalsHistory, setMedalsHistory] = useState<MedalHistory[]>([]);
   const [distanceData, setDistanceData] = useState<DistanceByType[]>([]);
   const [strengthData, setStrengthData] = useState<StrengthVolume>({ total_tonnage: 0, exercise_count: 0, total_sets: 0 });
+  const [muscleVolumeData, setMuscleVolumeData] = useState<MuscleVolume[]>([]);
   const [distanceFilter, setDistanceFilter] = useState<string | null>(null);
   const [showLevelInfo, setShowLevelInfo] = useState(false);
 
@@ -131,10 +135,11 @@ export default function StatsPage() {
         ? { month: monthStr }
         : { year: yearStr };
 
-      const [statsData, distData, strData] = await Promise.all([
+      const [statsData, distData, strData, muscVolData] = await Promise.all([
         mode === 'month' ? fetchMonthlyStats(monthStr) : fetchYearlyStats(yearStr),
         fetchDistanceByType(params),
         fetchStrengthVolume(params),
+        fetchMuscleVolume(params),
       ]);
 
       setStats({
@@ -148,6 +153,7 @@ export default function StatsPage() {
       });
       setDistanceData(distData);
       setStrengthData(strData);
+      setMuscleVolumeData(muscVolData);
     } catch (err) {
       console.error('Failed to load stats:', err);
     } finally {
@@ -257,9 +263,13 @@ export default function StatsPage() {
     }
   };
 
-  const periodLabel = mode === 'month'
-    ? `${t.months[monthIdx]} ${monthYear}`
-    : yearStr;
+  const periodLabel = useMemo(() => {
+    if (mode === 'month') {
+      const d = new Date(currentMonth);
+      return d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' });
+    }
+    return yearStr;
+  }, [mode, currentMonth, yearStr, locale]);
 
   // --- Level + period medals ---
   const totalMedals = useMemo(() => {
@@ -457,6 +467,14 @@ export default function StatsPage() {
                       <div className="text-[11px] text-text-muted mt-0.5 font-medium">{t.totalSets}</div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Placeholder muscle volume chart */}
+              <div>
+                <h2 className="text-sm font-semibold text-text-secondary mb-3">{t.statsMuscleVolume}</h2>
+                <div className="bg-bg-card rounded-card p-3 border border-border min-w-0">
+                  <div className="h-[220px]" />
                 </div>
               </div>
             </div>
@@ -701,7 +719,16 @@ export default function StatsPage() {
             </div>
           </div>
 
-          {/* Section 6: Strength Volume */}
+          {/* Section 6: Muscle Volume Chart */}
+          {muscleVolumeData.length > 0 && (
+            <MuscleVolumeChart
+              data={muscleVolumeData}
+              sessionCount={stats.countsByType['musculation'] || 0}
+              periodLabel={periodLabel}
+            />
+          )}
+
+          {/* Section 7: Strength Volume */}
           {strengthData.total_sets > 0 && (
             <div className="mb-6">
               <h2 className="text-sm font-semibold text-text-secondary mb-3">{t.strengthVolume}</h2>
