@@ -3,6 +3,7 @@ import pool from '@/lib/db-server';
 import { authenticate, handleApiError } from '@/lib/auth-api';
 import { monthParamSchema, createWorkoutSchema } from '@/lib/validations';
 import { computePersonalRecords } from '@/lib/pr-computation';
+import { SESSION_TYPES } from '@/lib/data';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,8 +15,8 @@ export async function GET(request: NextRequest) {
     }
     const result = await pool.query(
       `SELECT w.*,
-        cd.duration, cd.distance, cd.elevation, cd.ride_type,
-        wd.duration as wd_duration, wd.distance as wd_distance, wd.elevation as wd_elevation, wd.laps as wd_laps,
+        cd.duration, cd.distance, cd.elevation, cd.ride_type, cd.session_type,
+        wd.duration as wd_duration, wd.distance as wd_distance, wd.elevation as wd_elevation, wd.laps as wd_laps, wd.session_type as wd_session_type,
         (SELECT COUNT(DISTINCT el.exercise_id) FROM exercise_logs el WHERE el.workout_id = w.id) as exercise_count
        FROM workouts w
        LEFT JOIN cycling_details cd ON cd.workout_id = w.id
@@ -44,6 +45,19 @@ export async function POST(request: NextRequest) {
     }
     const { date, type, notes, cycling_details, exercise_logs, exercise_notes, workout_details, custom_emoji, custom_name } = parsed.data;
 
+    if (cycling_details?.session_type) {
+      const allowed = SESSION_TYPES[type];
+      if (!allowed || !allowed.includes(cycling_details.session_type)) {
+        return NextResponse.json({ error: 'Invalid session_type' }, { status: 400 });
+      }
+    }
+    if (workout_details?.session_type) {
+      const allowed = SESSION_TYPES[type];
+      if (!allowed || !allowed.includes(workout_details.session_type)) {
+        return NextResponse.json({ error: 'Invalid session_type' }, { status: 400 });
+      }
+    }
+
     const workoutResult = await client.query(
       'INSERT INTO workouts (date, type, notes, user_id, custom_emoji, custom_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [date, type, notes || null, userId, custom_emoji || null, custom_name || null]
@@ -51,11 +65,11 @@ export async function POST(request: NextRequest) {
     const workout = workoutResult.rows[0];
 
     if (type === 'velo' && cycling_details) {
-      const { duration, distance, elevation, ride_type } = cycling_details;
+      const { duration, distance, elevation, ride_type, session_type } = cycling_details;
       await client.query(
-        `INSERT INTO cycling_details (workout_id, duration, distance, elevation, ride_type)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [workout.id, duration, distance, elevation, ride_type]
+        `INSERT INTO cycling_details (workout_id, duration, distance, elevation, ride_type, session_type)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [workout.id, duration, distance, elevation, ride_type, session_type || null]
       );
     }
 
@@ -81,11 +95,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (['course', 'natation', 'marche', 'custom'].includes(type) && workout_details) {
-      const { duration, distance, elevation, laps } = workout_details;
+      const { duration, distance, elevation, laps, session_type } = workout_details;
       await client.query(
-        `INSERT INTO workout_details (workout_id, duration, distance, elevation, laps)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [workout.id, duration || null, distance || null, elevation || null, laps || null]
+        `INSERT INTO workout_details (workout_id, duration, distance, elevation, laps, session_type)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [workout.id, duration || null, distance || null, elevation || null, laps || null, session_type || null]
       );
     }
 

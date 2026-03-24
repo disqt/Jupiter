@@ -5,6 +5,8 @@ import { RIDE_TYPES } from '@/lib/data';
 import { parseDuration, formatDuration } from '@/lib/duration';
 import { useWorkoutForm } from '@/lib/useWorkoutForm';
 import WorkoutFormShell from '@/components/WorkoutFormShell';
+import CardioHeaderMenu from '@/components/CardioHeaderMenu';
+import SessionTypeCard from '@/components/SessionTypeCard';
 import TextInput from '@/components/TextInput';
 import { useI18n } from '@/lib/i18n';
 
@@ -14,7 +16,7 @@ function CyclingWorkoutForm() {
   const form = useWorkoutForm({
     type: 'velo',
     storagePrefix: 'cycling',
-    defaultFields: { duration: '', distance: '', elevation: '', rideType: RIDE_TYPES[0] },
+    defaultFields: { duration: '', distance: '', elevation: '', rideType: RIDE_TYPES[0], sessionType: '' },
     hasData: (f) => !!(f.duration || f.distance || f.elevation),
     buildPayload: (f) => ({
       cycling_details: {
@@ -22,6 +24,7 @@ function CyclingWorkoutForm() {
         distance: f.distance ? parseFloat(f.distance) : undefined,
         elevation: f.elevation ? parseInt(f.elevation) : undefined,
         ride_type: f.rideType,
+        session_type: f.sessionType || undefined,
       },
     }),
     validate: (f) => {
@@ -35,11 +38,15 @@ function CyclingWorkoutForm() {
       distance: cd.distance ? String(cd.distance) : '',
       elevation: cd.elevation ? String(cd.elevation) : '',
       rideType: cd.ride_type ? String(cd.ride_type) : RIDE_TYPES[0],
+      sessionType: cd.session_type ? String(cd.session_type) : '',
     }),
   });
 
   return (
-    <WorkoutFormShell form={form} color="cycling" shadowColor="rgba(59,158,255,0.3)" deleteMessage={t.deleteConfirmCycling}>
+    <WorkoutFormShell form={form} color="cycling" shadowColor="rgba(59,158,255,0.3)" deleteMessage={t.deleteConfirmCycling}
+      headerRight={!form.loadingWorkout && (!form.workoutId || form.editing) ? <CardioHeaderMenu sportType="velo" /> : undefined}>
+      <SessionTypeCard sportType="velo" value={form.fields.sessionType}
+        onChange={(v) => form.setField('sessionType', v)} disabled={form.readOnly} accentColorClass="text-cycling" />
       <div className="md:grid md:grid-cols-2 md:gap-4">
         {/* Ride Type */}
         <div className="mb-4">
@@ -66,7 +73,7 @@ function CyclingWorkoutForm() {
 
         {/* Distance */}
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.distance}</label>
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.distance} <span className="normal-case tracking-normal font-normal">{t.optionalField}</span></label>
           <TextInput inputMode="decimal" value={form.fields.distance}
             onChange={(e) => { const v = e.target.value.replace(',', '.'); if (/^[0-9]*\.?[0-9]{0,2}$/.test(v)) form.setField('distance', v); }}
             placeholder="42.5"
@@ -76,7 +83,7 @@ function CyclingWorkoutForm() {
 
         {/* Elevation */}
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.elevation}</label>
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.elevation} <span className="normal-case tracking-normal font-normal">{t.optionalField}</span></label>
           <TextInput inputMode="numeric" value={form.fields.elevation}
             onChange={(e) => { if (/^[0-9]*$/.test(e.target.value)) form.setField('elevation', e.target.value); }}
             placeholder="680"

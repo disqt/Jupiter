@@ -13,12 +13,14 @@ export interface GuestWorkout {
     distance: number;
     elevation: number | null;
     ride_type: string | null;
+    session_type: string | null;
   } | null;
   workout_details?: {
     duration: number | null;
     distance: number | null;
     elevation: number | null;
     laps: number | null;
+    session_type: string | null;
   } | null;
   exercise_logs?: {
     exercise_id: number;

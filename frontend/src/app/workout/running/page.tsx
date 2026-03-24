@@ -4,6 +4,8 @@ import { Suspense } from 'react';
 import { parseDuration, formatDuration } from '@/lib/duration';
 import { useWorkoutForm } from '@/lib/useWorkoutForm';
 import WorkoutFormShell from '@/components/WorkoutFormShell';
+import CardioHeaderMenu from '@/components/CardioHeaderMenu';
+import SessionTypeCard from '@/components/SessionTypeCard';
 import TextInput from '@/components/TextInput';
 import { useI18n } from '@/lib/i18n';
 
@@ -13,11 +15,13 @@ function RunningWorkoutForm() {
   const form = useWorkoutForm({
     type: 'course',
     storagePrefix: 'running',
-    defaultFields: { duration: '', distance: '' },
+    defaultFields: { duration: '', distance: '', sessionType: '' },
+    hasData: (f) => !!(f.duration || f.distance),
     buildPayload: (f) => ({
       workout_details: {
         duration: f.duration ? parseDuration(f.duration) ?? undefined : undefined,
         distance: f.distance ? parseFloat(f.distance) : undefined,
+        session_type: f.sessionType || undefined,
       },
     }),
     validate: (f) => {
@@ -28,11 +32,15 @@ function RunningWorkoutForm() {
     loadFromApi: (wd) => ({
       duration: wd.duration ? formatDuration(Number(wd.duration)) : '',
       distance: wd.distance ? String(wd.distance) : '',
+      sessionType: wd.session_type ? String(wd.session_type) : '',
     }),
   });
 
   return (
-    <WorkoutFormShell form={form} color="running" shadowColor="rgba(52,211,153,0.3)">
+    <WorkoutFormShell form={form} color="running" shadowColor="rgba(52,211,153,0.3)"
+      headerRight={!form.loadingWorkout && (!form.workoutId || form.editing) ? <CardioHeaderMenu sportType="course" /> : undefined}>
+      <SessionTypeCard sportType="course" value={form.fields.sessionType}
+        onChange={(v) => form.setField('sessionType', v)} disabled={form.readOnly} accentColorClass="text-running" />
       <div className="md:grid md:grid-cols-2 md:gap-4">
         <div className="mb-4">
           <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.duration}</label>
@@ -47,7 +55,7 @@ function RunningWorkoutForm() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.distance}</label>
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.distance} <span className="normal-case tracking-normal font-normal">{t.optionalField}</span></label>
           <TextInput inputMode="decimal" value={form.fields.distance}
             onChange={(e) => { const v = e.target.value.replace(',', '.'); if (/^[0-9]*\.?[0-9]{0,2}$/.test(v)) form.setField('distance', v); }}
             placeholder="10.5"

@@ -4,6 +4,8 @@ import { Suspense } from 'react';
 import { parseDuration, formatDuration } from '@/lib/duration';
 import { useWorkoutForm } from '@/lib/useWorkoutForm';
 import WorkoutFormShell from '@/components/WorkoutFormShell';
+import CardioHeaderMenu from '@/components/CardioHeaderMenu';
+import SessionTypeCard from '@/components/SessionTypeCard';
 import TextInput from '@/components/TextInput';
 import { useI18n } from '@/lib/i18n';
 
@@ -13,11 +15,13 @@ function SwimmingWorkoutForm() {
   const form = useWorkoutForm({
     type: 'natation',
     storagePrefix: 'swimming',
-    defaultFields: { duration: '', laps: '' },
+    defaultFields: { duration: '', laps: '', sessionType: '' },
+    hasData: (f) => !!(f.duration || f.laps),
     buildPayload: (f) => ({
       workout_details: {
         duration: f.duration ? parseDuration(f.duration) ?? undefined : undefined,
         laps: f.laps ? parseInt(f.laps) : undefined,
+        session_type: f.sessionType || undefined,
       },
     }),
     validate: (f) => {
@@ -28,11 +32,15 @@ function SwimmingWorkoutForm() {
     loadFromApi: (wd) => ({
       duration: wd.duration ? formatDuration(Number(wd.duration)) : '',
       laps: wd.laps ? String(wd.laps) : '',
+      sessionType: wd.session_type ? String(wd.session_type) : '',
     }),
   });
 
   return (
-    <WorkoutFormShell form={form} color="swimming" shadowColor="rgba(6,182,212,0.3)">
+    <WorkoutFormShell form={form} color="swimming" shadowColor="rgba(6,182,212,0.3)"
+      headerRight={!form.loadingWorkout && (!form.workoutId || form.editing) ? <CardioHeaderMenu sportType="natation" /> : undefined}>
+      <SessionTypeCard sportType="natation" value={form.fields.sessionType}
+        onChange={(v) => form.setField('sessionType', v)} disabled={form.readOnly} accentColorClass="text-swimming" />
       <div className="md:grid md:grid-cols-2 md:gap-4">
         <div className="mb-4">
           <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.duration}</label>
@@ -47,7 +55,7 @@ function SwimmingWorkoutForm() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.laps}</label>
+          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.laps} <span className="normal-case tracking-normal font-normal">{t.optionalField}</span></label>
           <TextInput inputMode="numeric" value={form.fields.laps}
             onChange={(e) => { if (/^[0-9]*$/.test(e.target.value)) form.setField('laps', e.target.value); }}
             placeholder={t.lapsPlaceholder}
