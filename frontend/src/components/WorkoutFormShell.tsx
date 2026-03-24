@@ -14,6 +14,7 @@ interface WorkoutFormShellProps {
   color: string;
   shadowColor: string;
   deleteMessage?: string;
+  headerRight?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -27,14 +28,14 @@ const colorClasses: Record<string, string> = {
   strength: 'bg-strength',
 };
 
-export default function WorkoutFormShell({ form, color, shadowColor, deleteMessage, children }: WorkoutFormShellProps) {
+export default function WorkoutFormShell({ form, color, shadowColor, deleteMessage, headerRight, children }: WorkoutFormShellProps) {
   const { t } = useI18n();
   const router = useRouter();
   const { isGuest } = useAuth();
 
   return (
     <div className="page-container px-5 pb-36 lg:pb-20">
-      <WorkoutFormHeader {...form.headerProps} />
+      <WorkoutFormHeader {...form.headerProps} headerRight={headerRight} />
 
       {children}
 

@@ -5,6 +5,7 @@ import { SESSION_TYPES } from '@/lib/data';
 import { parseDuration, formatDuration } from '@/lib/duration';
 import { useWorkoutForm } from '@/lib/useWorkoutForm';
 import WorkoutFormShell from '@/components/WorkoutFormShell';
+import CardioHeaderMenu from '@/components/CardioHeaderMenu';
 import TextInput from '@/components/TextInput';
 import { useI18n } from '@/lib/i18n';
 
@@ -57,7 +58,8 @@ function SwimmingWorkoutForm() {
   };
 
   return (
-    <WorkoutFormShell form={form} color="swimming" shadowColor="rgba(6,182,212,0.3)">
+    <WorkoutFormShell form={form} color="swimming" shadowColor="rgba(6,182,212,0.3)"
+      headerRight={!form.loadingWorkout && (!form.workoutId || form.editing) ? <CardioHeaderMenu sportType="natation" /> : undefined}>
       <div className="md:grid md:grid-cols-2 md:gap-4">
         <div className="mb-4">
           <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">{t.duration}</label>
