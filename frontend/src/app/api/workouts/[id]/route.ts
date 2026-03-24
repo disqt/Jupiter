@@ -3,6 +3,7 @@ import pool from '@/lib/db-server';
 import { authenticate, handleApiError } from '@/lib/auth-api';
 import { updateWorkoutSchema, patchWorkoutSchema } from '@/lib/validations';
 import { computePersonalRecords } from '@/lib/pr-computation';
+import { SESSION_TYPES } from '@/lib/data';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -62,6 +63,19 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
     const { date, type, notes, cycling_details, exercise_logs, exercise_notes, workout_details, custom_emoji, custom_name } = parsed.data;
 
+    if (cycling_details?.session_type) {
+      const allowed = SESSION_TYPES[type];
+      if (!allowed || !allowed.includes(cycling_details.session_type)) {
+        return NextResponse.json({ error: 'Invalid session_type' }, { status: 400 });
+      }
+    }
+    if (workout_details?.session_type) {
+      const allowed = SESSION_TYPES[type];
+      if (!allowed || !allowed.includes(workout_details.session_type)) {
+        return NextResponse.json({ error: 'Invalid session_type' }, { status: 400 });
+      }
+    }
+
     const workoutResult = await client.query(
       'UPDATE workouts SET date = $1, type = $2, notes = $3, custom_emoji = $5, custom_name = $6 WHERE id = $4 AND user_id = $7 RETURNING *',
       [date, type, notes || null, id, custom_emoji || null, custom_name || null, userId]
@@ -73,11 +87,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     await client.query('DELETE FROM cycling_details WHERE workout_id = $1', [id]);
     if (type === 'velo' && cycling_details) {
-      const { duration, distance, elevation, ride_type } = cycling_details;
+      const { duration, distance, elevation, ride_type, session_type } = cycling_details;
       await client.query(
-        `INSERT INTO cycling_details (workout_id, duration, distance, elevation, ride_type)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [id, duration, distance, elevation, ride_type]
+        `INSERT INTO cycling_details (workout_id, duration, distance, elevation, ride_type, session_type)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [id, duration, distance, elevation, ride_type, session_type || null]
       );
     }
 
@@ -106,11 +120,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     await client.query('DELETE FROM workout_details WHERE workout_id = $1', [id]);
     if (['course', 'natation', 'marche', 'custom'].includes(type) && workout_details) {
-      const { duration, distance, elevation, laps } = workout_details;
+      const { duration, distance, elevation, laps, session_type } = workout_details;
       await client.query(
-        `INSERT INTO workout_details (workout_id, duration, distance, elevation, laps)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [id, duration || null, distance || null, elevation || null, laps || null]
+        `INSERT INTO workout_details (workout_id, duration, distance, elevation, laps, session_type)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [id, duration || null, distance || null, elevation || null, laps || null, session_type || null]
       );
     }
 
