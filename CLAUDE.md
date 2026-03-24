@@ -61,7 +61,7 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 
 ## Pages
 
-`/` (home), `/calendar`, `/profile`, `/stats`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`, `/workout/templates`. Account creation via bottom sheet on profile page. Nav always visible.
+`/` (home), `/calendar`, `/profile`, `/stats`, `/workout/cycling`, `/workout/strength`, `/workout/running`, `/workout/swimming`, `/workout/walking`, `/workout/custom`, `/workout/templates`, `/workout/{sport}/library`, `/workout/{sport}/library/[sessionType]`. Account creation via bottom sheet on profile page. Nav always visible.
 
 ## Gotchas & Key Patterns
 
@@ -97,7 +97,10 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - `workout-recap-data.ts`: `REVEAL_TIMING` config, `RecapData` interface, `buildRecapData()` builder, `getVisibleBlocks()` helper.
 - BottomSheet keyboard fix: `visualViewport` resize listener shifts sheet upward when mobile keyboard opens. `focusout` resets transform.
 - Weight inputs accept comma: strength page weight fields use `e.target.value.replace(',', '.')` before regex validation (same pattern as distance fields).
-- Cardio/custom duration required: duration is the only mandatory field for course/natation/marche/custom workouts. All other fields (distance, laps, elevation) are optional.
+- Cardio/custom duration required: duration is the only mandatory field for course/natation/marche/custom workouts. All other fields (distance, laps, elevation, session_type) are optional. Optional fields show "(facultatif)" / "(optional)" next to their label.
+- Session types: optional field on all cardio forms (not musculation/custom). `SESSION_TYPES` in `data.ts` maps sport → allowed types (e.g. velo: endurance/intervals/tempo/recovery/climbing). `SessionTypeCard.tsx` renders pill selector with sport-colored link to library. Stored in `cycling_details.session_type` or `workout_details.session_type` (VARCHAR 30, nullable). API validates against `SESSION_TYPES[workoutType]` in POST/PUT handlers.
+- Cardio library: static educational articles per sport at `/workout/{sport}/library`. Content in `library-content.ts` + per-sport files (`cycling-articles.ts`, etc.). `LibraryArticle` type with 7 block types (hero, big-numbers, intro, benefits-grid, caution, examples, tip). `LibraryListPage.tsx` (shared list), `LibraryArticle.tsx` (block renderer with scroll animations). Articles in FR + EN, beginner-friendly, technical terms always explained in parentheses. `SESSION_TYPE_COLORS` in `data.ts` for consistent color theming across cards, tags, and article heroes.
+- CardioHeaderMenu: shared ⋮ menu on all 4 cardio pages with "Séances type" link to library. Added via `headerRight` prop on `WorkoutFormShell`.
 - Save redirect: workout save now navigates to `/calendar` directly (no `?saved=1` query param). Medal celebration replaced by recap screen.
 - PWA: `manifest.json` + minimal service worker (`sw.js`) in `public/`. Icons generated from favicon SVG (192, 512, apple-touch-icon). `InstallPrompt` component handles Android (`beforeinstallprompt` event) and iOS Safari (manual instructions). Dismissal stored in localStorage for 7 days. Service worker registered in the component.
 - Brand colors: accent is gold `#c9a96e` (matching logo). Gradient pairs: `#c9a96e` → `#a0833a` (dark gold) or `#c9a96e` → `#e2c992` (light gold). Custom workout type stays violet `#a78bfa`.
