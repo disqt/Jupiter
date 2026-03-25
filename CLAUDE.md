@@ -105,4 +105,5 @@ cd frontend && npm install && npm run build && cp -r .next/static .next/standalo
 - PWA: `manifest.json` + minimal service worker (`sw.js`) in `public/`. Icons generated from favicon SVG (192, 512, apple-touch-icon). `InstallPrompt` component handles Android (`beforeinstallprompt` event) and iOS Safari (manual instructions). Dismissal stored in localStorage for 7 days. Service worker registered in the component.
 - Brand colors: accent is gold `#c9a96e` (matching logo). Gradient pairs: `#c9a96e` → `#a0833a` (dark gold) or `#c9a96e` → `#e2c992` (light gold). Custom workout type stays violet `#a78bfa`.
 - Page titles: all pages (home, calendar, stats, profile) use `text-[32px] lg:text-[38px] font-serif` for consistency.
+- Ko-fi support: card on profile page (both guest & authenticated, top of page) + discreet round button in calendar header next to title. Links to `https://ko-fi.com/jupitertracker`. Gold-themed (`#c9a96e`). i18n keys prefixed `kofi*`.
 - Logo: favicon SVG has intentional `#333` background. Horizontal dark logo in desktop sidebar via `<img>` tag.
