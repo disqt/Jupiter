@@ -79,13 +79,6 @@ const translations = {
     weekCount: (count: number, target?: number) => `${count}/${target ?? 3} cette semaine`,
     medals: 'Médailles',
     medalsDescription: (target?: number) => `Gagne des médailles en t'entraînant régulièrement chaque semaine (lundi au dimanche). Objectif : ${target ?? 3} séances.`,
-    sessions3: '3 séances',
-    sessions4: '4 séances',
-    sessions5: '5 séances',
-    sessions6plus: '6+',
-    medal1: '1 médaille',
-    medals2: '2 médailles',
-    medals3: '3 médailles',
     medalsExtra: '+1 par séance supplémentaire',
 
     // Sports goal
@@ -582,13 +575,6 @@ const translations = {
     weekCount: (count: number, target?: number) => `${count}/${target ?? 3} this week`,
     medals: 'Medals',
     medalsDescription: (target?: number) => `Earn medals by training regularly each week (Monday to Sunday). Goal: ${target ?? 3} sessions.`,
-    sessions3: '3 sessions',
-    sessions4: '4 sessions',
-    sessions5: '5 sessions',
-    sessions6plus: '6+',
-    medal1: '1 medal',
-    medals2: '2 medals',
-    medals3: '3 medals',
     medalsExtra: '+1 per extra session',
 
     // Sports goal
