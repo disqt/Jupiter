@@ -125,3 +125,8 @@ export const createTemplateSchema = z.object({
 export const templateQuerySchema = z.object({
   type: z.enum(WORKOUT_TYPES),
 });
+
+// User goal
+export const userGoalSchema = z.object({
+  target: z.number().int().min(1).max(7),
+});

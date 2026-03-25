@@ -410,3 +410,16 @@ export async function createTemplate(data: {
 export async function deleteTemplate(id: number): Promise<void> {
   await request(`/api/templates/${id}`, { method: 'DELETE' });
 }
+
+// --- User Goal ---
+
+export async function getUserGoal(): Promise<{ target: number }> {
+  return request('/api/user-goal');
+}
+
+export async function setUserGoal(target: number): Promise<{ target: number; effective_from: string }> {
+  return request('/api/user-goal', {
+    method: 'PUT',
+    body: JSON.stringify({ target }),
+  });
+}
