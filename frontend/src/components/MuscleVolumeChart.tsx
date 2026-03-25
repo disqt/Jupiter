@@ -88,7 +88,7 @@ export default function MuscleVolumeChart({ data, sessionCount, periodLabel }: P
               formatter={(value: number | undefined) => [value ?? 0, modeLabel]}
               cursor={{ fill: 'rgba(255,138,59,0.1)' }}
             />
-            <Bar dataKey={mode} fill="#ff8a3b" radius={[4, 4, 0, 0]} />
+            <Bar dataKey={mode} fill="#ff8a3b" radius={[4, 4, 0, 0]} animationDuration={400} />
           </BarChart>
         </ResponsiveContainer>
         <p className="text-[11px] text-text-muted text-center mt-1">

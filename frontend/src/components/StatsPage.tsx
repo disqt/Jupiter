@@ -583,6 +583,7 @@ export default function StatsPage() {
                       stroke="#c9a96e"
                       strokeWidth={2}
                       fill="url(#medalGradient)"
+                      animationDuration={400}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -609,6 +610,7 @@ export default function StatsPage() {
                           outerRadius={65}
                           dataKey="value"
                           strokeWidth={0}
+                          animationDuration={400}
                         >
                           {pieData.map((entry, index) => (
                             <Cell key={index} fill={entry.color} />
@@ -710,6 +712,7 @@ export default function StatsPage() {
                           stackId="distance"
                           fill={SPORT_COLORS[type]}
                           radius={visibleBarTypes.indexOf(type) === visibleBarTypes.length - 1 ? [3, 3, 0, 0] : undefined}
+                          animationDuration={400}
                         />
                       ))}
                     </BarChart>
