@@ -344,6 +344,23 @@ function GuestProfileView() {
         <h1 className="font-serif text-[32px] lg:text-[38px] font-normal leading-tight">{t.profile}</h1>
       </div>
 
+      {/* Ko-fi support card */}
+      <a
+        href="https://ko-fi.com/jupitertracker"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block bg-gradient-to-r from-[#c9a96e]/10 to-[#c9a96e]/5 border border-[#c9a96e]/30 rounded-card p-4 mb-6 no-underline transition-all duration-200 active:scale-[0.98]"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#c9a96e]/15 flex items-center justify-center text-[20px] shrink-0">☕</div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[14px] font-semibold text-text m-0">{t.kofiTitle}</p>
+            <p className="text-[12px] text-text-muted m-0 mt-0.5">{t.kofiDescription}</p>
+          </div>
+          <svg className="w-4 h-4 text-[#c9a96e] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+        </div>
+      </a>
+
       {/* Guest avatar + CTA hero */}
       <div className="flex flex-col items-center text-center mb-8">
         <div className="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-text-muted/20 to-text-muted/5 border border-border flex items-center justify-center text-[28px] mb-4">
@@ -492,6 +509,23 @@ function AuthenticatedProfileView() {
       <div className="pt-14 pb-4 lg:pt-8">
         <h1 className="font-serif text-[32px] lg:text-[38px] font-normal leading-tight">{t.profile}</h1>
       </div>
+
+      {/* Ko-fi support card */}
+      <a
+        href="https://ko-fi.com/jupitertracker"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block bg-gradient-to-r from-[#c9a96e]/10 to-[#c9a96e]/5 border border-[#c9a96e]/30 rounded-card p-4 mb-6 no-underline transition-all duration-200 active:scale-[0.98]"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#c9a96e]/15 flex items-center justify-center text-[20px] shrink-0">☕</div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[14px] font-semibold text-text m-0">{t.kofiTitle}</p>
+            <p className="text-[12px] text-text-muted m-0 mt-0.5">{t.kofiDescription}</p>
+          </div>
+          <svg className="w-4 h-4 text-[#c9a96e] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+        </div>
+      </a>
 
       {/* User header card */}
       <div className="flex items-center gap-4 bg-bg-card border border-border rounded-card p-5 mb-8">
