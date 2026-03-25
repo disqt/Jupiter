@@ -48,6 +48,7 @@ interface WeeklyProgress {
   week_count: number;
   total_medals: number;
   consecutive_weeks: number;
+  current_target?: number;
 }
 
 export function buildRecapData(
@@ -128,7 +129,8 @@ export function buildRecapData(
   const weekCount = weeklyProgress?.week_count ?? 0;
   const consecutiveWeeks = weeklyProgress?.consecutive_weeks ?? 0;
   const totalMedals = weeklyProgress?.total_medals ?? previousTotalMedals;
-  const medalsEarned = Math.max(weekCount - 2, 0);
+  const currentTarget = weeklyProgress?.current_target ?? 3;
+  const medalsEarned = Math.max(weekCount - (currentTarget - 1), 0);
 
   // Level info
   const levelInfo = computeLevel(totalMedals);

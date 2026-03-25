@@ -39,14 +39,30 @@ export async function GET(request: NextRequest) {
         FROM workouts
         WHERE user_id = $1
         GROUP BY date_trunc('week', date::timestamp)
+      ),
+      weekly_with_medals AS (
+        SELECT wc.week_start,
+          GREATEST(wc.count - (COALESCE(
+            (SELECT target FROM user_goals
+             WHERE user_id = $1 AND effective_from <= wc.week_start::date
+             ORDER BY effective_from DESC LIMIT 1),
+            3
+          ) - 1), 0) as medals
+        FROM weekly_counts wc
       )
       SELECT
-        COALESCE(SUM(GREATEST(count - 2, 0)), 0)::int as total,
+        COALESCE(SUM(medals), 0)::int as total,
         COALESCE(SUM(CASE
           WHEN week_start >= date_trunc('month', CURRENT_DATE)
            AND week_start < date_trunc('month', CURRENT_DATE) + interval '1 month'
-          THEN GREATEST(count - 2, 0) ELSE 0 END), 0)::int as month
-      FROM weekly_counts
+          THEN medals ELSE 0 END), 0)::int as month,
+        COALESCE(
+          (SELECT target FROM user_goals
+           WHERE user_id = $1 AND effective_from <= date_trunc('week', CURRENT_DATE)::date
+           ORDER BY effective_from DESC LIMIT 1),
+          3
+        )::int as target
+      FROM weekly_with_medals
     `, [userId]);
 
     const insightsResult = await pool.query(`

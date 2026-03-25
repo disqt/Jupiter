@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import TextInput from '@/components/TextInput';
 import BottomSheet from '@/components/BottomSheet';
 import { getGuestWorkouts, clearGuestWorkouts } from '@/lib/guest-storage';
-import { fetchExercises, createExercise, createWorkout, createTemplate } from '@/lib/api';
+import { fetchExercises, createExercise, createWorkout, createTemplate, getUserGoal } from '@/lib/api';
+import GoalModal from '@/components/GoalModal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -334,6 +335,7 @@ function GuestProfileView() {
   const router = useRouter();
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [showGoalModal, setShowGoalModal] = useState(false);
 
   return (
     <div className="page-container px-5 pb-36 lg:pb-20">
@@ -375,7 +377,7 @@ function GuestProfileView() {
 
       {/* Settings */}
       <Section icon="⚙️" title={t.settings}>
-        <SettingRow label={t.language} last>
+        <SettingRow label={t.language}>
           <select
             value={locale}
             onChange={(e) => setLocale(e.target.value as 'fr' | 'en')}
@@ -385,7 +387,27 @@ function GuestProfileView() {
             <option value="en">{t.english}</option>
           </select>
         </SettingRow>
+        <SettingRow label={t.sportsGoal} last>
+          <button type="button" onClick={() => setShowGoalModal(true)}
+            className="flex items-center gap-1.5 text-[13px] text-text font-medium cursor-pointer bg-transparent border-none p-0 font-inherit">
+            <span>{t.sessionsPerWeek(3)}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+        </SettingRow>
       </Section>
+
+      {showGoalModal && (
+        <GoalModal currentTarget={3}
+          onClose={() => setShowGoalModal(false)}
+          onSaved={() => {}}
+          onCreateAccount={() => {
+            setShowGoalModal(false);
+            // The guest profile page has account creation buttons already visible
+            // Just closing the modal is sufficient - the user can see the "Create Account" button
+          }} />
+      )}
 
       <RegisterSheet open={showRegister} onClose={() => setShowRegister(false)} />
       <LoginSheet open={showLogin} onClose={() => setShowLogin(false)} />
@@ -405,6 +427,12 @@ function AuthenticatedProfileView() {
   const [errorMsg, setErrorMsg] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [userTarget, setUserTarget] = useState(3);
+  const [showGoalModal, setShowGoalModal] = useState(false);
+
+  useEffect(() => {
+    getUserGoal().then(d => setUserTarget(d.target)).catch(() => {});
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -545,7 +573,7 @@ function AuthenticatedProfileView() {
 
       {/* App Settings */}
       <Section icon="⚙️" title={t.appSettings}>
-        <SettingRow label={t.language} last>
+        <SettingRow label={t.language}>
           <select
             value={locale}
             onChange={(e) => setLocale(e.target.value as 'fr' | 'en')}
@@ -554,6 +582,15 @@ function AuthenticatedProfileView() {
             <option value="fr">{t.french}</option>
             <option value="en">{t.english}</option>
           </select>
+        </SettingRow>
+        <SettingRow label={t.sportsGoal} last>
+          <button type="button" onClick={() => setShowGoalModal(true)}
+            className="flex items-center gap-1.5 text-[13px] text-text font-medium cursor-pointer bg-transparent border-none p-0 font-inherit">
+            <span>{t.sessionsPerWeek(userTarget)}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
         </SettingRow>
       </Section>
 
@@ -572,6 +609,13 @@ function AuthenticatedProfileView() {
       >
         {t.deleteAccount}
       </button>
+
+      {showGoalModal && (
+        <GoalModal currentTarget={userTarget}
+          onClose={() => setShowGoalModal(false)}
+          onSaved={(target) => setUserTarget(target)}
+          onCreateAccount={() => {}} />
+      )}
 
       {/* Delete account confirmation modal */}
       {showDeleteConfirm && (

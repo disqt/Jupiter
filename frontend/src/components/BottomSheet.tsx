@@ -50,6 +50,8 @@ export default function BottomSheet({
   }, [open]);
 
   // Keep focused input visible when virtual keyboard opens
+  // Only apply translateY for non-fullscreen sheets (anchored to bottom).
+  // For fullscreen sheets, use scrollIntoView instead to avoid pushing content off-screen.
   useEffect(() => {
     if (!open || !window.visualViewport) return;
     const viewport = window.visualViewport;
@@ -57,20 +59,25 @@ export default function BottomSheet({
       const sheet = sheetRef.current;
       if (!sheet) return;
       const focused = sheet.querySelector(':focus') as HTMLElement | null;
-      if (focused && (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA')) {
-        // Offset the sheet upward by the keyboard height
-        const keyboardHeight = window.innerHeight - viewport.height;
-        sheet.style.transition = 'transform 0.2s ease-out';
-        if (keyboardHeight > 50) {
-          sheet.style.transform = `translateY(-${keyboardHeight}px)`;
+      if (!focused || (focused.tagName !== 'INPUT' && focused.tagName !== 'TEXTAREA')) return;
+      const keyboardHeight = window.innerHeight - viewport.height;
+      if (keyboardHeight > 50) {
+        if (fullScreenMobile) {
+          // For fullscreen sheets: scroll the input into view instead of moving the sheet
+          focused.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
-          sheet.style.transform = '';
+          // For bottom sheets: offset upward by keyboard height
+          sheet.style.transition = 'transform 0.2s ease-out';
+          sheet.style.transform = `translateY(-${keyboardHeight}px)`;
         }
+      } else if (!fullScreenMobile) {
+        sheet.style.transform = '';
       }
     };
     viewport.addEventListener('resize', handleResize);
-    // Reset when focus leaves inputs
+    // Reset when focus leaves inputs (only for non-fullscreen)
     const handleBlur = (e: FocusEvent) => {
+      if (fullScreenMobile) return;
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
         setTimeout(() => {
@@ -87,7 +94,7 @@ export default function BottomSheet({
       viewport.removeEventListener('resize', handleResize);
       sheet?.removeEventListener('focusout', handleBlur);
     };
-  }, [open]);
+  }, [open, fullScreenMobile]);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     // If the touch target is inside a scrollable area that has scrolled, let native scroll work

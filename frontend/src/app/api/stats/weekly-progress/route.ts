@@ -14,6 +14,16 @@ export async function GET(request: NextRequest) {
         WHERE user_id = $1
         GROUP BY date_trunc('week', date::timestamp)
       ),
+      weekly_with_target AS (
+        SELECT wc.week_start, wc.count,
+          COALESCE(
+            (SELECT target FROM user_goals
+             WHERE user_id = $1 AND effective_from <= wc.week_start::date
+             ORDER BY effective_from DESC LIMIT 1),
+            3
+          ) as target
+        FROM weekly_counts wc
+      ),
       current_week AS (
         SELECT COUNT(*) as count
         FROM workouts
@@ -32,8 +42,14 @@ export async function GET(request: NextRequest) {
       )
       SELECT
         (SELECT count FROM current_week) as week_count,
-        COALESCE((SELECT SUM(GREATEST(count - 2, 0)) FROM weekly_counts), 0) as total_medals,
-        (SELECT weeks FROM consecutive) as consecutive_weeks
+        COALESCE((SELECT SUM(GREATEST(count - (target - 1), 0)) FROM weekly_with_target), 0) as total_medals,
+        (SELECT weeks FROM consecutive) as consecutive_weeks,
+        COALESCE(
+          (SELECT target FROM user_goals
+           WHERE user_id = $1 AND effective_from <= date_trunc('week', CURRENT_DATE)::date
+           ORDER BY effective_from DESC LIMIT 1),
+          3
+        )::int as current_target
     `, [userId]);
 
     return NextResponse.json(result.rows[0]);

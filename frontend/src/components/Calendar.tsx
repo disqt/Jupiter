@@ -25,6 +25,7 @@ export default function Calendar() {
   const [stats, setStats] = useState({ totalCount: 0, countsByType: {} as Record<string, number>, totalDistanceKm: 0, totalElevationM: 0 });
   const [totalMedals, setTotalMedals] = useState(0);
   const [weekCount, setWeekCount] = useState(0);
+  const [weekTarget, setWeekTarget] = useState(3);
   const [loading, setLoading] = useState(true);
   const [weeklyMedals, setWeeklyMedals] = useState<WeeklyMedal[]>([]);
   const [showMedalInfo, setShowMedalInfo] = useState(false);
@@ -87,6 +88,7 @@ export default function Calendar() {
       .then((wp) => {
         setTotalMedals(parseInt(wp.total_medals) || 0);
         setWeekCount(parseInt(wp.week_count) || 0);
+        setWeekTarget(wp.current_target ?? 3);
       })
       .catch(() => {});
   }, [isGuest]);
@@ -153,7 +155,7 @@ export default function Calendar() {
 
   const numberLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
   const monthMedals = weeklyMedals.reduce((sum, w) => sum + w.medals, 0);
-  const weekProgress = Math.min(weekCount / 3, 1);
+  const weekProgress = Math.min(weekCount / weekTarget, 1);
 
   const getTypeBgClass = (type: string): string => {
     const map: Record<string, string> = {
@@ -441,12 +443,12 @@ export default function Calendar() {
               </div>
               <div className="flex flex-col items-end gap-1">
                 <div className="w-5 h-5 rounded-full border border-border flex items-center justify-center text-text-muted text-[11px] font-semibold shrink-0">i</div>
-                <div className="text-[11px] text-text-muted font-medium">{t.weekCount(weekCount)}</div>
+                <div className="text-[11px] text-text-muted font-medium">{t.weekCount(weekCount, weekTarget)}</div>
               </div>
             </div>
             <div className="h-1.5 bg-border rounded-full overflow-hidden mt-2.5">
               <div
-                className={`h-full rounded-full bg-gradient-to-r from-accent to-[#e2c992] transition-all duration-500 ease-out ${weekCount >= 3 ? 'animate-progressGlow' : ''}`}
+                className={`h-full rounded-full bg-gradient-to-r from-accent to-[#e2c992] transition-all duration-500 ease-out ${weekCount >= weekTarget ? 'animate-progressGlow' : ''}`}
                 style={{ width: `${weekProgress * 100}%` }}
               />
             </div>
@@ -545,29 +547,35 @@ export default function Calendar() {
                 <h3 className="text-[15px] font-semibold">{t.medals}</h3>
               </div>
               <p className="text-[13px] text-text-secondary leading-relaxed mb-3">
-                {t.medalsDescription}
+                {t.medalsDescription(weekTarget)}
               </p>
               <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions3}</span>
-                  <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">{t.medal1}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions4}</span>
-                  <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">{t.medals2}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions5}</span>
-                  <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">{t.medals3}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions6plus}</span>
-                  <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">{t.medalsExtra}</span>
-                </div>
+                {(() => {
+                  const target = weekTarget;
+                  const sessionLabel = locale === 'fr' ? 'séances' : 'sessions';
+                  const medalLabel = (n: number) => locale === 'fr' ? `${n} médaille${n > 1 ? 's' : ''}` : `${n} medal${n > 1 ? 's' : ''}`;
+                  const rows = [
+                    { sessions: target, medals: 1 },
+                    { sessions: target + 1, medals: 2 },
+                    { sessions: target + 2, medals: 3 },
+                  ];
+                  return (
+                    <>
+                      {rows.map(r => (
+                        <div key={r.sessions} className="flex items-center gap-2 text-[12px]">
+                          <span className="w-[52px] shrink-0 text-accent font-semibold">{r.sessions} {sessionLabel}</span>
+                          <span className="text-text-muted">&rarr;</span>
+                          <span className="text-text-secondary">{medalLabel(r.medals)}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-2 text-[12px]">
+                        <span className="w-[52px] shrink-0 text-accent font-semibold">{target + 3}+ {sessionLabel}</span>
+                        <span className="text-text-muted">&rarr;</span>
+                        <span className="text-text-secondary">{t.medalsExtra}</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               <p className="text-[11px] text-text-muted mt-3">
                 {t.currentMedals(totalMedals)}

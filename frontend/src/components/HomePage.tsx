@@ -110,7 +110,7 @@ function buildGuestHomeData(guestWorkouts: GuestWorkout[], todayDate: string, we
   return {
     today: todayWorkouts,
     week: weekWorkouts,
-    medals: getGuestMedals(),
+    medals: { ...getGuestMedals(), target: 3 },
     insights: {
       sessions: 0, distance_km: 0, duration_min: 0, volume_kg: 0,
       prev_sessions: 0, prev_distance_km: 0, prev_duration_min: 0, prev_volume_kg: 0,
@@ -450,29 +450,35 @@ export default function HomePage() {
                 <h3 className="text-[15px] font-semibold">{t.medals}</h3>
               </div>
               <p className="text-[13px] text-text-secondary leading-relaxed mb-3">
-                {t.medalsDescription}
+                {t.medalsDescription(data?.medals.target)}
               </p>
               <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions3}</span>
-                  <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">{t.medal1}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions4}</span>
-                  <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">{t.medals2}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions5}</span>
-                  <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">{t.medals3}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[12px]">
-                  <span className="w-[52px] shrink-0 text-accent font-semibold">{t.sessions6plus}</span>
-                  <span className="text-text-muted">&rarr;</span>
-                  <span className="text-text-secondary">{t.medalsExtra}</span>
-                </div>
+                {(() => {
+                  const target = data?.medals.target ?? 3;
+                  const sessionLabel = locale === 'fr' ? 'séances' : 'sessions';
+                  const medalLabel = (n: number) => locale === 'fr' ? `${n} médaille${n > 1 ? 's' : ''}` : `${n} medal${n > 1 ? 's' : ''}`;
+                  const rows = [
+                    { sessions: target, medals: 1 },
+                    { sessions: target + 1, medals: 2 },
+                    { sessions: target + 2, medals: 3 },
+                  ];
+                  return (
+                    <>
+                      {rows.map(r => (
+                        <div key={r.sessions} className="flex items-center gap-2 text-[12px]">
+                          <span className="w-[52px] shrink-0 text-accent font-semibold">{r.sessions} {sessionLabel}</span>
+                          <span className="text-text-muted">&rarr;</span>
+                          <span className="text-text-secondary">{medalLabel(r.medals)}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-2 text-[12px]">
+                        <span className="w-[52px] shrink-0 text-accent font-semibold">{target + 3}+ {sessionLabel}</span>
+                        <span className="text-text-muted">&rarr;</span>
+                        <span className="text-text-secondary">{t.medalsExtra}</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               <p className="text-[11px] text-text-muted mt-3">
                 {t.currentMedals(data?.medals.total ?? 0)}

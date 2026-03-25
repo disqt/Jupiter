@@ -285,6 +285,7 @@ export interface WeeklyProgress {
   week_count: string;
   total_medals: string;
   consecutive_weeks: number;
+  current_target?: number;
 }
 
 export async function fetchWeeklyProgress(): Promise<WeeklyProgress> {
@@ -354,7 +355,7 @@ export async function fetchYearlyStats(year: string): Promise<MonthlyStats> {
 export interface HomeData {
   today: { id: number; type: string; custom_emoji: string | null; custom_name: string | null; duration: number | null; distance: number | null; exercise_count: number }[];
   week: { date: string; type: string }[];
-  medals: { total: number; month: number };
+  medals: { total: number; month: number; target: number };
   insights: {
     sessions: number;
     distance_km: number;
@@ -409,4 +410,17 @@ export async function createTemplate(data: {
 
 export async function deleteTemplate(id: number): Promise<void> {
   await request(`/api/templates/${id}`, { method: 'DELETE' });
+}
+
+// --- User Goal ---
+
+export async function getUserGoal(): Promise<{ target: number }> {
+  return request('/api/user-goal');
+}
+
+export async function setUserGoal(target: number): Promise<{ target: number; effective_from: string }> {
+  return request('/api/user-goal', {
+    method: 'PUT',
+    body: JSON.stringify({ target }),
+  });
 }
