@@ -867,7 +867,8 @@ function StrengthWorkoutForm() {
         const previousTotalMedals1 = weeklyProgress ? (() => {
           const wc = parseInt(String(weeklyProgress.week_count));
           const tm = parseInt(String(weeklyProgress.total_medals));
-          return tm - Math.max(wc - 2, 0) + Math.max(wc - 1 - 2, 0);
+          const ct = parseInt(String(weeklyProgress.current_target)) || 3;
+          return tm - Math.max(wc - (ct - 1), 0) + Math.max(wc - 1 - (ct - 1), 0);
         })() : 0;
         const normalizedProgress1 = weeklyProgress ? {
           week_count: parseInt(String(weeklyProgress.week_count)),
@@ -894,7 +895,8 @@ function StrengthWorkoutForm() {
         const previousTotalMedals2 = weeklyProgress ? (() => {
           const wc = parseInt(String(weeklyProgress.week_count));
           const tm = parseInt(String(weeklyProgress.total_medals));
-          return tm - Math.max(wc - 2, 0) + Math.max(wc - 1 - 2, 0);
+          const ct = parseInt(String(weeklyProgress.current_target)) || 3;
+          return tm - Math.max(wc - (ct - 1), 0) + Math.max(wc - 1 - (ct - 1), 0);
         })() : 0;
         const normalizedProgress2 = weeklyProgress ? {
           week_count: parseInt(String(weeklyProgress.week_count)),

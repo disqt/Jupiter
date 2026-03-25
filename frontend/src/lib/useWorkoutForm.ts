@@ -208,8 +208,9 @@ export function useWorkoutForm<F extends Record<string, string>>(
           weeklyProgress ? (() => {
             const wc = parseInt(String(weeklyProgress.week_count));
             const tm = parseInt(String(weeklyProgress.total_medals));
-            const currentWeekMedals = Math.max(wc - 2, 0);
-            const previousWeekMedals = Math.max(wc - 1 - 2, 0);
+            const ct = parseInt(String(weeklyProgress.current_target)) || 3;
+            const currentWeekMedals = Math.max(wc - (ct - 1), 0);
+            const previousWeekMedals = Math.max(wc - 1 - (ct - 1), 0);
             return tm - currentWeekMedals + previousWeekMedals;
           })() : 0,
         );
@@ -237,8 +238,9 @@ export function useWorkoutForm<F extends Record<string, string>>(
           weeklyProgress ? (() => {
             const wc = parseInt(String(weeklyProgress.week_count));
             const tm = parseInt(String(weeklyProgress.total_medals));
-            const currentWeekMedals = Math.max(wc - 2, 0);
-            const previousWeekMedals = Math.max(wc - 1 - 2, 0);
+            const ct = parseInt(String(weeklyProgress.current_target)) || 3;
+            const currentWeekMedals = Math.max(wc - (ct - 1), 0);
+            const previousWeekMedals = Math.max(wc - 1 - (ct - 1), 0);
             return tm - currentWeekMedals + previousWeekMedals;
           })() : 0,
         );
