@@ -36,7 +36,8 @@ export default function GoalModal({ currentTarget, onClose, onSaved, onCreateAcc
     try {
       await setUserGoal(effectiveTarget);
       onSaved(effectiveTarget);
-    } finally {
+      onClose();
+    } catch {
       setSaving(false);
     }
   }
