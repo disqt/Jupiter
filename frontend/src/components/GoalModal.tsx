@@ -61,6 +61,7 @@ export default function GoalModal({ currentTarget, onClose, onSaved, onCreateAcc
             <span className="text-[28px] mb-1">🎯</span>
             <h2 className="text-[18px] font-serif text-text">{t.sportsGoal}</h2>
             <p className="text-[12px] text-text-muted mt-1 leading-snug">{t.sportsGoalSubtitle}</p>
+            <p className="text-[11px] text-text-muted/60 mt-2 leading-snug italic">{t.goalProspectiveNote}</p>
           </div>
 
           {/* Preset cards */}

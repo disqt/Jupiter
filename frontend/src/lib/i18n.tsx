@@ -95,6 +95,7 @@ const translations = {
     goalGuestUpsell: 'Crée un compte pour personnaliser ton objectif',
     goalGuestCurrent: 'Ton objectif est actuellement fixé à 3 séances / semaine',
     goalCreateAccount: 'Créer un compte',
+    goalProspectiveNote: 'Modifier votre objectif n\'influera que sur la semaine en cours et les semaines à venir. Vos médailles des semaines précédentes resteront inchangées.',
 
     currentMedals: (count: number) => `Tu as actuellement ${count} médaille${count > 1 ? 's' : ''}.`,
     understood: 'Compris',
@@ -591,6 +592,7 @@ const translations = {
     goalGuestUpsell: 'Create an account to customize your goal',
     goalGuestCurrent: 'Your goal is currently set to 3 sessions / week',
     goalCreateAccount: 'Create an account',
+    goalProspectiveNote: 'Changing your goal will only affect the current week and future weeks. Your medals from previous weeks will remain unchanged.',
 
     currentMedals: (count: number) => `You currently have ${count} medal${count > 1 ? 's' : ''}.`,
     understood: 'Got it',
