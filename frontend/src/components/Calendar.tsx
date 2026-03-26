@@ -561,8 +561,8 @@ export default function Calendar() {
               <div className="space-y-1.5">
                 {(() => {
                   const target = weekTarget;
-                  const sessionLabel = locale === 'fr' ? 'séances' : 'sessions';
-                  const medalLabel = (n: number) => locale === 'fr' ? `${n} médaille${n > 1 ? 's' : ''}` : `${n} medal${n > 1 ? 's' : ''}`;
+                  const sessionLabel = t.sessionsUnit;
+                  const medalLabel = (n: number) => t.medalCount(n);
                   const rows = [
                     { sessions: target, medals: 1 },
                     { sessions: target + 1, medals: 2 },

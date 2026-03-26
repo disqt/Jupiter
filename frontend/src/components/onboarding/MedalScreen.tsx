@@ -61,7 +61,7 @@ export default function MedalScreen({ onNext, weeklyGoal = 3, onBack }: MedalScr
             ))}
           </div>
           <p className="text-center text-secondary text-[14px]">
-            {weeklyGoal} {locale === 'fr' ? 'séances cette semaine = 1 médaille' : 'sessions this week = 1 medal'} 🏅
+            {t.onboardingMedalEquation(weeklyGoal)}
           </p>
         </div>
 

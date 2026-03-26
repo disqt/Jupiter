@@ -217,6 +217,39 @@ export default function HomePage() {
         })()}
       </div>
 
+      {/* Ko-fi support banner */}
+      {(() => {
+        const KOFI_DISMISS_KEY = 'kofi-home-dismissed';
+        const dismissed = typeof window !== 'undefined' ? localStorage.getItem(KOFI_DISMISS_KEY) : null;
+        const isVisible = !dismissed || Date.now() - parseInt(dismissed) > 30 * 24 * 60 * 60 * 1000;
+        if (!isVisible) return null;
+        return (
+          <div className="bg-bg-card border border-[#c9a96e]/20 rounded-card p-4 mb-4 relative animate-fadeIn" style={{ animationDelay: '0.03s' }}>
+            <button
+              onClick={(e) => {
+                localStorage.setItem(KOFI_DISMISS_KEY, String(Date.now()));
+                (e.currentTarget.parentElement as HTMLElement).style.display = 'none';
+              }}
+              className="absolute top-3 right-3 text-muted text-[16px] bg-transparent border-none cursor-pointer p-1 leading-none active:scale-90 transition-transform"
+            >
+              ✕
+            </button>
+            <a
+              href="https://ko-fi.com/jupitertracker"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 no-underline text-inherit"
+            >
+              <div className="w-10 h-10 rounded-full bg-[#c9a96e]/10 flex items-center justify-center text-[20px] shrink-0">☕</div>
+              <div className="min-w-0">
+                <div className="text-[14px] font-semibold text-text">{t.kofiTitle}</div>
+                <div className="text-[12px] text-secondary mt-0.5">{t.kofiDescription}</div>
+              </div>
+            </a>
+          </div>
+        );
+      })()}
+
       {/* Today's workouts */}
       <div className="bg-bg-card border border-border rounded-card p-[18px_20px] mb-4 relative overflow-hidden animate-fadeIn" style={{ animationDelay: '0.06s' }}>
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#c9a96e] via-[#e2c992] to-transparent" />
@@ -276,7 +309,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-5">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">{t.thisWeek}</span>
           <span className="text-[13px] font-semibold text-text-secondary">
-            <strong className="text-[#e2c992] text-[15px]">{activeDays}</strong> / 7 {locale === 'fr' ? 'jours' : 'days'}
+            <strong className="text-[#e2c992] text-[15px]">{activeDays}</strong> / 7 {t.daysUnit}
           </span>
         </div>
         <div className="flex justify-between gap-1.5">
@@ -455,8 +488,8 @@ export default function HomePage() {
               <div className="space-y-1.5">
                 {(() => {
                   const target = data?.medals.target ?? 3;
-                  const sessionLabel = locale === 'fr' ? 'séances' : 'sessions';
-                  const medalLabel = (n: number) => locale === 'fr' ? `${n} médaille${n > 1 ? 's' : ''}` : `${n} medal${n > 1 ? 's' : ''}`;
+                  const sessionLabel = t.sessionsUnit;
+                  const medalLabel = (n: number) => t.medalCount(n);
                   const rows = [
                     { sessions: target, medals: 1 },
                     { sessions: target + 1, medals: 2 },
