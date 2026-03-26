@@ -268,7 +268,7 @@ export default function WorkoutGeneratorModal({ open, onClose, onGenerate }: Wor
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
                       <path d="M6 2v6M18 2v6M6 16v6M18 16v6M2 10h4v4H2zM18 10h4v4h-4zM6 11h12" />
                     </svg>
-                    <span className="text-[11px] text-text-muted uppercase tracking-wider font-semibold">Muscles</span>
+                    <span className="text-[11px] text-text-muted uppercase tracking-wider font-semibold">{t.generatorMusclesLabel}</span>
                   </div>
                   <div className="text-[14px] text-text font-medium">
                     {selectedMuscles.map(m => t.muscleGroups[m] || m).join(', ')}

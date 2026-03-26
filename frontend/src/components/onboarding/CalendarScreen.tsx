@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function CalendarScreen({ onNext, onBack }: Props) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
 
   const today = new Date();
   const year = today.getFullYear();
@@ -16,7 +16,7 @@ export default function CalendarScreen({ onNext, onBack }: Props) {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7;
   const workoutDays = [2, 5, 8, 11, 14, 17, 20, 23];
-  const dayHeaders = locale === 'fr' ? ['L', 'M', 'M', 'J', 'V', 'S', 'D'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const dayHeaders = t.daysInitials;
   const monthNames = t.months;
 
   return (
