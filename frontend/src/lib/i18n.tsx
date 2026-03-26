@@ -35,6 +35,7 @@ const translations = {
     cycling: 'Vélo',
     strength: 'Musculation',
     cancel: 'Annuler',
+    back: 'Retour',
     apply: 'Appliquer',
     cyclingTag: '🚴 Vélo',
     strengthTag: '🏋️ Muscu',
@@ -309,6 +310,13 @@ const translations = {
     migrating: 'Migration de vos données...',
     migrationComplete: 'Données migrées avec succès !',
     loginTitle: 'Se connecter',
+    registerTagline: 'Suivez vos séances de sport, progressez chaque semaine.',
+    choosePassword: 'Choisis un mot de passe',
+    minChars: 'Minimum 6 caractères.',
+    confirmPassword: 'Confirmer le mot de passe',
+    continueButton: 'Continuer',
+    passwordsMismatch: 'Les mots de passe ne correspondent pas.',
+    passwordTooShort: 'Le mot de passe doit contenir au moins 6 caractères.',
 
     // Auth
     login: 'Connexion',
@@ -536,6 +544,7 @@ const translations = {
     cycling: 'Cycling',
     strength: 'Strength',
     cancel: 'Cancel',
+    back: 'Back',
     apply: 'Apply',
     cyclingTag: '🚴 Cycling',
     strengthTag: '🏋️ Strength',
@@ -800,6 +809,13 @@ const translations = {
     migrating: 'Migrating your data...',
     migrationComplete: 'Data migrated successfully!',
     loginTitle: 'Log in',
+    registerTagline: 'Track your workouts, progress every week.',
+    choosePassword: 'Choose a password',
+    minChars: 'Minimum 6 characters.',
+    confirmPassword: 'Confirm password',
+    continueButton: 'Continue',
+    passwordsMismatch: 'Passwords do not match.',
+    passwordTooShort: 'Password must be at least 6 characters.',
 
     // Auth
     login: 'Log in',
