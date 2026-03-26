@@ -418,6 +418,13 @@ export async function getUserGoal(): Promise<{ target: number }> {
   return request('/api/user-goal');
 }
 
+export async function completeOnboarding(): Promise<void> {
+  await request('/api/auth/me', {
+    method: 'PUT',
+    body: JSON.stringify({ has_seen_onboarding: true }),
+  });
+}
+
 export async function setUserGoal(target: number): Promise<{ target: number; effective_from: string }> {
   return request('/api/user-goal', {
     method: 'PUT',

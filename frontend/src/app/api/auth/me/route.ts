@@ -9,7 +9,7 @@ const SALT_ROUNDS = 12;
 export async function GET(request: NextRequest) {
   try {
     const userId = authenticate(request);
-    const result = await pool.query('SELECT id, nickname, created_at FROM users WHERE id = $1', [userId]);
+    const result = await pool.query('SELECT id, nickname, created_at, has_seen_onboarding FROM users WHERE id = $1', [userId]);
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -49,6 +49,10 @@ export async function PUT(request: NextRequest) {
       await pool.query('UPDATE users SET nickname = $1 WHERE id = $2', [nickname, userId]);
     }
 
+    if (typeof body.has_seen_onboarding === 'boolean') {
+      await pool.query('UPDATE users SET has_seen_onboarding = $1 WHERE id = $2', [body.has_seen_onboarding, userId]);
+    }
+
     if (password) {
       if (!current_password) {
         return NextResponse.json({ error: 'Current password required to change password' }, { status: 400 });
@@ -57,7 +61,7 @@ export async function PUT(request: NextRequest) {
       await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, userId]);
     }
 
-    const updated = await pool.query('SELECT id, nickname, created_at FROM users WHERE id = $1', [userId]);
+    const updated = await pool.query('SELECT id, nickname, created_at, has_seen_onboarding FROM users WHERE id = $1', [userId]);
     return NextResponse.json(updated.rows[0]);
   } catch (err) {
     return handleApiError(err);

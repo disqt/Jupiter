@@ -517,12 +517,12 @@ export default function Calendar() {
           {WORKOUT_TYPES.map((type) => {
             const config = WORKOUT_CONFIG[type];
             const borderSoftMap: Record<string, string> = {
-              velo: 'border-cycling-soft hover:bg-cycling-soft hover:border-cycling',
-              musculation: 'border-strength-soft hover:bg-strength-soft hover:border-strength',
-              course: 'border-running-soft hover:bg-running-soft hover:border-running',
-              natation: 'border-swimming-soft hover:bg-swimming-soft hover:border-swimming',
-              marche: 'border-walking-soft hover:bg-walking-soft hover:border-walking',
-              custom: 'border-custom-workout-soft hover:bg-custom-workout-soft hover:border-custom-workout',
+              velo: 'border-cycling-soft',
+              musculation: 'border-strength-soft',
+              course: 'border-running-soft',
+              natation: 'border-swimming-soft',
+              marche: 'border-walking-soft',
+              custom: 'border-custom-workout-soft',
             };
             return (
               <Link key={type} href={`${config.route}?date=${selectedDate}`}

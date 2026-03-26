@@ -333,7 +333,6 @@ function Avatar({ name, size = 'lg' }: { name: string; size?: 'lg' | 'sm' }) {
 function GuestProfileView() {
   const { t, locale, setLocale } = useI18n();
   const router = useRouter();
-  const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
 
@@ -375,7 +374,7 @@ function GuestProfileView() {
       {/* Account actions */}
       <div className="mb-8">
         <button
-          onClick={() => setShowRegister(true)}
+          onClick={() => router.push('/register')}
           className="w-full py-3.5 border-none rounded-card font-inherit text-[15px] font-semibold cursor-pointer transition-all duration-200 active:scale-[0.98] bg-accent text-white tracking-wide"
         >
           {t.createAccount}
@@ -426,7 +425,6 @@ function GuestProfileView() {
           }} />
       )}
 
-      <RegisterSheet open={showRegister} onClose={() => setShowRegister(false)} />
       <LoginSheet open={showLogin} onClose={() => setShowLogin(false)} />
     </div>
   );
