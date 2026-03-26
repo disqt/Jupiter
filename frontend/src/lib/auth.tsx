@@ -20,7 +20,9 @@ interface AuthContextType {
   login: (nickname: string, password: string) => Promise<void>;
   register: (nickname: string, password: string, email: string) => Promise<void>;
   logout: () => void;
-  updateUser: (user: { id: number; nickname: string }) => void;
+  updateUser: (user: User) => void;
+  showOnboarding: boolean;
+  setShowOnboarding: (v: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -32,12 +34,15 @@ const AuthContext = createContext<AuthContextType>({
   register: async () => {},
   logout: () => {},
   updateUser: () => {},
+  showOnboarding: false,
+  setShowOnboarding: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -57,6 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((data) => {
         setToken(saved);
         setUser({ id: data.id, nickname: data.nickname, has_seen_onboarding: data.has_seen_onboarding });
+        if (data.has_seen_onboarding === false) {
+          setShowOnboarding(true);
+        }
       })
       .catch(() => {
         localStorage.removeItem('token');
@@ -99,10 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.replace('/');
   }, [router]);
 
-  const updateUser = useCallback((u: { id: number; nickname: string }) => setUser(u), []);
+  const updateUser = useCallback((u: User) => setUser(u), []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, isGuest, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, token, loading, isGuest, login, register, logout, updateUser, showOnboarding, setShowOnboarding }}>
       {loading ? null : children}
     </AuthContext.Provider>
   );
