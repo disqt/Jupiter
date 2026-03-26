@@ -66,9 +66,15 @@ export default function BottomSheet({
           // For fullscreen sheets: scroll the input into view instead of moving the sheet
           focused.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
-          // For bottom sheets: offset upward by keyboard height
-          sheet.style.transition = 'transform 0.2s ease-out';
-          sheet.style.transform = `translateY(-${keyboardHeight}px)`;
+          // For bottom sheets: offset just enough to keep the focused input visible above keyboard
+          const inputRect = focused.getBoundingClientRect();
+          const inputBottom = inputRect.bottom + 20; // 20px breathing room
+          const visibleBottom = viewport.height;
+          const offset = Math.max(0, inputBottom - visibleBottom);
+          if (offset > 0) {
+            sheet.style.transition = 'transform 0.2s ease-out';
+            sheet.style.transform = `translateY(-${offset}px)`;
+          }
         }
       } else if (!fullScreenMobile) {
         sheet.style.transform = '';

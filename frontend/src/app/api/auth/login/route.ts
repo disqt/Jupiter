@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     const token = jwt.sign({ userId: user.id }, getJwtSecret(), { expiresIn: '30d' });
 
-    return NextResponse.json({ token, user: { id: user.id, nickname: user.nickname } });
+    return NextResponse.json({ token, user: { id: user.id, nickname: user.nickname, has_seen_onboarding: user.has_seen_onboarding } });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

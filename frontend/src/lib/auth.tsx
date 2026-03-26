@@ -85,6 +85,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', data.token);
     setToken(data.token);
     setUser(data.user);
+    if (data.user.has_seen_onboarding === false) {
+      setShowOnboarding(true);
+    }
   }, []);
 
   const register = useCallback(async (nickname: string, password: string, email: string) => {
@@ -98,6 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', data.token);
     setToken(data.token);
     setUser(data.user);
+    // New users always need onboarding
+    setShowOnboarding(true);
   }, []);
 
   const logout = useCallback(() => {
