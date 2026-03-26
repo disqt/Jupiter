@@ -9,6 +9,7 @@ interface User {
   id: number;
   nickname: string;
   email?: string;
+  has_seen_onboarding?: boolean;
 }
 
 interface AuthContextType {
@@ -55,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .then((data) => {
         setToken(saved);
-        setUser({ id: data.id, nickname: data.nickname });
+        setUser({ id: data.id, nickname: data.nickname, has_seen_onboarding: data.has_seen_onboarding });
       })
       .catch(() => {
         localStorage.removeItem('token');
