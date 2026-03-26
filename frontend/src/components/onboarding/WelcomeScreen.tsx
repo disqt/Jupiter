@@ -11,30 +11,50 @@ export default function WelcomeScreen({ username, onNext }: WelcomeScreenProps) 
   const { t } = useI18n();
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-6 relative">
-      {/* Decorative glow */}
-      <div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(201,169,110,0.12) 0%, transparent 70%)' }}
-      />
+    <div className="flex flex-col min-h-full px-6 pt-16 pb-[max(env(safe-area-inset-bottom,20px),20px)]">
+      {/* Content — centered */}
+      <div className="flex-1 flex flex-col items-center justify-center relative">
+        {/* Gold glows */}
+        <div
+          className="absolute top-[15%] left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full pointer-events-none opacity-60"
+          style={{ background: 'radial-gradient(circle, rgba(201,169,110,0.15) 0%, transparent 65%)' }}
+        />
+        <div
+          className="absolute bottom-[20%] left-[20%] w-[250px] h-[250px] rounded-full pointer-events-none opacity-40"
+          style={{ background: 'radial-gradient(circle, rgba(201,169,110,0.1) 0%, transparent 70%)' }}
+        />
 
-      <div className="flex flex-col items-center text-center z-10">
-        <span className="text-[56px] mb-6">🏅</span>
-        <h1 className="font-serif text-[30px] leading-tight text-text mb-2">
-          {t.onboardingWelcome}{' '}
+        {/* Medal with glow ring */}
+        <div className="relative mb-8">
+          <div
+            className="absolute inset-0 scale-[2.5] rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(201,169,110,0.08) 0%, transparent 60%)' }}
+          />
+          <span className="text-[72px] relative block">🏅</span>
+        </div>
+
+        {/* Welcome title */}
+        <h1 className="font-serif text-[34px] leading-tight text-text mb-6 text-center">
+          {t.onboardingWelcome}<br />
           <span className="text-accent">{username}</span>
         </h1>
-        <p className="text-secondary text-[15px] leading-relaxed mt-4 max-w-[300px]">
+
+        {/* Decorative divider */}
+        <div className="w-12 h-[1px] bg-gradient-to-r from-transparent via-accent/40 to-transparent mb-6" />
+
+        {/* Message */}
+        <p className="text-secondary text-[16px] leading-[1.8] max-w-[300px] text-center">
           {t.onboardingWelcomeText1}{' '}
-          <span className="text-accent">{t.onboardingWelcomeHighlight1}</span>
+          <span className="text-accent font-medium">{t.onboardingWelcomeHighlight1}</span>
           {t.onboardingWelcomeText2}{' '}
-          <span className="text-accent">{t.onboardingWelcomeHighlight2}</span>.
+          <span className="text-accent font-medium">{t.onboardingWelcomeHighlight2}</span>.
         </p>
       </div>
 
+      {/* CTA */}
       <button
         onClick={onNext}
-        className="mt-auto mb-8 w-full max-w-[300px] py-3.5 rounded-xl font-semibold text-bg-card bg-gradient-to-br from-[#c9a96e] to-[#a0833a] active:scale-[0.98] transition-transform"
+        className="mt-6 w-full py-4 rounded-xl font-semibold text-[16px] text-white bg-gradient-to-br from-[#c9a96e] to-[#a0833a] active:scale-[0.98] transition-transform"
       >
         {t.onboardingContinue}
       </button>

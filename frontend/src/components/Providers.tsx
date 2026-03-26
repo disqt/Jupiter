@@ -11,12 +11,15 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   if (showOnboarding) {
     return (
-      <OnboardingFlow
-        onDone={() => {
-          setShowOnboarding(false);
-          if (user) updateUser({ ...user, has_seen_onboarding: true });
-        }}
-      />
+      <>
+        <SplashDismiss />
+        <OnboardingFlow
+          onDone={() => {
+            setShowOnboarding(false);
+            if (user) updateUser({ ...user, has_seen_onboarding: true });
+          }}
+        />
+      </>
     );
   }
 

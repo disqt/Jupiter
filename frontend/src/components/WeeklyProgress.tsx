@@ -27,7 +27,7 @@ export default function WeeklyProgress() {
       setCount(parseInt(data.week_count) || 0);
       setTotalMedals(parseInt(data.total_medals) || 0);
     }).catch(console.error);
-  }, [pathname, isGuest]);
+  }, [isGuest]);
 
   useEffect(() => {
     if (searchParams.get('saved') === '1' && count >= 3) {
